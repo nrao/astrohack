@@ -1,3 +1,4 @@
+import numpy as np
 import xarray as xr
 
 from matplotlib import patches
@@ -396,13 +397,13 @@ class AntennaSurface:
         if not self.fitted:
             raise Exception("Panels must be fitted before atempting a correction")
         self.corrections = np.where(self.mask, 0, np.nan)
-        self.residuals = np.copy(self.deviation)
         for panel in self.panels:
             corrections = panel.get_corrections()
             for corr in corrections:
                 ix, iy = int(corr[0]), int(corr[1])
-                self.residuals[ix, iy] -= corr[-1]
                 self.corrections[ix, iy] = -corr[-1]
+
+        self.residuals = self.deviation + self.corrections
         self.phase_corrections = self.telescope.deviation_to_phase(
             self.u_axis, self.v_axis, self.mask, self.corrections, self.wavelength
         )
@@ -555,7 +556,7 @@ class AntennaSurface:
             fig,
             self.u_axis,
             self.v_axis,
-            data,
+            np.where(self.mask, data, np.nan),
             title,
             cmap,
             parm_dict["z_lim"],

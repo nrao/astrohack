@@ -80,4 +80,4 @@ for i, n in enumerate(notebooks):
                 nbformat.write(nb, f)
 
 stop = time.time()
-print(f'Running notebooks took {stop-start:.2f} s')
+print(f"Running notebooks took {stop-start:.2f} s")

@@ -3,11 +3,13 @@
 
 import argparse
 import glob
+import time
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
 
+start = time.time()
 # Parse args
 parser = argparse.ArgumentParser(
     description="Runs a set of Jupyter \
@@ -76,3 +78,6 @@ for i, n in enumerate(notebooks):
             # Write output file
             with open(n_out + ".ipynb", mode="wt") as f:
                 nbformat.write(nb, f)
+
+stop = time.time()
+print(f'Running notebooks took {stop-start:.2f} s')

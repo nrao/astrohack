@@ -13,4 +13,4 @@ on:
 
 jobs:
   call-testing-linux:
-    uses: casangi/toolviper/.github/workflows/python-testing-macos-template.yml@main
+    uses: nrao/gh-actions-templates-public/.github/workflows/python-testing-macos-template.yml@main

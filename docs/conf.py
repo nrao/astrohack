@@ -56,7 +56,7 @@ nbsphinx_codecell_lexer = "python3"
 nbsphinx_execute = "never"
 
 # nbsphinx_prolog = """
-# Open in Colab: https://colab.research.google.com/github/casangi/astrohack/blob/master/docs/{{ env.doc2path(env.docname, base=None) }}
+# Open in Colab: https://colab.research.google.com/github/nrao/astrohack/blob/master/docs/{{ env.doc2path(env.docname, base=None) }}
 #
 # ----
 # """

@@ -12,10 +12,10 @@ ALMA near field ASDM to .holog.zarr filler
 ==========================================
 
 Information on the usage of the ALMA NF ASDM filler can be found in
-the `etc section of our github page <https://github.com/casangi/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_.
+the `etc section of our github page <https://github.com/nrao/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_.
 
 In case of pip install you have to visit the `etc section of our github
-page <https://github.com/casangi/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_ and download the .py files from there.
+page <https://github.com/nrao/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_ and download the .py files from there.
 
 In case of instalation from source the .py files can be found in 
 \`<astrohackdir>/etc/alma-nf-filler'.

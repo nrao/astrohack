@@ -45,7 +45,7 @@ therefore we suggest to install astrohack by using pip:
 
 It is also possible to install astrohack from source by downloading
 the `source code
-<https://github.com/casangi/astrohack/archive/refs/heads/astrohack-dev.zip>`_
+<https://github.com/nrao/astrohack/archive/refs/heads/astrohack-dev.zip>`_
 directly from github. With the zip extracted you can then navigate to
 the root directory and make a local pip installation:
 
@@ -72,7 +72,7 @@ Downloading and installing
 ----------------------------
 
 The installation script can be downloaded `here
-<https://github.com/casangi/astrohack/raw/main/etc/installation/astrohack-install.sh>`_. To
+<https://github.com/nrao/astrohack/raw/main/etc/installation/astrohack-install.sh>`_. To
 run the installation script it is necessary to make it executable, and
 then it can be executed:
 

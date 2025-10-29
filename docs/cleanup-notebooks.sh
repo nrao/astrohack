@@ -12,4 +12,6 @@ rm LOGGER*.log
 rm -r model
 rm -r vla-rt-data
 rm ant_pos_cor_24-10-14.PAR
+rm *_out.ipynb
+rm -r .ipynb_checkpoints
 

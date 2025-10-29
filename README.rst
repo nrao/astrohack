@@ -1,18 +1,18 @@
 .. image:: https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue
    :target: https://www.python.org/downloads/release/python-3130/
 
-.. image:: https://github.com/casangi/astrohack/actions/workflows/python-testing-linux.yml/badge.svg?branch=main
-   :target: https://github.com/casangi/astrohack/actions/workflows/python-testing-linux.yml?query=branch%3Amain
+.. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-linux.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-linux.yml?query=branch%3Amain
 
-.. image:: https://github.com/casangi/astrohack/actions/workflows/python-testing-macos.yml/badge.svg?branch=main
-   :target: https://github.com/casangi/astrohack/actions/workflows/python-testing-macos.yml?query=branch%3Amain
+.. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml?query=branch%3Amain
 	   
-.. image:: https://github.com/casangi/astrohack/actions/workflows/run-ipynb.yml/badge.svg?branch=main
-   :target: https://github.com/casangi/astrohack/actions/workflows/run-ipynb.yml?query=branch%3Amain
+.. image:: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml?query=branch%3Amain
 	   
 
-.. image:: https://codecov.io/gh/casangi/astrohack/branch/main/graph/badge.svg
-   :target: https://codecov.io/gh/casangi/astrohack/branch/main/astrohack
+.. image:: https://codecov.io/gh/nrao/astrohack/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/nrao/astrohack/branch/main/astrohack
 
 
 .. image:: https://readthedocs.org/projects/astrohack/badge/?version=latest
@@ -24,7 +24,7 @@
 Holography Antenna Commissioning Kit
 ====================================
 
-.. image:: https://github.com/casangi/astrohack/blob/astrohack-dev/docs/_media/astrohack_logo.png?raw=true
+.. image:: https://github.com/nrao/astrohack/blob/astrohack-dev/docs/_media/astrohack_logo.png?raw=true
    :align: left
 
 AstroHACK (Holography and Antenna Comissioning Kit) is a python

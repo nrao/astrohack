@@ -2,7 +2,7 @@ Obtaining Antenna position Corrections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This guide assumes that astrohack was installed in a virtual
-environment (venv) with the convenience functions as described `here <./Installing-astrohack-in-a-virtual-environment>`_
+environment (venv) with the convenience functions as described `here <./astrohack_installation.html>`_
 and that the data has been downloaded as an ASDM.
 
 Downloading reduction scripts

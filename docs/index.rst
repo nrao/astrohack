@@ -1,14 +1,25 @@
-.. image:: https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue
-   :target: https://www.python.org/downloads/release/python-3120
+.. image:: https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue
+   :target: https://www.python.org/downloads/release/python-3130/
 
-.. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-linux.yml/badge.svg
+.. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-linux.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-linux.yml?query=branch%3Amain
 
-.. image:: https://github.com/nrao/astrohack/actions/workflows/pythonpublish.yml/badge.svg
-   :target: https://pypi.org/project/astrohack/
-	    
-.. image:: https://readthedocs.org/projects/astrohack/badge/?version=stable
-   :target: https://astrohack.readthedocs.io/en/stable/?badge=stable
-	    
+.. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml?query=branch%3Amain
+	   
+.. image:: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml/badge.svg?branch=main
+   :target: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml?query=branch%3Amain
+	   
+
+.. image:: https://codecov.io/gh/nrao/astrohack/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/nrao/astrohack/branch/main/astrohack
+
+
+.. image:: https://readthedocs.org/projects/astrohack/badge/?version=latest
+   :target: https://astrohack.readthedocs.io
+
+.. image:: https://img.shields.io/pypi/v/astrohack.svg
+   :target: https://pypi.python.org/pypi/astrohack/
 
 Holography Antenna Commissioning Kit
 ====================================
@@ -22,10 +33,10 @@ holography and antenna position corrections.
 
 Currently AstroHACK supports:
 
-- `Astronomical holographies from the VLA <https://astrohack.readthedocs.io/en/stable/tutorial_vla.html>`_.
+- `Astronomical holographies from the VLA <./tutorial_vla.html>`_.
 - Astronomical holographies from ALMA.
-- `Antenna position corrections for the VLA <https://astrohack.readthedocs.io/en/stable/locit_tutorial>`_.
-- `Near-field ALMA holographies <./https://astrohack.readthedocs.io/en/stable/AstroHACK-for-NF-ALMA.html>`_ have
+- `Antenna position corrections for the VLA <./locit_tutorial.html>`_.
+- `Near-field ALMA holographies <./AstroHACK-for-NF-ALMA.html>`_ have
   basic support, such as the creation of Aperture images, but the
   correction of near-field effects is not yet supported.
 

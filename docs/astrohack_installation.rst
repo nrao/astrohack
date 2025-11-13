@@ -121,7 +121,7 @@ command:
    $ deactivate
 
 After installing the user can then go on to `Obtaining Antenna Position
-corrections <./Using-Astrohack-Virtual-Environment-for-antenna-position-corrections>`_.
+corrections <./AstroHACK_under_a_venv_for_locit.html>`_.
 
 Updating astrohack inside the VENV
 ------------------------------------

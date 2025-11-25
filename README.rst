@@ -21,7 +21,6 @@
 .. image:: https://img.shields.io/pypi/v/astrohack.svg
    :target: https://pypi.python.org/pypi/astrohack/
 
-
 Holography Antenna Commissioning Kit
 ====================================
 

@@ -19,6 +19,7 @@ jobs:
     steps:
       - uses: honeycombio/gha-buildevents@v2
         with:
+          secrets: inherit
           # Required: a Honeycomb API key - needed to send traces.
           apikey: ${{ secrets.BUILDEVENT_APIKEY }}
           
@@ -39,7 +40,6 @@ jobs:
 
       - name: "Linux tests"
         uses:  nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@main
-        secrets: inherit
 
       - name: "Honeycomb: Finish Linux tests"
         run: buildevents step $TRACE_ID $STEP_ID $STEP_START $STEP_ID

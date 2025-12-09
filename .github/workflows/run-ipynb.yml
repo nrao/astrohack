@@ -21,7 +21,6 @@ jobs:
         with:
           # Required: a Honeycomb API key - needed to send traces.
           apikey: ${{ secrets.BUILDEVENT_APIKEY }}
-          otel-traceid: true
           
           # Required: the Honeycomb dataset to send traces to.
           dataset: buildevents
@@ -30,7 +29,17 @@ jobs:
           # as status of the trace. Set on the final job of a workflow to signal for the trace to # end
           # job-status has been deprecated
           status: ${{ job.status }}
-          
-  call-testing-linux:
-    uses: nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@main
-    secrets: inherit
+
+      - name: "Honeycomb: Start Linux tests"
+        run: |
+          # Each Job MUST include unique STEP IDs to ensure each job's spans are properly organized together.
+          # Export environment variables used by the finish step.
+          echo "STEP_ID=linux-tests" >> $GITHUB_ENV
+          echo "STEP_START=$(date +%s)" >> $GITHUB_ENV
+
+      - name: "Linux tests"
+        uses:  nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@main
+        secrets: inherit
+
+      - name: "Honeycomb: Finish Linux tests"
+        run: buildevents step $TRACE_ID $STEP_ID $STEP_START $STEP_ID

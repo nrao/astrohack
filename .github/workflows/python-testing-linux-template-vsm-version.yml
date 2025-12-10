@@ -1,0 +1,77 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions.
+
+name: "Python testing on Linux (template)"
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        required: false
+        type: string
+        default: '["3.11", "3.12", "3.13"]'  
+      test-path:
+        required: false
+        type: string
+        default: "tests/"
+      cov_project:
+        required: true
+        type: string
+      local_run:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ${{ fromJson(inputs.python-versions) }}
+    steps:
+    - uses: actions/checkout@v4
+            
+    - name: Set up Python 3
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies with pip
+      run: |
+        python -m pip install --upgrade pip
+        pip install ".[all]"  # install your package
+    - name: Test with pytest
+      run: |
+        pytest -v ${{ inputs.test-path }} \
+        --html=test-results.html --self-contained-html \
+        --cov=${{ inputs.cov_project }} --no-cov-on-fail \
+        --cov-report=html --cov-report=xml --doctest-modules \
+        --junitxml=junit.xml -o junit_family=legacy
+
+    - name: Upload pytest test results and coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-results-${{ matrix.python-version }}
+        path: |
+          ./test-results.html
+          ./htmlcov
+      # Use always() to always run this step to publish test results when there are test failures
+      if: ${{ always() && !inputs.local_run }}
+
+    # - name: Check CODECOV_TOKEN
+    #   run: echo "CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }}"
+
+    - name: Upload code coverage results to Codecov
+      if: ${{ !inputs.local_run }}
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}  # Use the passed token from workflow_call
+        slug: ${{ github.repository }}
+
+    - name: Upload test stats to Codecov
+      if: ${{ !cancelled() && !inputs.local_run }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: ${{ github.repository }}

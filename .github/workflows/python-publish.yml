@@ -1,5 +1,5 @@
 # .github/workflows/python-publish.yml
-name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
+name: Publish 🐍 distribution 📦 to PyPI
 
 on:
   release:

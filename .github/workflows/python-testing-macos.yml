@@ -12,5 +12,5 @@ on:
       - '**.rst'
 
 jobs:
-  call-testing-linux:
+  call-testing-macos:
     uses: nrao/gh-actions-templates-public/.github/workflows/python-testing-macos-template.yml@main

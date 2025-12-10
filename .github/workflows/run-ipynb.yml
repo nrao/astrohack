@@ -13,6 +13,6 @@ on:
 
 jobs:
  
-  call-testing-linux:
+  call-testing-ipynb:
     uses: nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@main
     secrets: inherit

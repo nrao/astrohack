@@ -23,7 +23,7 @@ on:
         default: false
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

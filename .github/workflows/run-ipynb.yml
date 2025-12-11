@@ -12,5 +12,7 @@ on:
       - '**.rst'
 
 jobs:
-      - name: "Linux tests"
-        uses:  nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@honeycomb
+ 
+  call-testing-ipynb:
+    uses: nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@honeycomb
+    secrets: inherit

@@ -52,5 +52,7 @@ acceleration technologies, such as `Dask <https://www.dask.org/>`_ and
 `Numba <https://numba.pydata.org/>`_. Making the reduction of
 holography data much faster and streamlined for the user.
 
-.. note:: 
+.. note::
    📝 astroHACK is under active development! Breaking API changes are still happening on a regular basis, so proceed with caution.
+
+Text

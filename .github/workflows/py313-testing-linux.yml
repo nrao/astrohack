@@ -1,25 +1,25 @@
 # Run Linux tests using template in nrao/gh-actions-templates-public
-name: Local Linux 3.11 tests only
+name: Local Linux 3.13 tests only
 
 on:
-  test-py311:
-    uses: test-linux-py311
+  test-py313:
+    uses: test-linux-py313
     paths-ignore:
       - '**.md'
       - '**.rst'
 
   test-all-python:
-    uses: test-linux-py311
+    uses: test-linux-py313
     paths-ignore:
       - '**.md'
       - '**.rst'
 
 jobs:
-  test-linux-py311:
+  test-linux-py313:
     uses: ./.github/workflows/python-testing-linux-template-vsm-version.yml
     with:
       cov_project: "astrohack"
       test-path: "tests/unit/test_class_base_panel.py"
-      python-versions: '["3.11"]'
+      python-versions: '["3.13"]'
       local_run: true
     secrets: inherit

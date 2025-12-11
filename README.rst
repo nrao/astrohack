@@ -53,4 +53,4 @@ acceleration technologies, such as `Dask <https://www.dask.org/>`_ and
 holography data much faster and streamlined for the user.
 
 .. note:: 
-   📝 astroHACK is under active development! Breaking API changes are still happening on a regular basis, so proceed with caution.   
+   📝 astroHACK is under active development! Breaking API changes are still happening on a regular basis, so proceed with caution.

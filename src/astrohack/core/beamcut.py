@@ -18,8 +18,8 @@ def process_beamcut_chunk(beamcut_chunk_params):
         beamcut_chunk_params["holog_name"],
         dask_load=False,
         load_pnt_dict=False,
-        ant_id=beamcut_chunk_params["this_ant"],
-        ddi_id=beamcut_chunk_params["this_ddi"],
+        ant_id=antenna,
+        ddi_id=ddi,
     )
     # This assumes that there will be no more than one mapping
     this_xds = ant_data_dict[ddi]['map_0']
@@ -45,7 +45,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
                                               visibilities, weights)
 
     beamcut_fit(cut_list, telescope, summary)
-    plot_cuts(cut_list)
+    plot_cuts(cut_list, 'amin', 'GHz', antenna, ddi, summary)
     # lm_deltas = np.diff(lm_offsets, axis=0)
     # lm_angle = np.arctan2(lm_deltas[:, 1], lm_deltas[:, 0])
     #
@@ -121,12 +121,17 @@ def extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_
             'lm_dist': lm_dist,
             'available_corrs': hands_dict['parallel_hands']
         }
+        all_corr_ymax = 1e-34
         for parallel_hand in hands_dict['parallel_hands']:
             icorr = hands_dict[parallel_hand]
-            cut_dict[f'{parallel_hand}_amplitude'] = np.abs(avg_vis[:, icorr])
+            amp = np.abs(avg_vis[:, icorr])
+            maxamp = np.max(amp)
+            if maxamp > all_corr_ymax:
+                all_corr_ymax = maxamp
+            cut_dict[f'{parallel_hand}_amplitude'] = amp
             cut_dict[f'{parallel_hand}_phase'] = np.angle(avg_vis[:, icorr])
             cut_dict[f'{parallel_hand}_weight'] = np.angle(avg_wei[:, icorr])
-
+        cut_dict['max_amp'] = all_corr_ymax
         cut_list.append(cut_dict)
 
     return cut_list
@@ -156,22 +161,40 @@ def get_hand_indexes(corr_axis):
     return hands_dict
 
 
-def plot_cuts(cut_list):
+def plot_cuts(cut_list, lm_unit, freq_unit, antenna, ddi, summary, y_scale=None, dpi=300, display=False):
     n_cuts = len(cut_list)
-    print(n_cuts)
-    title = 'Scans: '
-    fig, ax = create_figure_and_axes(None, [n_cuts, 3])
-    for icut, cut in enumerate(cut_list):
-        sub_title = (f'Cut angle w.r.t. North = '
-                     f'{cut["lm_angle"] *  convert_unit('rad', 'deg', 'trigonometric'):.1f} deg')
-        scatter_plot(ax[icut, 0], cut['lm_dist'], 'LM distance [rad]', cut['lm_offsets'][:, 0], 'L [rad]',
-                     title=sub_title)
-        scatter_plot(ax[icut, 1], cut['lm_dist'], 'LM distance [rad]', cut['lm_offsets'][:, 1], 'M [rad]')
-        scatter_plot(ax[icut, 2], cut['lm_dist'], 'LM distance [rad]', cut['RR_amplitude'][:],
-                     'RR visibilities [Jy]', model=cut['RR_amp_fit'][:])
-        title += f'{cut["scan_number"]}, '
-    title = title[:-2]
-    close_figure(fig, title, 'lm_simple.png', 300, False)
+    freq = summary['spectral']['rep. frequency']
+    mean_az =
+    mean_el = "az el info" "mean"
+    title = f'Beam cut for {create_dataset_label(antenna, ddi)}, $\nu$ = {}'
+    lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
+    fig, ax = create_figure_and_axes(None, [n_cuts, 2])
+    for icut, cut_dict in enumerate(cut_list):
+        sub_title = (f'Scan = {cut_dict["scan_number"]}, ' + r'$\theta$(N) = ' +
+                     f'{cut_dict["lm_angle"] *  convert_unit('rad', 'deg', 'trigonometric'):.1f} deg')
+        max_amp = cut_dict['max_amp']
+        for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
+            x_data = lm_fac * cut_dict['lm_dist']
+            y_data = cut_dict[f'{parallel_hand}_amplitude']
+            fit_data = cut_dict[f'{parallel_hand}_amp_fit']
+            this_ax = ax[icut, i_corr]
+            scatter_plot(this_ax, x_data, f'LM distance [{lm_unit}]',
+                         y_data, f'{parallel_hand} Amplitude [ ]',
+                         model=fit_data,  model_marker='',
+                         title=sub_title+f', corr = {parallel_hand}',
+                         data_marker='+', residuals_marker='.', model_linestyle='-',
+                         data_label=f'{parallel_hand} data', model_label=f'{parallel_hand} fit',)
+            xrange = x_data[-1] - x_data[0]
+            for i_peak in range(cut_dict[f'{parallel_hand}_n_peaks']):
+                x_cen = lm_fac*cut_dict[f'{parallel_hand}_amp_fit_pars'][i_peak*3]
+                this_ax.axvline(x=x_cen, linestyle='--', color='black')
+                this_ax.text(x_cen+0.01*xrange, 0.5, i_peak+1, ha='left', va='center')
+            if y_scale is None:
+                this_ax.set_ylim((-0.025*max_amp, 1.05*max_amp))
+            else:
+                this_ax.set_ylim(y_scale)
+    filename = f'beamcut_{antenna}_{ddi}.png'
+    close_figure(fig, title, filename, dpi, display)
 
 
 def gaussian(x_axis, x_off, amp, fwhm):
@@ -205,63 +228,41 @@ def pb_fsl_ssl(x_axis, pb_off, pb_amp, pb_fwhm, lfsl_off, lfsl_amp, lfsl_fwhm, r
     return pb_fsl_model + lssl + rssl
 
 
+def build_multi_gaussian_initial_guesses(x_data, y_data, pb_fwhm, min_dist_fraction=1.3):
+    p0 = []
+    step = float(np.median(np.diff(x_data)))
+    min_dist = min_dist_fraction * pb_fwhm / step
+    peaks, _ = find_peaks(y_data, distance=min_dist)
+    for ipeak in peaks:
+        p0.extend([x_data[ipeak], y_data[ipeak], pb_fwhm])
+    return p0, len(peaks)
+
+def multi_gaussian(xdata, *args):
+    nargs = len(args)
+    if nargs%3 != 0:
+        raise ValueError('Number of arguments should be multiple of 3')
+    y_values = np.zeros_like(xdata)
+    for iarg in range(0, nargs, 3):
+        y_values += gaussian(xdata, args[iarg], args[iarg+1], args[iarg+2])
+    return y_values
+
+
+
 def beamcut_fit(cut_list, telescope, summary):
     wavelength = summary["spectral"]["rep. wavelength"]
     primary_fwhm = 1.2 * wavelength / telescope.diameter
     for cut_dict in cut_list:
         x_data = cut_dict['lm_dist']
-        step = np.median(np.diff(x_data))
-        min_dist = 1.5 * primary_fwhm / step
         for parallel_hand in cut_dict['available_corrs']:
             y_data = cut_dict[f'{parallel_hand}_amplitude']
-            # ymax = np.max(y_data)
-            # p0 = [primary_fwhm, ymax, 0.0, 1*primary_fwhm, 0.2*ymax, primary_fwhm, 0.2*ymax, primary_fwhm]
-            # results = curve_fit(primary_and_first_side_lobes, x_data, y_data, p0=p0)
-            # fit_pars = results[0]
-            # fit = primary_and_first_side_lobes(x_data, *fit_pars)
-            # p0 = [0.0, ymax, primary_fwhm]
-            # results = curve_fit(gaussian, x_data, y_data, p0=p0)
-            # fit_pars = results[0]
-            # fit = gaussian(x_data, *fit_pars)
-            peaks, _ = find_peaks(y_data, distance=min_dist)
-            n_peaks = len(peaks)
-            if n_peaks == 1:
-                fit_func = gaussian
-                i_peak = peaks[0]
-                p0 = [x_data[i_peak], y_data[i_peak], primary_fwhm]
-            elif n_peaks == 3:
-                fit_func = pb_fsl
-                i_lfsl_peak = peaks[0]
-                i_pb_peak = peaks[1]
-                i_rfsl_peak = peaks[2]
-                p0 = [x_data[i_pb_peak], y_data[i_pb_peak], primary_fwhm,
-                      x_data[i_lfsl_peak], y_data[i_lfsl_peak], primary_fwhm,
-                      x_data[i_rfsl_peak], y_data[i_rfsl_peak], primary_fwhm,]
-            elif n_peaks == 5:
-                fit_func = pb_fsl_ssl
-                i_lssl_peak = peaks[0]
-                i_lfsl_peak = peaks[1]
-                i_pb_peak = peaks[2]
-                i_rfsl_peak = peaks[3]
-                i_rssl_peak = peaks[4]
-
-                p0 = [x_data[i_pb_peak], y_data[i_pb_peak], primary_fwhm,
-                      x_data[i_lfsl_peak], y_data[i_lfsl_peak], primary_fwhm,
-                      x_data[i_rfsl_peak], y_data[i_rfsl_peak], primary_fwhm,
-                      x_data[i_lssl_peak], y_data[i_lssl_peak], primary_fwhm,
-                      x_data[i_rssl_peak], y_data[i_rssl_peak], primary_fwhm,
-                      ]
-            else:
-                raise RuntimeError(f"Don't know how to fit a beam cut with {n_peaks} peaks")
-
-            print(min_dist, primary_fwhm, n_peaks)
-            results = curve_fit(fit_func, x_data, y_data, p0=p0)
+            p0, n_peaks = build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
+            results = curve_fit(multi_gaussian, x_data, y_data, p0=p0)
             fit_pars = results[0]
-            fit = fit_func(x_data, *fit_pars)
+            fit = multi_gaussian(x_data, *fit_pars)
 
-            print(fit_pars)
             cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
             cut_dict[f'{parallel_hand}_amp_fit'] = fit
+            cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
 
     return cut_list
 

@@ -4,7 +4,7 @@ import json
 
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name
-from astrohack.utils.file import overwrite_file
+from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
 from astrohack.utils.data import write_meta_data
 
@@ -19,6 +19,8 @@ def beamcut_tool(
         parallel: bool = False,
         overwrite: bool = False,
 ):
+
+    check_if_file_can_be_opened(holog_name, "0.9.4")
 
     if beamcut_name is None:
         beamcut_name = get_default_file_name(

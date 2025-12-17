@@ -366,6 +366,7 @@ def scatter_plot(
 
             ax_res.axhline(0, color=hv_color, ls=hv_linestyle)
             ax_res.set_ylabel("Residuals")
+            ax_res.set_xlabel(xlabel)
 
     if title is not None:
         ax.set_title(title)

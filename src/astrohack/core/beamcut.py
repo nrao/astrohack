@@ -6,7 +6,8 @@ from scipy.stats import linregress
 
 from astrohack import get_proper_telescope
 from astrohack.utils.file import load_holog_file
-from astrohack.utils import create_dataset_label, data_statistics, statistics_to_text, convert_unit, sig_2_fwhm
+from astrohack.utils import create_dataset_label, data_statistics, statistics_to_text, convert_unit, sig_2_fwhm, \
+    format_frequency, format_value_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 
 
@@ -45,7 +46,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
                                               visibilities, weights)
 
     beamcut_fit(cut_list, telescope, summary)
-    plot_cuts(cut_list, 'amin', 'GHz', antenna, ddi, summary)
+    plot_cuts_in_amplitude(cut_list, 'amin', 'deg', antenna, ddi, summary)
     # lm_deltas = np.diff(lm_offsets, axis=0)
     # lm_angle = np.arctan2(lm_deltas[:, 1], lm_deltas[:, 0])
     #
@@ -161,18 +162,21 @@ def get_hand_indexes(corr_axis):
     return hands_dict
 
 
-def plot_cuts(cut_list, lm_unit, freq_unit, antenna, ddi, summary, y_scale=None, dpi=300, display=False):
+def plot_cuts_in_amplitude(cut_list, lm_unit, azel_unit, antenna, ddi, summary, y_scale=None, dpi=300, display=False):
     n_cuts = len(cut_list)
-    freq = summary['spectral']['rep. frequency']
-    mean_az =
-    mean_el = "az el info" "mean"
-    title = f'Beam cut for {create_dataset_label(antenna, ddi)}, $\nu$ = {}'
+    freq_str = format_frequency(summary['spectral']['rep. frequency'], decimal_places=4)
+    raw_azel = np.array(summary['general']["az el info"]["mean"])
+    mean_azel = convert_unit('rad', azel_unit, 'trigonometric') * raw_azel
+    title = f'Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, '+r'$\nu$ = ' + f'{freq_str}, '
+    title += f'Az ~ {format_value_unit(mean_azel[0], 'deg', decimal_places=0)}, '
+    title += f'El ~ {format_value_unit(mean_azel[1], 'deg', decimal_places=0)}'
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
     fig, ax = create_figure_and_axes(None, [n_cuts, 2])
     for icut, cut_dict in enumerate(cut_list):
         sub_title = (f'Scan = {cut_dict["scan_number"]}, ' + r'$\theta$(N) = ' +
                      f'{cut_dict["lm_angle"] *  convert_unit('rad', 'deg', 'trigonometric'):.1f} deg')
         max_amp = cut_dict['max_amp']
+        y_off = 0.05*max_amp
         for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
             x_data = lm_fac * cut_dict['lm_dist']
             y_data = cut_dict[f'{parallel_hand}_amplitude']
@@ -184,13 +188,12 @@ def plot_cuts(cut_list, lm_unit, freq_unit, antenna, ddi, summary, y_scale=None,
                          title=sub_title+f', corr = {parallel_hand}',
                          data_marker='+', residuals_marker='.', model_linestyle='-',
                          data_label=f'{parallel_hand} data', model_label=f'{parallel_hand} fit',)
-            xrange = x_data[-1] - x_data[0]
             for i_peak in range(cut_dict[f'{parallel_hand}_n_peaks']):
                 x_cen = lm_fac*cut_dict[f'{parallel_hand}_amp_fit_pars'][i_peak*3]
-                this_ax.axvline(x=x_cen, linestyle='--', color='black')
-                this_ax.text(x_cen+0.01*xrange, 0.5, i_peak+1, ha='left', va='center')
+                y_amp = cut_dict[f'{parallel_hand}_amp_fit_pars'][i_peak*3+1]
+                this_ax.text(x_cen, y_amp+y_off/2, i_peak+1, ha='center', va='bottom')
             if y_scale is None:
-                this_ax.set_ylim((-0.025*max_amp, 1.05*max_amp))
+                this_ax.set_ylim((-y_off, max_amp+3*y_off))
             else:
                 this_ax.set_ylim(y_scale)
     filename = f'beamcut_{antenna}_{ddi}.png'

@@ -428,3 +428,11 @@ def simple_imshow_map_plot(
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     return im
+
+
+def set_y_axis_lims_from_default(ax, user_y_scale, prog_defaults):
+    if user_y_scale is None:
+        ax.set_ylim(prog_defaults)
+    else:
+        ax.set_ylim(user_y_scale)
+

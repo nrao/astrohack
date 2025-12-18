@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from scipy.stats import linregress
+import astropy
 
 from astrohack import get_proper_telescope
 from astrohack.utils.file import load_holog_file
@@ -44,8 +45,8 @@ def process_beamcut_chunk(beamcut_chunk_params):
 
     cut_list = extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
                                               visibilities, weights)
-
     beamcut_fit(cut_list, telescope, summary)
+
     plot_cuts_in_amplitude(cut_list, 'amin', 'deg', antenna, ddi, summary)
     # lm_deltas = np.diff(lm_offsets, axis=0)
     # lm_angle = np.arctan2(lm_deltas[:, 1], lm_deltas[:, 0])
@@ -107,12 +108,16 @@ def extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_
         time = time_axis[time_selection]
         this_lm_offsets = lm_offsets[time_selection, :]
 
-        lm_angle, lm_dist = cut_direction_determination(this_lm_offsets)
+        lm_angle, lm_dist, direction = cut_direction_determination(this_lm_offsets)
         hands_dict = get_hand_indexes(corr_axis)
 
         avg_vis = np.average(visibilities[time_selection, fchan:lchan, :], axis=1,
                              weights=weights[time_selection, fchan:lchan, :])
         avg_wei = np.average(weights[time_selection, fchan:lchan, :], axis=1)
+
+        avg_time = np.average(time)*convert_unit('sec', 'day', 'time')
+        timestr = astropy.time.Time(avg_time, format='mjd').to_value('iso', subfmt='date_hm')
+
 
         cut_dict = {
             'scan_number': scan_number,
@@ -120,7 +125,9 @@ def extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_
             'lm_offsets': this_lm_offsets,
             'lm_angle': lm_angle,
             'lm_dist': lm_dist,
-            'available_corrs': hands_dict['parallel_hands']
+            'available_corrs': hands_dict['parallel_hands'],
+            'direction': direction,
+            'time_string': timestr
         }
         all_corr_ymax = 1e-34
         for parallel_hand in hands_dict['parallel_hands']:
@@ -139,13 +146,45 @@ def extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_
 
 
 def cut_direction_determination(lm_offsets):
-    result = linregress(lm_offsets[:, 0], lm_offsets[:, 1])
-    lm_angle = np.arctan(result.slope) - np.pi/2
+
+    dx = lm_offsets[-1, 0] - lm_offsets[0, 0]
+    dy = lm_offsets[-1, 1] - lm_offsets[0, 1]
+
+    if np.isclose(dx, dy, rtol=1e-1): # X case
+        result = linregress(lm_offsets[:, 0], lm_offsets[:, 1])
+        lm_angle = np.arctan(result.slope) + np.pi/2
+        direction = 'mixed cut ('
+        if dy < 0 and dx < 0:
+            direction += 'NE -> SW'
+        elif dy < 0 < dx:
+            direction += 'NW -> SE'
+        elif dy > 0 > dx:
+            direction += 'SE -> NW'
+        else:
+            direction += 'SW -> NE'
+    elif np.abs(dy) > np.abs(dx): # Elevation case
+        result = linregress(lm_offsets[:, 1], lm_offsets[:, 0])
+        lm_angle = np.arctan(result.slope)
+        direction = 'El. cut ('
+        if dy < 0:
+            direction += 'N -> S'
+        else:
+            direction += 'S -> N'
+    else: # Azimuth case
+        result = linregress(lm_offsets[:, 0], lm_offsets[:, 1])
+        lm_angle = np.arctan(result.slope) + np.pi/2
+        direction = 'Az. cut ('
+        if dx < 0:
+            direction += 'E -> W'
+        else:
+            direction += 'W -> E'
+
+    direction += ')'
 
     lm_dist = np.sqrt(lm_offsets[:, 0]**2 + lm_offsets[:, 1]**2)
     imin = np.argmin(lm_dist)
     lm_dist[:imin] = -lm_dist[:imin]
-    return lm_angle, lm_dist
+    return lm_angle, lm_dist, direction
 
 
 def get_hand_indexes(corr_axis):
@@ -164,7 +203,7 @@ def get_hand_indexes(corr_axis):
 
 def plot_cuts_in_amplitude(cut_list, lm_unit, azel_unit, antenna, ddi, summary, y_scale=None, dpi=300, display=False):
     n_cuts = len(cut_list)
-    freq_str = format_frequency(summary['spectral']['rep. frequency'], decimal_places=4)
+    freq_str = format_frequency(summary['spectral']['rep. frequency'], decimal_places=3)
     raw_azel = np.array(summary['general']["az el info"]["mean"])
     mean_azel = convert_unit('rad', azel_unit, 'trigonometric') * raw_azel
     title = f'Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, '+r'$\nu$ = ' + f'{freq_str}, '
@@ -173,8 +212,7 @@ def plot_cuts_in_amplitude(cut_list, lm_unit, azel_unit, antenna, ddi, summary, 
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
     fig, ax = create_figure_and_axes(None, [n_cuts, 2])
     for icut, cut_dict in enumerate(cut_list):
-        sub_title = (f'Scan = {cut_dict["scan_number"]}, ' + r'$\theta$(N) = ' +
-                     f'{cut_dict["lm_angle"] *  convert_unit('rad', 'deg', 'trigonometric'):.1f} deg')
+        sub_title = f'{cut_dict["time_string"]}, {cut_dict["direction"]}'
         max_amp = cut_dict['max_amp']
         y_off = 0.05*max_amp
         for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
@@ -185,7 +223,7 @@ def plot_cuts_in_amplitude(cut_list, lm_unit, azel_unit, antenna, ddi, summary, 
             scatter_plot(this_ax, x_data, f'LM distance [{lm_unit}]',
                          y_data, f'{parallel_hand} Amplitude [ ]',
                          model=fit_data,  model_marker='',
-                         title=sub_title+f', corr = {parallel_hand}',
+                         title=sub_title,
                          data_marker='+', residuals_marker='.', model_linestyle='-',
                          data_label=f'{parallel_hand} data', model_label=f'{parallel_hand} fit',)
             for i_peak in range(cut_dict[f'{parallel_hand}_n_peaks']):
@@ -196,6 +234,15 @@ def plot_cuts_in_amplitude(cut_list, lm_unit, azel_unit, antenna, ddi, summary, 
                 this_ax.set_ylim((-y_off, max_amp+3*y_off))
             else:
                 this_ax.set_ylim(y_scale)
+
+            pars_str = f'PB off. = {cut_dict[f'{parallel_hand}_pb_center']*lm_fac:.2f} [{lm_unit}]\n'
+            pars_str += f'PB FWHM = {cut_dict[f'{parallel_hand}_pb_fwhm']*lm_fac:.2f} [{lm_unit}]\n'
+            pars_str += (f'FSL ratio = '
+                         f'{10*np.log10(cut_dict[f'{parallel_hand}_first_side_lobe_ratio']):.1f} dB')
+            bounds_box = dict(boxstyle='square', facecolor='white', alpha=0.5)
+            this_ax.text(0.05, 0.95, pars_str, transform=this_ax.transAxes, fontsize=7, verticalalignment='top',
+                         bbox=bounds_box)
+
     filename = f'beamcut_{antenna}_{ddi}.png'
     close_figure(fig, title, filename, dpi, display)
 
@@ -250,7 +297,6 @@ def multi_gaussian(xdata, *args):
     return y_values
 
 
-
 def beamcut_fit(cut_list, telescope, summary):
     wavelength = summary["spectral"]["rep. wavelength"]
     primary_fwhm = 1.2 * wavelength / telescope.diameter
@@ -266,6 +312,18 @@ def beamcut_fit(cut_list, telescope, summary):
             cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
             cut_dict[f'{parallel_hand}_amp_fit'] = fit
             cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
+
+            centers = fit_pars[0::3]
+            amps = fit_pars[1::3]
+            fwhms = fit_pars[2::3]
+
+            i_pb = np.argmax(amps)
+            cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
+            cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
+
+            left_first_sl_amp = amps[i_pb-1]
+            right_first_sl_amp = amps[i_pb+1]
+            cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
 
     return cut_list
 

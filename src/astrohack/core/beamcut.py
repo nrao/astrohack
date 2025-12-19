@@ -7,11 +7,12 @@ import astropy
 
 from astrohack import get_proper_telescope
 from astrohack.utils.file import load_holog_file
-from astrohack.utils import create_dataset_label, data_statistics, statistics_to_text, convert_unit, sig_2_fwhm, \
-    format_frequency, format_value_unit, to_db, fontsize
+from astrohack.utils import create_dataset_label, convert_unit, sig_2_fwhm, \
+    format_frequency, format_value_unit, to_db
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
-import matplotlib.ticker as mticker
+
+lnbr = '\n'
 
 
 def process_beamcut_chunk(beamcut_chunk_params):
@@ -57,6 +58,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
 
     plot_cuts_in_amplitude(cut_list, summary, beamcut_chunk_params)
     plot_cuts_in_attenuation(cut_list, summary, beamcut_chunk_params)
+    create_report_chunk(cut_list, summary, beamcut_chunk_params)
 
 def time_scan_selection(scan_time_ranges, time_axis):
     time_selections = []
@@ -207,13 +209,13 @@ def add_lobe_identification_to_plot(ax, centers, peaks, y_off, attenunation_plot
         ax.text(centers[i_peak], peak+y_off, f'{i_peak+1})', ha='center', va='bottom')
 
 
-def make_parallel_hand_subplot_title(direction, time_string):
+def make_parallel_hand_sub_title(direction, time_string):
     return f'{direction}, {time_string} UTC'
 
 
 def plot_single_cut_amp_parallel_corrs(cut_dict, axes, par_dict):
     # Init
-    sub_title = make_parallel_hand_subplot_title(cut_dict["direction"], cut_dict["time_string"])
+    sub_title = make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
     max_amp = cut_dict['max_amp']
     y_off = 0.05*max_amp
     lm_unit = par_dict['lm_unit']
@@ -276,6 +278,7 @@ def create_beamcut_header(summary, par_dict):
     title += f'Az ~ {format_value_unit(mean_azel[0], 'deg', decimal_places=0)}, '
     title += f'El ~ {format_value_unit(mean_azel[1], 'deg', decimal_places=0)}'
     return title
+
 
 def plot_cuts_in_amplitude(cut_list, summary, par_dict):
     # Init
@@ -355,7 +358,7 @@ def beamcut_fit(cut_list, telescope, summary):
 
 
 def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
-    sub_title = make_parallel_hand_subplot_title(cut_dict["direction"], cut_dict["time_string"])
+    sub_title = make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
     corr_colors = ['blue', 'red']
@@ -423,6 +426,24 @@ def plot_cuts_in_attenuation(cut_list, summary, par_dict):
 
     filename = f'beamcut_attenuation_{antenna}_{ddi}.png'
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
+
+
+def create_report_chunk(cut_list, summary, par_dict):
+    outstr = ''
+
+    outstr += create_beamcut_header(summary, par_dict)+2*lnbr
+    for icut, cut_dict in enumerate(cut_list):
+        sub_title = make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
+        for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
+            outstr += f'{parallel_hand} {sub_title}{lnbr}'
+
+            outstr += lnbr
+
+    outstr += lnbr
+
+    print(outstr)
+
+
 
 
 

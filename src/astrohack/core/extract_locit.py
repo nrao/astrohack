@@ -420,6 +420,7 @@ def plot_source_table(
         labels=labels,
         xlim=[-0.5, 24.5],
         ylim=[-95, 95],
+        add_legend=False,
     )
 
     close_figure(fig, title, filename, dpi, display)

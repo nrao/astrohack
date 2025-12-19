@@ -56,6 +56,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
     beamcut_chunk_params['y_scale'] = None
 
     plot_cuts_in_amplitude(cut_list, summary, beamcut_chunk_params)
+    plot_cuts_in_attenuation(cut_list, summary, beamcut_chunk_params)
 
 def time_scan_selection(scan_time_ranges, time_axis):
     time_selections = []
@@ -189,10 +190,11 @@ def add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
     y_min, y_max = ax.get_ylim()
     x_lims = ax.get_xlim()
     pb_min, pb_max = np.ceil(x_lims/pb_fwhm)
+    beam_offsets = np.arange(pb_min, pb_max, 1, dtype=int)
 
-    for itk in np.arange(pb_min, pb_max, 1):
-        ax.axvline(itk*pb_fwhm, color='k', linestyle='--', linewidth=0.5)
-        ax.text(itk*pb_fwhm, y_max, f'{itk+1}', va='bottom', ha='center')
+    for itk in beam_offsets:
+        ax.axvline(itk * pb_fwhm, color='k', linestyle='--', linewidth=0.5)
+        ax.text(itk*pb_fwhm, y_max, f'{itk:d}', va='bottom', ha='center')
 
 
 def add_lobe_identification_to_plot(ax, centers, peaks, y_off, attenunation_plot=False):
@@ -209,7 +211,7 @@ def make_parallel_hand_subplot_title(direction, time_string):
     return f'{direction}, {time_string} UTC'
 
 
-def plot_single_cut_parallel_corrs(cut_dict, axes, par_dict):
+def plot_single_cut_amp_parallel_corrs(cut_dict, axes, par_dict):
     # Init
     sub_title = make_parallel_hand_subplot_title(cut_dict["direction"], cut_dict["time_string"])
     max_amp = cut_dict['max_amp']
@@ -230,7 +232,8 @@ def plot_single_cut_parallel_corrs(cut_dict, axes, par_dict):
         # Call plotting tool
         scatter_plot(this_ax, x_data, xlabel, y_data, ylabel, model=fit_data,  model_marker='', title=sub_title,
                      data_marker='+', residuals_marker='.', model_linestyle='-', data_label=f'{parallel_hand} data',
-                     model_label=f'{parallel_hand} fit', data_color='red', model_color='blue', residuals_color='black',)
+                     model_label=f'{parallel_hand} fit', data_color='red', model_color='blue', residuals_color='black',
+                     legend_location='upper right')
 
         # Add fit peak identifiers
         add_lobe_identification_to_plot(this_ax, lm_fac * cut_dict[f'{parallel_hand}_amp_fit_pars'][0::3],
@@ -248,12 +251,17 @@ def plot_single_cut_parallel_corrs(cut_dict, axes, par_dict):
                                 lm_unit)
 
 
-def add_beam_parameters_box(ax, pb_center, pb_fwhm, sidelobe_ratio, lm_unit, alpha=0.8, x_pos=0.05, y_pos=0.95):
-    pars_str = f'PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n'
-    pars_str += f'PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n'
-    pars_str += f'FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}'
+def add_beam_parameters_box(ax, pb_center, pb_fwhm, sidelobe_ratio, lm_unit, alpha=0.8, x_pos=0.05, y_pos=0.95,
+                            attenuation_plot=False):
+    if attenuation_plot:
+        head = 'avg '
+    else:
+        head = ''
+    pars_str = f'{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n'
+    pars_str += f'{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n'
+    pars_str += f'{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}'
     bounds_box = dict(boxstyle='square', facecolor='white', alpha=alpha)
-    ax.text(0.05, 0.95, pars_str, transform=ax.transAxes, verticalalignment='top',
+    ax.text(x_pos, y_pos, pars_str, transform=ax.transAxes, verticalalignment='top',
                      bbox=bounds_box)
 
 
@@ -278,12 +286,12 @@ def plot_cuts_in_amplitude(cut_list, summary, par_dict):
     # Loop over cuts
     fig, axes = create_figure_and_axes([12, 1+n_cuts*4], [n_cuts, 2])
     for icut, cut_dict in enumerate(cut_list):
-        plot_single_cut_parallel_corrs(cut_dict, axes[icut, :], par_dict)
+        plot_single_cut_amp_parallel_corrs(cut_dict, axes[icut, :], par_dict)
 
     # Header creation
     title = create_beamcut_header(summary, par_dict)
 
-    filename = f'beamcut_{antenna}_{ddi}.png'
+    filename = f'beamcut_amplitude_{antenna}_{ddi}.png'
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
@@ -346,7 +354,75 @@ def beamcut_fit(cut_list, telescope, summary):
     return cut_list
 
 
+def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
+    sub_title = make_parallel_hand_subplot_title(cut_dict["direction"], cut_dict["time_string"])
+    lm_unit = par_dict['lm_unit']
+    lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
+    corr_colors = ['blue', 'red']
 
+    min_attenuation = 1e34
+    pb_center = 0.0
+    pb_fwhm = 0.0
+    fsl_ratio = 0.0
+    xlabel = f'{cut_dict['xlabel']} [{lm_unit}]'
+    ylabel = f'Attenuation [dB]'
+
+    # Loop over correlations
+    for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
+        # Init labels
+        x_data = lm_fac * cut_dict['lm_dist']
+        amps = cut_dict[f'{parallel_hand}_amplitude']
+        max_amp = np.max(amps)
+        y_data = to_db(amps/max_amp)
+        y_min = np.min(y_data)
+        if y_min < min_attenuation:
+            min_attenuation = y_min
+
+        ax.plot(x_data, y_data, label=parallel_hand, color=corr_colors[i_corr], marker='.', ls='')
+
+        pb_center += cut_dict[f'{parallel_hand}_pb_center']
+        pb_fwhm += cut_dict[f'{parallel_hand}_pb_fwhm']
+        fsl_ratio += cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(sub_title)
+    ax.legend(loc='upper right')
+
+    n_corrs = len(cut_dict['available_corrs'])
+    pb_center /= n_corrs
+    pb_fwhm /= n_corrs
+    fsl_ratio /= n_corrs
+    # equalize Y scale between correlations
+    y_off = 0.1 *np.abs(min_attenuation)
+    set_y_axis_lims_from_default(ax, par_dict['y_scale'], (min_attenuation-y_off, y_off ))
+
+    # Add fit peak identifiers
+    first_corr = cut_dict['available_corrs'][0]
+
+    add_secondary_beam_hpbw_x_axis_to_plot(cut_dict[f'{first_corr}_pb_fwhm']*lm_fac, ax)
+
+    # Add bounded box with Beam parameters
+    add_beam_parameters_box(ax, pb_center*lm_fac, pb_fwhm*lm_fac, fsl_ratio, lm_unit, attenuation_plot=True)
+    return
+
+
+def plot_cuts_in_attenuation(cut_list, summary, par_dict):
+    # Init
+    n_cuts = len(cut_list)
+    antenna = par_dict['this_ant']
+    ddi = par_dict['this_ddi']
+
+    # Loop over cuts
+    fig, axes = create_figure_and_axes([6, 1+n_cuts*4], [n_cuts, 1])
+    for icut, cut_dict in enumerate(cut_list):
+        plot_single_cut_attenuation_parallel_corrs(cut_dict, axes[icut], par_dict)
+
+    # Header creation
+    title = create_beamcut_header(summary, par_dict)
+
+    filename = f'beamcut_attenuation_{antenna}_{ddi}.png'
+    close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
 

@@ -183,22 +183,16 @@ def get_parallel_hand_indexes(corr_axis):
 
 
 def add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
-    with np.errstate(divide='ignore'):
-        to_fwhm = lambda x: x/pb_fwhm
-        from_fwhm = lambda xb: pb_fwhm/xb
-        print('to fwhm', to_fwhm(pb_fwhm))
-        print('from fwhm', from_fwhm(1.0))
-        sec_x_axis = ax.secondary_xaxis('top', functions=(to_fwhm, from_fwhm))
-        sec_x_axis.set_xlabel('Offset in Primary Beam HPBWs\n')
-        old_xticks = sec_x_axis.get_xticks()
-        for itk in np.arange(-4, 5, 1):
-            ax.axvline(itk*pb_fwhm, color='k', linestyle='--', linewidth=0.5)
-            ax.text(itk*pb_fwhm, 1.4, f'{itk+1}', )
-        print(old_xticks, to_fwhm(old_xticks), pb_fwhm)
-        new_ticks = np.arange(0.05, 0.2, 0.05)
-        new_ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
-        print(new_ticks)
-        sec_x_axis.set_xticks([])
+    sec_x_axis = ax.secondary_xaxis('top', functions=(lambda x: x*1.0, lambda xb: 1*xb))
+    sec_x_axis.set_xlabel('Offset in Primary Beam HPBWs\n')
+    sec_x_axis.set_xticks([])
+    y_min, y_max = ax.get_ylim()
+    x_lims = ax.get_xlim()
+    pb_min, pb_max = np.ceil(x_lims/pb_fwhm)
+
+    for itk in np.arange(pb_min, pb_max, 1):
+        ax.axvline(itk*pb_fwhm, color='k', linestyle='--', linewidth=0.5)
+        ax.text(itk*pb_fwhm, y_max, f'{itk+1}', va='bottom', ha='center')
 
 
 def add_lobe_identification_to_plot(ax, centers, peaks, y_off, attenunation_plot=False):
@@ -208,7 +202,7 @@ def add_lobe_identification_to_plot(ax, centers, peaks, y_off, attenunation_plot
         plot_peaks = peaks
 
     for i_peak, peak in enumerate(plot_peaks):
-        ax.text(centers[i_peak], peak+y_off/2, i_peak+1, ha='center', va='bottom')
+        ax.text(centers[i_peak], peak+y_off, f'{i_peak+1})', ha='center', va='bottom')
 
 
 def make_parallel_hand_subplot_title(direction, time_string):
@@ -248,21 +242,38 @@ def plot_single_cut_parallel_corrs(cut_dict, axes, par_dict):
         add_secondary_beam_hpbw_x_axis_to_plot(cut_dict[f'{parallel_hand}_pb_fwhm']*lm_fac, this_ax)
 
         # Add bounded box with Beam parameters
-        pars_str = f'PB off. = {cut_dict[f'{parallel_hand}_pb_center']*lm_fac:.2f} [{lm_unit}]\n'
-        pars_str += f'PB FWHM = {cut_dict[f'{parallel_hand}_pb_fwhm']*lm_fac:.2f} [{lm_unit}]\n'
-        pars_str += (f'FSL ratio = '
-                         f'{to_db(cut_dict[f'{parallel_hand}_first_side_lobe_ratio']):.1f} dB')
-        bounds_box = dict(boxstyle='square', facecolor='white', alpha=0.5)
-        this_ax.text(0.05, 0.95, pars_str, transform=this_ax.transAxes, verticalalignment='top',
+        add_beam_parameters_box(this_ax, cut_dict[f'{parallel_hand}_pb_center']*lm_fac,
+                                cut_dict[f'{parallel_hand}_pb_fwhm']*lm_fac,
+                                cut_dict[f'{parallel_hand}_first_side_lobe_ratio'],
+                                lm_unit)
+
+
+def add_beam_parameters_box(ax, pb_center, pb_fwhm, sidelobe_ratio, lm_unit, alpha=0.8, x_pos=0.05, y_pos=0.95):
+    pars_str = f'PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n'
+    pars_str += f'PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n'
+    pars_str += f'FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}'
+    bounds_box = dict(boxstyle='square', facecolor='white', alpha=alpha)
+    ax.text(0.05, 0.95, pars_str, transform=ax.transAxes, verticalalignment='top',
                      bbox=bounds_box)
 
+
+def create_beamcut_header(summary, par_dict):
+    azel_unit = par_dict['azel_unit']
+    antenna = par_dict['this_ant']
+    ddi = par_dict['this_ddi']
+    freq_str = format_frequency(summary['spectral']['rep. frequency'], decimal_places=3)
+    raw_azel = np.array(summary['general']["az el info"]["mean"])
+    mean_azel = convert_unit('rad', azel_unit, 'trigonometric') * raw_azel
+    title = f'Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, ' + r'$\nu$ = ' + f'{freq_str}, '
+    title += f'Az ~ {format_value_unit(mean_azel[0], 'deg', decimal_places=0)}, '
+    title += f'El ~ {format_value_unit(mean_azel[1], 'deg', decimal_places=0)}'
+    return title
 
 def plot_cuts_in_amplitude(cut_list, summary, par_dict):
     # Init
     n_cuts = len(cut_list)
     antenna = par_dict['this_ant']
     ddi = par_dict['this_ddi']
-    azel_unit = par_dict['azel_unit']
 
     # Loop over cuts
     fig, axes = create_figure_and_axes([12, 1+n_cuts*4], [n_cuts, 2])
@@ -270,12 +281,7 @@ def plot_cuts_in_amplitude(cut_list, summary, par_dict):
         plot_single_cut_parallel_corrs(cut_dict, axes[icut, :], par_dict)
 
     # Header creation
-    freq_str = format_frequency(summary['spectral']['rep. frequency'], decimal_places=3)
-    raw_azel = np.array(summary['general']["az el info"]["mean"])
-    mean_azel = convert_unit('rad', azel_unit, 'trigonometric') * raw_azel
-    title = f'Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, ' + r'$\nu$ = ' + f'{freq_str}, '
-    title += f'Az ~ {format_value_unit(mean_azel[0], 'deg', decimal_places=0)}, '
-    title += f'El ~ {format_value_unit(mean_azel[1], 'deg', decimal_places=0)}'
+    title = create_beamcut_header(summary, par_dict)
 
     filename = f'beamcut_{antenna}_{ddi}.png'
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
@@ -291,6 +297,9 @@ def build_multi_gaussian_initial_guesses(x_data, y_data, pb_fwhm, min_dist_fract
     step = float(np.median(np.diff(x_data)))
     min_dist = np.abs(min_dist_fraction * pb_fwhm / step)
     peaks, _ = find_peaks(y_data, distance=min_dist)
+    dx = x_data[-1] - x_data[0]
+    if dx < 0:
+        peaks = peaks[::-1]
     for ipeak in peaks:
         p0.extend([x_data[ipeak], y_data[ipeak], pb_fwhm])
     return p0, len(peaks)

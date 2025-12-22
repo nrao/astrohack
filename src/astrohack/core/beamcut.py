@@ -49,7 +49,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
 
     cut_list = extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
                                               visibilities, weights)
-    beamcut_fit(cut_list, telescope, summary)
+    beamcut_fit(cut_list, telescope, summary, datalabel)
 
     destination = beamcut_chunk_params['destination']
     if destination is not None:
@@ -223,6 +223,8 @@ def get_parallel_hand_indexes(corr_axis):
 
 
 def add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
+    if np.isnan(pb_fwhm):
+        return
     sec_x_axis = ax.secondary_xaxis('top', functions=(lambda x: x*1.0, lambda xb: 1*xb))
     sec_x_axis.set_xlabel('Offset in Primary Beam HPBWs\n')
     sec_x_axis.set_xticks([])
@@ -361,7 +363,7 @@ def multi_gaussian(xdata, *args):
     return y_values
 
 
-def beamcut_fit(cut_list, telescope, summary):
+def beamcut_fit(cut_list, telescope, summary, datalabel):
     wavelength = summary["spectral"]["rep. wavelength"]
     primary_fwhm = 1.2 * wavelength / telescope.diameter
 
@@ -374,22 +376,48 @@ def beamcut_fit(cut_list, telescope, summary):
             fit_pars = results[0]
             fit = multi_gaussian(x_data, *fit_pars)
 
-            cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
-            cut_dict[f'{parallel_hand}_amp_fit'] = fit
-            cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
-
             centers = fit_pars[0::3]
             amps = fit_pars[1::3]
             fwhms = fit_pars[2::3]
 
+            # select fits that are within x_data
+            x_min = np.min(x_data)
+            x_max = np.max(x_data)
+            selection = ~ np.logical_or(centers < x_min, centers > x_max)
+
+            centers = centers[selection]
+            amps = amps[selection]
+            fwhms = fwhms[selection]
+
+            n_peaks = centers.shape[0]
+            fit_pars = np.zeros((3*n_peaks))
+            fit_pars[0::3] = centers
+            fit_pars[1::3] = amps
+            fit_pars[2::3] = fwhms
+
+            cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
+            cut_dict[f'{parallel_hand}_amp_fit'] = fit
+            cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
+
             i_pb = np.argmax(amps)
-            cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
-            cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
 
+            if n_peaks%2 == 0:
+                pb_problem = i_pb not in [n_peaks//2, n_peaks//2 - 1]
+            else:
+                pb_problem = i_pb != n_peaks//2
 
-            left_first_sl_amp = amps[i_pb-1]
-            right_first_sl_amp = amps[i_pb+1]
-            cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
+            if pb_problem:
+                logger.warning(f'Cannot reliably identify primary beam for {datalabel}.')
+                cut_dict[f'{parallel_hand}_pb_fwhm'] = np.nan
+                cut_dict[f'{parallel_hand}_pb_center'] = np.nan
+                cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = np.nan
+            else:
+                cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
+                cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
+
+                left_first_sl_amp = amps[i_pb-1]
+                right_first_sl_amp = amps[i_pb+1]
+                cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
 
     return cut_list
 
@@ -408,6 +436,7 @@ def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
     ylabel = f'Attenuation [dB]'
 
     # Loop over correlations
+    n_data = 0
     for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
         # Init labels
         x_data = lm_fac * cut_dict['lm_dist']
@@ -420,9 +449,11 @@ def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
 
         ax.plot(x_data, y_data, label=parallel_hand, color=corr_colors[i_corr], marker='.', ls='')
 
-        pb_center += cut_dict[f'{parallel_hand}_pb_center']
-        pb_fwhm += cut_dict[f'{parallel_hand}_pb_fwhm']
-        fsl_ratio += cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
+        if not np.isnan(pb_center):
+            pb_center += cut_dict[f'{parallel_hand}_pb_center']
+            pb_fwhm += cut_dict[f'{parallel_hand}_pb_fwhm']
+            fsl_ratio += cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
+            n_data += 1
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -430,9 +461,9 @@ def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
     ax.legend(loc='upper right')
 
     n_corrs = len(cut_dict['available_corrs'])
-    pb_center /= n_corrs
-    pb_fwhm /= n_corrs
-    fsl_ratio /= n_corrs
+    pb_center /= n_data
+    pb_fwhm /= n_data
+    fsl_ratio /= n_data
     # equalize Y scale between correlations
     y_off = 0.1 *np.abs(min_attenuation)
     set_y_axis_lims_from_default(ax, par_dict['y_scale'], (min_attenuation-y_off, y_off ))

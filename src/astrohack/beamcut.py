@@ -7,7 +7,6 @@ from astrohack.utils import get_default_file_name, add_caller_and_version_to_dic
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
 import xarray as xr
-from astrohack.utils.data import write_meta_data
 
 from typing import Union, List
 
@@ -17,6 +16,12 @@ def beamcut(
         ant: Union[str, List[str]] = "all",
         ddi: Union[int, List[str]] = "all",
         correlations: str = "all",
+        destination: str = None,
+        lm_unit: str = 'amin',
+        azel_unit: str = 'deg',
+        dpi: int = 300,
+        display: bool = False,
+        y_scale: str = None,
         parallel: bool = False,
         overwrite: bool = False,
 ):
@@ -27,6 +32,9 @@ def beamcut(
         beamcut_name = get_default_file_name(
             input_file=holog_name, output_type=".beamcut.zarr"
         )
+
+    if destination is not None:
+        pathlib.Path(destination).mkdir(exist_ok=True)
 
     beamcut_params = locals()
 

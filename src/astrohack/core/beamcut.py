@@ -30,7 +30,8 @@ def process_beamcut_chunk(beamcut_chunk_params):
     )
     # This assumes that there will be no more than one mapping
     this_xds = ant_data_dict[ddi]['map_0']
-    logger.info(f"processing {create_dataset_label(antenna, ddi)}")
+    datalabel = create_dataset_label(antenna, ddi)
+    logger.info(f"processing {datalabel}")
 
     scan_time_ranges = this_xds.attrs['scan_time_ranges']
     scan_list = this_xds.attrs['scan_list']
@@ -50,19 +51,16 @@ def process_beamcut_chunk(beamcut_chunk_params):
                                               visibilities, weights)
     beamcut_fit(cut_list, telescope, summary)
 
+    destination = beamcut_chunk_params['destination']
+    if destination is not None:
+        logger.info(f'Producing plots for {datalabel}')
+        plot_cuts_in_amplitude(cut_list, summary, beamcut_chunk_params)
+        plot_cuts_in_attenuation(cut_list, summary, beamcut_chunk_params)
+        create_report_chunk(cut_list, summary, beamcut_chunk_params)
+        logger.info(f'Completed plots for {datalabel}')
 
 
     return create_output_datatree(cut_list, antenna, ddi, summary)
-    # This is stuff that should not be dealt here, but is here for testing/development purposes .
-    beamcut_chunk_params['lm_unit'] = 'amin'
-    beamcut_chunk_params['azel_unit'] = 'deg'
-    beamcut_chunk_params['dpi'] = 300
-    beamcut_chunk_params['display'] = False
-    beamcut_chunk_params['y_scale'] = None
-
-    plot_cuts_in_amplitude(cut_list, summary, beamcut_chunk_params)
-    plot_cuts_in_attenuation(cut_list, summary, beamcut_chunk_params)
-    create_report_chunk(cut_list, summary, beamcut_chunk_params)
 
 
 def create_output_datatree(cut_list, antenna, ddi, summary):
@@ -97,7 +95,6 @@ def create_output_datatree(cut_list, antenna, ddi, summary):
         xds = xds.assign_coords(coords)
         this_branch = this_branch.assign({f'cut_{icut}': xr.DataTree(dataset=xds, name=f'cut_{icut}')})
     return this_branch
-
 
 
 def time_scan_selection(scan_time_ranges, time_axis):
@@ -256,7 +253,7 @@ def make_parallel_hand_sub_title(direction, time_string):
 def plot_single_cut_amp_parallel_corrs(cut_dict, axes, par_dict):
     # Init
     sub_title = make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
-    max_amp = cut_dict['max_amp']
+    max_amp = cut_dict['all_corr_ymax']
     y_off = 0.05*max_amp
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
@@ -323,8 +320,6 @@ def create_beamcut_header(summary, par_dict):
 def plot_cuts_in_amplitude(cut_list, summary, par_dict):
     # Init
     n_cuts = len(cut_list)
-    antenna = par_dict['this_ant']
-    ddi = par_dict['this_ddi']
 
     # Loop over cuts
     fig, axes = create_figure_and_axes([12, 1+n_cuts*4], [n_cuts, 2])
@@ -334,7 +329,7 @@ def plot_cuts_in_amplitude(cut_list, summary, par_dict):
     # Header creation
     title = create_beamcut_header(summary, par_dict)
 
-    filename = f'beamcut_amplitude_{antenna}_{ddi}.png'
+    filename = file_name_factory('amplitude', par_dict)
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
@@ -354,6 +349,7 @@ def build_multi_gaussian_initial_guesses(x_data, y_data, pb_fwhm, min_dist_fract
     for ipeak in peaks:
         p0.extend([x_data[ipeak], y_data[ipeak], pb_fwhm])
     return p0, len(peaks)
+
 
 def multi_gaussian(xdata, *args):
     nargs = len(args)
@@ -454,8 +450,6 @@ def plot_single_cut_attenuation_parallel_corrs(cut_dict, ax, par_dict):
 def plot_cuts_in_attenuation(cut_list, summary, par_dict):
     # Init
     n_cuts = len(cut_list)
-    antenna = par_dict['this_ant']
-    ddi = par_dict['this_ddi']
 
     # Loop over cuts
     fig, axes = create_figure_and_axes([6, 1+n_cuts*4], [n_cuts, 1])
@@ -465,7 +459,7 @@ def plot_cuts_in_attenuation(cut_list, summary, par_dict):
     # Header creation
     title = create_beamcut_header(summary, par_dict)
 
-    filename = f'beamcut_attenuation_{antenna}_{ddi}.png'
+    filename = file_name_factory('attenuation', par_dict)
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
@@ -499,7 +493,21 @@ def create_report_chunk(cut_list, summary, par_dict, spacing=2, item_marker='-',
                 outstr += 2*spacing*spc+line+lnbr
             outstr += lnbr
 
-    return outstr
+    with open(file_name_factory('report', par_dict), 'w') as outfile:
+        outfile.write(outstr)
+
+
+def file_name_factory(file_type, par_dict):
+    destination = par_dict['destination']
+    antenna = par_dict['this_ant']
+    ddi = par_dict['this_ddi']
+    if file_type in ['attenuation', 'amplitude']:
+        ext = 'png'
+    elif file_type == 'report':
+        ext = 'txt'
+    else:
+        raise ValueError('Invalid file type')
+    return f'{destination}/beamcut_{file_type}_{antenna}_{ddi}.{ext}'
 
 
 

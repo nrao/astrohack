@@ -8,11 +8,12 @@ import astropy
 from astrohack import get_proper_telescope
 from astrohack.utils.file import load_holog_file
 from astrohack.utils import create_dataset_label, convert_unit, sig_2_fwhm, \
-    format_frequency, format_value_unit, to_db
+    format_frequency, format_value_unit, to_db, create_pretty_table
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
 
 lnbr = '\n'
+spc = ' '
 
 
 def process_beamcut_chunk(beamcut_chunk_params):
@@ -344,11 +345,12 @@ def beamcut_fit(cut_list, telescope, summary):
 
             centers = fit_pars[0::3]
             amps = fit_pars[1::3]
-            sigmas = fit_pars[2::3]
+            fwhms = fit_pars[2::3]
 
             i_pb = np.argmax(amps)
-            cut_dict[f'{parallel_hand}_pb_fwhm'] = sigmas[i_pb]
+            cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
             cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
+
 
             left_first_sl_amp = amps[i_pb-1]
             right_first_sl_amp = amps[i_pb+1]
@@ -428,20 +430,37 @@ def plot_cuts_in_attenuation(cut_list, summary, par_dict):
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
-def create_report_chunk(cut_list, summary, par_dict):
-    outstr = ''
+def create_report_chunk(cut_list, summary, par_dict, spacing=2, item_marker='-', precision=3):
+    outstr = f'{item_marker}{spc}'
+    lm_unit = par_dict['lm_unit']
+    lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
 
+    items = ['Id', f'Center [{lm_unit}]', 'Amplitude [ ]', f'FWHM [{lm_unit}]', 'Attenuation [dB]']
     outstr += create_beamcut_header(summary, par_dict)+2*lnbr
     for icut, cut_dict in enumerate(cut_list):
         sub_title = make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
         for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
-            outstr += f'{parallel_hand} {sub_title}{lnbr}'
+            outstr += f'{spacing*spc}{item_marker}{spc}{parallel_hand} {sub_title}, Beam fit results:{lnbr}'
+            table = create_pretty_table(items, 'c')
+            fit_pars = cut_dict[f'{parallel_hand}_amp_fit_pars']
+            centers = fit_pars[0::3]
+            amps = fit_pars[1::3]
+            fwhms = fit_pars[2::3]
+            max_amp = np.max(cut_dict[f'{parallel_hand}_amplitude'])
 
+            for i_peak in range(cut_dict[f'{parallel_hand}_n_peaks']):
+
+                table.add_row([f'{i_peak+1})', # Id
+                               f'{lm_fac*centers[i_peak]:.{precision}f}', # center
+                               f'{amps[i_peak]:.{precision}f}', # Amp
+                               f'{lm_fac*fwhms[i_peak]:.{precision}f}', # FWHM
+                               f'{to_db(amps[i_peak]/max_amp):.{precision}f}', # Attenuation
+                               ])
+            for line in table.get_string().splitlines():
+                outstr += 2*spacing*spc+line+lnbr
             outstr += lnbr
 
-    outstr += lnbr
-
-    print(outstr)
+    return outstr
 
 
 

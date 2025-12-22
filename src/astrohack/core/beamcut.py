@@ -271,14 +271,19 @@ def plot_single_cut_amp_parallel_corrs(cut_dict, axes, par_dict):
         ylabel = f'{parallel_hand} Amplitude [ ]'
 
         # Call plotting tool
-        scatter_plot(this_ax, x_data, xlabel, y_data, ylabel, model=fit_data,  model_marker='', title=sub_title,
-                     data_marker='+', residuals_marker='.', model_linestyle='-', data_label=f'{parallel_hand} data',
-                     model_label=f'{parallel_hand} fit', data_color='red', model_color='blue', residuals_color='black',
-                     legend_location='upper right')
+        if cut_dict[f'{parallel_hand}_fit_succeeded']:
+            scatter_plot(this_ax, x_data, xlabel, y_data, ylabel, model=fit_data,  model_marker='', title=sub_title,
+                         data_marker='+', residuals_marker='.', model_linestyle='-', data_label=f'{parallel_hand} data',
+                         model_label=f'{parallel_hand} fit', data_color='red', model_color='blue',
+                         residuals_color='black', legend_location='upper right')
 
-        # Add fit peak identifiers
-        add_lobe_identification_to_plot(this_ax, lm_fac * cut_dict[f'{parallel_hand}_amp_fit_pars'][0::3],
-                                        cut_dict[f'{parallel_hand}_amp_fit_pars'][1::3], y_off, attenunation_plot=False)
+            # Add fit peak identifiers
+            add_lobe_identification_to_plot(this_ax, lm_fac * cut_dict[f'{parallel_hand}_amp_fit_pars'][0::3],
+                                            cut_dict[f'{parallel_hand}_amp_fit_pars'][1::3], y_off,
+                                            attenunation_plot=False)
+        else:
+            scatter_plot(this_ax, x_data, xlabel, y_data, ylabel, title=sub_title, data_marker='+',
+                         data_label=f'{parallel_hand} data', data_color='red', legend_location='upper right')
 
         # equalize Y scale between correlations
         set_y_axis_lims_from_default(this_ax, par_dict['y_scale'], (-y_off, max_amp+3*y_off))
@@ -372,52 +377,69 @@ def beamcut_fit(cut_list, telescope, summary, datalabel):
         for parallel_hand in cut_dict['available_corrs']:
             y_data = cut_dict[f'{parallel_hand}_amplitude']
             p0, n_peaks = build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
-            results = curve_fit(multi_gaussian, x_data, y_data, p0=p0)
-            fit_pars = results[0]
-            fit = multi_gaussian(x_data, *fit_pars)
 
-            centers = fit_pars[0::3]
-            amps = fit_pars[1::3]
-            fwhms = fit_pars[2::3]
+            try:
+                results = curve_fit(multi_gaussian, x_data, y_data, p0=p0, maxfev=int(5e4))
+                fit_pars = results[0]
+                fit_succeeded = True
+            except RuntimeError:
+                logger.warning(f'Gaussian fit to lobes failed for {datalabel}, corr = {parallel_hand}.')
+                fit_succeeded = False
 
-            # select fits that are within x_data
-            x_min = np.min(x_data)
-            x_max = np.max(x_data)
-            selection = ~ np.logical_or(centers < x_min, centers > x_max)
+            if fit_succeeded:
+                fit = multi_gaussian(x_data, *fit_pars)
 
-            centers = centers[selection]
-            amps = amps[selection]
-            fwhms = fwhms[selection]
+                centers = fit_pars[0::3]
+                amps = fit_pars[1::3]
+                fwhms = fit_pars[2::3]
 
-            n_peaks = centers.shape[0]
-            fit_pars = np.zeros((3*n_peaks))
-            fit_pars[0::3] = centers
-            fit_pars[1::3] = amps
-            fit_pars[2::3] = fwhms
+                # select fits that are within x_data
+                x_min = np.min(x_data)
+                x_max = np.max(x_data)
+                selection = ~ np.logical_or(centers < x_min, centers > x_max)
 
-            cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
-            cut_dict[f'{parallel_hand}_amp_fit'] = fit
-            cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
+                centers = centers[selection]
+                amps = amps[selection]
+                fwhms = fwhms[selection]
 
-            i_pb = np.argmax(amps)
+                n_peaks = centers.shape[0]
+                fit_pars = np.zeros((3*n_peaks))
+                fit_pars[0::3] = centers
+                fit_pars[1::3] = amps
+                fit_pars[2::3] = fwhms
 
-            if n_peaks%2 == 0:
-                pb_problem = i_pb not in [n_peaks//2, n_peaks//2 - 1]
+                cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
+                cut_dict[f'{parallel_hand}_amp_fit'] = fit
+                cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
+
+                i_pb = np.argmax(amps)
+
+                if n_peaks%2 == 0:
+                    pb_problem = i_pb not in [n_peaks//2, n_peaks//2 - 1]
+                else:
+                    pb_problem = i_pb != n_peaks//2
+
+                if pb_problem:
+                    logger.warning(f'Cannot reliably identify primary beam for {datalabel}.')
+                    cut_dict[f'{parallel_hand}_pb_fwhm'] = np.nan
+                    cut_dict[f'{parallel_hand}_pb_center'] = np.nan
+                    cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = np.nan
+                else:
+                    cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
+                    cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
+
+                    left_first_sl_amp = amps[i_pb - 1]
+                    right_first_sl_amp = amps[i_pb + 1]
+                    cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
             else:
-                pb_problem = i_pb != n_peaks//2
-
-            if pb_problem:
-                logger.warning(f'Cannot reliably identify primary beam for {datalabel}.')
+                cut_dict[f'{parallel_hand}_amp_fit_pars'] = np.full(3, np.nan)
+                cut_dict[f'{parallel_hand}_amp_fit'] = np.full_like(y_data, np.nan)
+                cut_dict[f'{parallel_hand}_n_peaks'] = 1
                 cut_dict[f'{parallel_hand}_pb_fwhm'] = np.nan
                 cut_dict[f'{parallel_hand}_pb_center'] = np.nan
                 cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = np.nan
-            else:
-                cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
-                cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
 
-                left_first_sl_amp = amps[i_pb-1]
-                right_first_sl_amp = amps[i_pb+1]
-                cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
+            cut_dict[f'{parallel_hand}_fit_succeeded'] = fit_succeeded
 
     return cut_list
 

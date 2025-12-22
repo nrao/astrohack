@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from scipy.stats import linregress
 import astropy
+import xarray as xr
 
 from astrohack import get_proper_telescope
 from astrohack.utils.file import load_holog_file
@@ -31,8 +32,6 @@ def process_beamcut_chunk(beamcut_chunk_params):
     this_xds = ant_data_dict[ddi]['map_0']
     logger.info(f"processing {create_dataset_label(antenna, ddi)}")
 
-    print(this_xds)
-
     scan_time_ranges = this_xds.attrs['scan_time_ranges']
     scan_list = this_xds.attrs['scan_list']
     summary = this_xds.attrs["summary"]
@@ -51,6 +50,10 @@ def process_beamcut_chunk(beamcut_chunk_params):
                                               visibilities, weights)
     beamcut_fit(cut_list, telescope, summary)
 
+
+
+    return create_output_datatree(cut_list, antenna, ddi, summary)
+    # This is stuff that should not be dealt here, but is here for testing/development purposes .
     beamcut_chunk_params['lm_unit'] = 'amin'
     beamcut_chunk_params['azel_unit'] = 'deg'
     beamcut_chunk_params['dpi'] = 300
@@ -60,6 +63,42 @@ def process_beamcut_chunk(beamcut_chunk_params):
     plot_cuts_in_amplitude(cut_list, summary, beamcut_chunk_params)
     plot_cuts_in_attenuation(cut_list, summary, beamcut_chunk_params)
     create_report_chunk(cut_list, summary, beamcut_chunk_params)
+
+
+def create_output_datatree(cut_list, antenna, ddi, summary):
+    this_branch = xr.DataTree(name=f'{antenna}-{ddi}')
+    for icut, cut_dict in enumerate(cut_list):
+        xds = xr.Dataset()
+        xds.attrs['scan_number'] = cut_dict['scan_number']
+        xds.attrs['lm_angle'] = cut_dict['lm_angle']
+        xds.attrs['available_corrs'] = cut_dict['available_corrs']
+        xds.attrs['direction'] = cut_dict['direction']
+        xds.attrs['xlabel'] = cut_dict['xlabel']
+        xds.attrs['time_string'] = cut_dict['time_string']
+        xds.attrs['all_corr_ymax'] = cut_dict['all_corr_ymax']
+        xds.attrs['summary'] = summary
+
+        coords = {"time": cut_dict['time'], "lm_dist": cut_dict['lm_dist']}
+
+        xds['lm_offsets'] = xr.DataArray(cut_dict['lm_offsets'], dims=["time", "lm"])
+
+        for parallel_hand in cut_dict['available_corrs']:
+            xds.attrs[f'{parallel_hand}_n_peaks'] = cut_dict[f'{parallel_hand}_n_peaks']
+            xds.attrs[f'{parallel_hand}_amp_fit_pars'] = cut_dict[f'{parallel_hand}_amp_fit_pars']
+            xds.attrs[f'{parallel_hand}_pb_fwhm'] = cut_dict[f'{parallel_hand}_pb_fwhm']
+            xds.attrs[f'{parallel_hand}_pb_center'] = cut_dict[f'{parallel_hand}_pb_center']
+            xds.attrs[f'{parallel_hand}_first_side_lobe_ratio'] = cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
+
+            xds[f'{parallel_hand}_amplitude'] = xr.DataArray(cut_dict[f'{parallel_hand}_amplitude'], dims='lm_dist')
+            xds[f'{parallel_hand}_phase'] = xr.DataArray(cut_dict[f'{parallel_hand}_phase'], dims='lm_dist')
+            xds[f'{parallel_hand}_weight'] = xr.DataArray(cut_dict[f'{parallel_hand}_weight'], dims='lm_dist')
+            xds[f'{parallel_hand}_amp_fit'] = xr.DataArray(cut_dict[f'{parallel_hand}_amp_fit'], dims='lm_dist')
+
+        xds = xds.assign_coords(coords)
+        this_branch = this_branch.assign({f'cut_{icut}': xr.DataTree(dataset=xds, name=f'cut_{icut}')})
+    return this_branch
+
+
 
 def time_scan_selection(scan_time_ranges, time_axis):
     time_selections = []
@@ -113,8 +152,8 @@ def extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_
                 all_corr_ymax = maxamp
             cut_dict[f'{parallel_hand}_amplitude'] = amp
             cut_dict[f'{parallel_hand}_phase'] = np.angle(avg_vis[:, icorr])
-            cut_dict[f'{parallel_hand}_weight'] = np.angle(avg_wei[:, icorr])
-        cut_dict['max_amp'] = all_corr_ymax
+            cut_dict[f'{parallel_hand}_weight'] = avg_wei[:, icorr]
+        cut_dict['all_corr_ymax'] = all_corr_ymax
         cut_list.append(cut_dict)
 
     return cut_list

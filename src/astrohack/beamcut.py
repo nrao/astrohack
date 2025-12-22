@@ -3,14 +3,15 @@ import toolviper.utils.logger as logger
 import json
 
 from astrohack.core.beamcut import process_beamcut_chunk
-from astrohack.utils import get_default_file_name
+from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
+import xarray as xr
 from astrohack.utils.data import write_meta_data
 
 from typing import Union, List
 
-def beamcut_tool(
+def beamcut(
         holog_name: str,
         beamcut_name: str = None,
         ant: Union[str, List[str]] = "all",
@@ -41,18 +42,28 @@ def beamcut_tool(
 
     overwrite_file(beamcut_params["beamcut_name"], beamcut_params['overwrite'])
 
-    if compute_graph(
-         holog_json,
-        process_beamcut_chunk,
-        beamcut_params,
-        ["ant", "ddi"],
-        parallel=parallel,
-        ):
+    executed_graph, graph_results = compute_graph(holog_json, process_beamcut_chunk, beamcut_params,
+                                                  ["ant", "ddi"], parallel=parallel, fetch_returns=True)
+
+    if executed_graph:
         logger.info("Finished processing")
         output_attr_file = "{name}/{ext}".format(
             name=beamcut_params["beamcut_name"], ext=".beamcut_input"
         )
-        # write_meta_data(output_attr_file, input_params)
+        root = xr.DataTree(name='root')
+        root.attrs.update(beamcut_params)
+        add_caller_and_version_to_dict(root.attrs, direct_call=True)
+
+        for xdtree in graph_results:
+            ant , ddi = xdtree.name.split('-')
+            if ant in root.children.keys():
+                ant = root.children[ant].assign({ddi: xdtree})
+            else:
+                ant_tree = xr.DataTree(name=ant, children={ddi: xdtree})
+                root = root.assign({ant: ant_tree})
+
+        root.to_zarr(beamcut_params["beamcut_name"], mode="w", consolidated=True)
+
         # beamcut_mds = AstrohackbeamcutFile(beamcut_params["beamcut_name"])
         # beamcut_mds.open()
         #

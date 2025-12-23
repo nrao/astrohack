@@ -6,7 +6,7 @@ from scipy.stats import linregress
 import astropy
 import xarray as xr
 
-from astrohack import get_proper_telescope
+from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.utils.file import load_holog_file
 from astrohack.utils import create_dataset_label, convert_unit, sig_2_fwhm, \
     format_frequency, format_value_unit, to_db, create_pretty_table

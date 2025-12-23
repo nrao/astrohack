@@ -316,7 +316,9 @@ def _fwhm_gaussian(x_axis, x_off, amp, fwhm):
 
 
 def _build_multi_gaussian_initial_guesses(x_data, y_data, pb_fwhm, min_dist_fraction=1.3):
-    p0 = []
+    initial_guesses = []
+    lower_bounds = []
+    upper_bounds = []
     step = float(np.median(np.diff(x_data)))
     min_dist = np.abs(min_dist_fraction * pb_fwhm / step)
     peaks, _ = find_peaks(y_data, distance=min_dist)
@@ -324,8 +326,11 @@ def _build_multi_gaussian_initial_guesses(x_data, y_data, pb_fwhm, min_dist_frac
     if dx < 0:
         peaks = peaks[::-1]
     for ipeak in peaks:
-        p0.extend([x_data[ipeak], y_data[ipeak], pb_fwhm])
-    return p0, len(peaks)
+        initial_guesses.extend([x_data[ipeak], y_data[ipeak], pb_fwhm])
+        lower_bounds.extend([-np.inf, 0, 0])
+        upper_bounds.extend([np.inf, np.inf, np.inf])
+    bounds = (lower_bounds, upper_bounds)
+    return initial_guesses, bounds, len(peaks)
 
 
 def _multi_gaussian(xdata, *args):
@@ -338,9 +343,9 @@ def _multi_gaussian(xdata, *args):
     return y_values
 
 
-def _perform_curvefit_with_given_functions(x_data, y_data, initial_guesses, fit_func, datalabel, maxit=50000):
+def _perform_curvefit_with_given_functions(x_data, y_data, initial_guesses, bounds, fit_func, datalabel, maxit=50000):
     try:
-        results = curve_fit(fit_func, x_data, y_data, p0=initial_guesses, maxfev=int(maxit))
+        results = curve_fit(fit_func, x_data, y_data, p0=initial_guesses, bounds=bounds, maxfev=int(maxit))
         fit_pars = results[0]
         return True, fit_pars
     except RuntimeError:
@@ -412,18 +417,19 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
         x_data = cut_xds['lm_dist'].values
         for parallel_hand in cut_xds.attrs['available_corrs']:
             y_data = cut_xds[f'{parallel_hand}_amplitude']
-
-            p0, n_peaks = _build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
+            this_corr_data_label = f'{datalabel}, {cut_xds.attrs["direction"]}, corr = {parallel_hand}'
+            initial_guesses, bounds, n_peaks = _build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
             fit_succeeded, fit_pars = _perform_curvefit_with_given_functions(x_data,
                                                                              y_data,
-                                                                             p0,
+                                                                             initial_guesses,
+                                                                             bounds,
                                                                              _multi_gaussian,
-                                                                             f'{datalabel}, corr = {parallel_hand}')
+                                                                             this_corr_data_label)
 
             if fit_succeeded:
                 fit = _multi_gaussian(x_data, *fit_pars)
                 n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio = \
-                    _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars)
+                    _identify_pb_and_sidelobes_in_fit(this_corr_data_label, x_data, fit_pars)
             else:
                 pb_center, pb_fwhm, first_side_lobe_ratio = np.nan, np.nan, np.nan
                 fit = np.full_like(y_data, np.nan)

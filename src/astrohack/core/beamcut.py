@@ -43,15 +43,17 @@ def process_beamcut_chunk(beamcut_chunk_params):
     destination = beamcut_chunk_params['destination']
     if destination is not None:
         logger.info(f'Producing plots for {datalabel}')
-        plot_beamcut_in_amplitude_chunk(cut_xdtree, beamcut_chunk_params)
-        plot_beamcut_in_attenuation_chunk(cut_xdtree, beamcut_chunk_params)
-        create_report_chunk(cut_xdtree, beamcut_chunk_params)
+        plot_beamcut_in_amplitude_chunk(beamcut_chunk_params, cut_xdtree)
+        plot_beamcut_in_attenuation_chunk(beamcut_chunk_params, cut_xdtree)
+        create_report_chunk(beamcut_chunk_params, cut_xdtree)
         logger.info(f'Completed plots for {datalabel}')
 
     return cut_xdtree
 
 
-def plot_beamcut_in_amplitude_chunk(cut_xdtree, par_dict):
+def plot_beamcut_in_amplitude_chunk(par_dict, cut_xdtree=None):
+    if cut_xdtree is None:
+        cut_xdtree = par_dict['xdt_data']
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
     fig, axes = create_figure_and_axes([12, 1+n_cuts*4], [n_cuts, 2])
@@ -66,7 +68,9 @@ def plot_beamcut_in_amplitude_chunk(cut_xdtree, par_dict):
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
-def plot_beamcut_in_attenuation_chunk(cut_xdtree, par_dict):
+def plot_beamcut_in_attenuation_chunk(par_dict, cut_xdtree=None):
+    if cut_xdtree is None:
+        cut_xdtree = par_dict['xdt_data']
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
     fig, axes = create_figure_and_axes([6, 1+n_cuts*4], [n_cuts, 1])
@@ -81,7 +85,9 @@ def plot_beamcut_in_attenuation_chunk(cut_xdtree, par_dict):
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
-def create_report_chunk(cut_xdtree, par_dict, spacing=2, item_marker='-', precision=3):
+def create_report_chunk(par_dict, cut_xdtree=None, spacing=2, item_marker='-', precision=3):
+    if cut_xdtree is None:
+        cut_xdtree = par_dict['xdt_data']
     outstr = f'{item_marker}{spc}'
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
@@ -420,7 +426,7 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
     sec_x_axis.set_xlabel('Offset in Primary Beam HPBWs\n')
     sec_x_axis.set_xticks([])
     y_min, y_max = ax.get_ylim()
-    x_lims = ax.get_xlim()
+    x_lims = np.array(ax.get_xlim())
     pb_min, pb_max = np.ceil(x_lims/pb_fwhm)
     beam_offsets = np.arange(pb_min, pb_max, 1, dtype=int)
 
@@ -429,13 +435,8 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
         ax.text(itk*pb_fwhm, y_max, f'{itk:d}', va='bottom', ha='center')
 
 
-def _add_lobe_identification_to_plot(ax, centers, peaks, y_off, attenunation_plot=False):
-    if attenunation_plot:
-        plot_peaks = to_db(peaks/np.max(peaks)) # maximum of peaks is always the PB
-    else:
-        plot_peaks = peaks
-
-    for i_peak, peak in enumerate(plot_peaks):
+def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
+    for i_peak, peak in enumerate(peaks):
         ax.text(centers[i_peak], peak+y_off, f'{i_peak+1})', ha='center', va='bottom')
 
 
@@ -482,9 +483,10 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
                          residuals_color='black', legend_location='upper right')
 
             # Add fit peak identifiers
-            _add_lobe_identification_to_plot(this_ax, lm_fac * cut_xds.attrs[f'{parallel_hand}_amp_fit_pars'][0::3],
-                                             cut_xds.attrs[f'{parallel_hand}_amp_fit_pars'][1::3], y_off,
-                                             attenunation_plot=False)
+            centers = lm_fac * np.array(cut_xds.attrs[f'{parallel_hand}_amp_fit_pars'][0::3])
+            amps = np.array(cut_xds.attrs[f'{parallel_hand}_amp_fit_pars'][1::3])
+
+            _add_lobe_identification_to_plot(this_ax, centers, amps, y_off, attenunation_plot=False)
         else:
             scatter_plot(this_ax, x_data, xlabel, y_data, ylabel, title=sub_title, data_marker='+',
                          data_label=f'{parallel_hand} data', data_color='red', legend_location='upper right')

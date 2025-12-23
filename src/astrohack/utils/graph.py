@@ -130,7 +130,7 @@ def compute_graph(
                     chunk_function=chunk_function,
                     param_dict=param_dict,
                     delayed_list=delayed_list,
-                    key_order=key_order[1:],
+                    key_order=key_order,
                     parallel=parallel,
                 )
     else:

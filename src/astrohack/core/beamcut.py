@@ -36,18 +36,17 @@ def process_beamcut_chunk(beamcut_chunk_params):
     datalabel = create_dataset_label(antenna, ddi)
     logger.info(f"processing {datalabel}")
 
-    cut_xdtree = _extract_cuts_from_visibilities_xr(input_xds, antenna, ddi)
+    cut_xdtree = _extract_cuts_from_visibilities(input_xds, antenna, ddi)
 
-    _beamcut_multi_lobes_gaussian_fit_xr(cut_xdtree, datalabel)
+    _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel)
 
     destination = beamcut_chunk_params['destination']
     if destination is not None:
         logger.info(f'Producing plots for {datalabel}')
         plot_beamcut_in_amplitude_chunk(cut_xdtree, beamcut_chunk_params)
-        #plot_beamcut_in_attenuation_chunk(cut_list, summary, beamcut_chunk_params)
-        #create_report_chunk(cut_list, summary, beamcut_chunk_params)
+        plot_beamcut_in_attenuation_chunk(cut_xdtree, beamcut_chunk_params)
+        create_report_chunk(cut_xdtree, beamcut_chunk_params)
         logger.info(f'Completed plots for {datalabel}')
-
 
     return cut_xdtree
 
@@ -67,41 +66,41 @@ def plot_beamcut_in_amplitude_chunk(cut_xdtree, par_dict):
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
-def plot_beamcut_in_attenuation_chunk(cut_list, summary, par_dict):
-    # Init
-    n_cuts = len(cut_list)
-
+def plot_beamcut_in_attenuation_chunk(cut_xdtree, par_dict):
+    n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
     fig, axes = create_figure_and_axes([6, 1+n_cuts*4], [n_cuts, 1])
-    for icut, cut_dict in enumerate(cut_list):
-        _plot_single_cut_in_attenuation(cut_dict, axes[icut], par_dict)
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        _plot_single_cut_in_attenuation(cut_xds, axes[icut], par_dict)
 
     # Header creation
+    summary = cut_xdtree.children['cut_0'].attrs['summary']
     title = _create_beamcut_header(summary, par_dict)
 
     filename = _file_name_factory('attenuation', par_dict)
     close_figure(fig, title, filename, par_dict['dpi'], par_dict['display'])
 
 
-def create_report_chunk(cut_list, summary, par_dict, spacing=2, item_marker='-', precision=3):
+def create_report_chunk(cut_xdtree, par_dict, spacing=2, item_marker='-', precision=3):
     outstr = f'{item_marker}{spc}'
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
+    summary = cut_xdtree.children['cut_0'].attrs['summary']
 
     items = ['Id', f'Center [{lm_unit}]', 'Amplitude [ ]', f'FWHM [{lm_unit}]', 'Attenuation [dB]']
     outstr += _create_beamcut_header(summary, par_dict) + 2 * lnbr
-    for icut, cut_dict in enumerate(cut_list):
-        sub_title = _make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
-        for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+        for i_corr, parallel_hand in enumerate(cut_xds.attrs['available_corrs']):
             outstr += f'{spacing*spc}{item_marker}{spc}{parallel_hand} {sub_title}, Beam fit results:{lnbr}'
             table = create_pretty_table(items, 'c')
-            fit_pars = cut_dict[f'{parallel_hand}_amp_fit_pars']
+            fit_pars = cut_xds.attrs[f'{parallel_hand}_amp_fit_pars']
             centers = fit_pars[0::3]
             amps = fit_pars[1::3]
             fwhms = fit_pars[2::3]
-            max_amp = np.max(cut_dict[f'{parallel_hand}_amplitude'])
+            max_amp = np.max(cut_xds[f'{parallel_hand}_amplitude'].values)
 
-            for i_peak in range(cut_dict[f'{parallel_hand}_n_peaks']):
+            for i_peak in range(cut_xds.attrs[f'{parallel_hand}_n_peaks']):
 
                 table.add_row([f'{i_peak+1})', # Id
                                f'{lm_fac*centers[i_peak]:.{precision}f}', # center
@@ -179,58 +178,7 @@ def _time_scan_selection(scan_time_ranges, time_axis):
     return time_selections
 
 
-def _extract_cuts_from_visibilities_orig(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
-                                         visibilities, weights):
-    cut_list = []
-    nchan = visibilities.shape[1]
-    fchan = 4
-    lchan = int(nchan - fchan)
-    for iscan, scan_number in enumerate(scan_list):
-        scan_time_range = scan_time_ranges[iscan]
-        time_selection = np.logical_and(time_axis >= scan_time_range[0],
-                                        time_axis < scan_time_range[1])
-        time = time_axis[time_selection]
-        this_lm_offsets = lm_offsets[time_selection, :]
-
-        lm_angle, lm_dist, direction, xlabel = _cut_direction_determination_and_label_creation(this_lm_offsets)
-        hands_dict = _get_parallel_hand_indexes(corr_axis)
-
-        avg_vis = np.average(visibilities[time_selection, fchan:lchan, :], axis=1,
-                             weights=weights[time_selection, fchan:lchan, :])
-        avg_wei = np.average(weights[time_selection, fchan:lchan, :], axis=1)
-
-        avg_time = np.average(time)*convert_unit('sec', 'day', 'time')
-        timestr = astropy.time.Time(avg_time, format='mjd').to_value('iso', subfmt='date_hm')
-
-        cut_dict = {
-            'scan_number': scan_number,
-            'time': time,
-            'lm_offsets': this_lm_offsets,
-            'lm_angle': lm_angle,
-            'lm_dist': lm_dist,
-            'available_corrs': hands_dict['parallel_hands'],
-            'direction': direction,
-            'xlabel': xlabel,
-            'time_string': timestr
-        }
-        all_corr_ymax = 1e-34
-        for parallel_hand in hands_dict['parallel_hands']:
-            icorr = hands_dict[parallel_hand]
-            amp = np.abs(avg_vis[:, icorr])
-            maxamp = np.max(amp)
-            if maxamp > all_corr_ymax:
-                all_corr_ymax = maxamp
-            cut_dict[f'{parallel_hand}_amplitude'] = amp
-            cut_dict[f'{parallel_hand}_phase'] = np.angle(avg_vis[:, icorr])
-            cut_dict[f'{parallel_hand}_weight'] = avg_wei[:, icorr]
-        cut_dict['all_corr_ymax'] = all_corr_ymax
-        cut_list.append(cut_dict)
-        #this_branch = this_branch.assign({f'cut_{icut}': xr.DataTree(dataset=xds, name=f'cut_{icut}')})
-
-    return cut_list
-
-
-def _extract_cuts_from_visibilities_xr(input_xds, antenna, ddi):
+def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
     cut_xdtree = xr.DataTree(name=f'{antenna}-{ddi}')
     scan_time_ranges = input_xds.attrs['scan_time_ranges']
     scan_list = input_xds.attrs['scan_list']
@@ -390,82 +338,6 @@ def _multi_gaussian(xdata, *args):
     return y_values
 
 
-def _beamcut_multi_lobes_gaussian_fit(cut_list, telescope, summary, datalabel):
-    wavelength = summary["spectral"]["rep. wavelength"]
-    primary_fwhm = 1.2 * wavelength / telescope.diameter
-
-    for cut_dict in cut_list:
-        x_data = cut_dict['lm_dist']
-        for parallel_hand in cut_dict['available_corrs']:
-            y_data = cut_dict[f'{parallel_hand}_amplitude']
-            p0, n_peaks = _build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
-
-            try:
-                results = curve_fit(_multi_gaussian, x_data, y_data, p0=p0, maxfev=int(5e4))
-                fit_pars = results[0]
-                fit_succeeded = True
-            except RuntimeError:
-                logger.warning(f'Gaussian fit to lobes failed for {datalabel}, corr = {parallel_hand}.')
-                fit_succeeded = False
-
-            if fit_succeeded:
-                fit = _multi_gaussian(x_data, *fit_pars)
-
-                centers = fit_pars[0::3]
-                amps = fit_pars[1::3]
-                fwhms = fit_pars[2::3]
-
-                # select fits that are within x_data
-                x_min = np.min(x_data)
-                x_max = np.max(x_data)
-                selection = ~ np.logical_or(centers < x_min, centers > x_max)
-
-                centers = centers[selection]
-                amps = amps[selection]
-                fwhms = fwhms[selection]
-
-                n_peaks = centers.shape[0]
-                fit_pars = np.zeros((3*n_peaks))
-                fit_pars[0::3] = centers
-                fit_pars[1::3] = amps
-                fit_pars[2::3] = fwhms
-
-                cut_dict[f'{parallel_hand}_amp_fit_pars'] = fit_pars
-                cut_dict[f'{parallel_hand}_amp_fit'] = fit
-                cut_dict[f'{parallel_hand}_n_peaks'] = n_peaks
-
-                i_pb = np.argmax(amps)
-
-                if n_peaks%2 == 0:
-                    pb_problem = i_pb not in [n_peaks//2, n_peaks//2 - 1]
-                else:
-                    pb_problem = i_pb != n_peaks//2
-
-                if pb_problem:
-                    logger.warning(f'Cannot reliably identify primary beam for {datalabel}.')
-                    cut_dict[f'{parallel_hand}_pb_fwhm'] = np.nan
-                    cut_dict[f'{parallel_hand}_pb_center'] = np.nan
-                    cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = np.nan
-                else:
-                    cut_dict[f'{parallel_hand}_pb_fwhm'] = fwhms[i_pb]
-                    cut_dict[f'{parallel_hand}_pb_center'] = centers[i_pb]
-
-                    left_first_sl_amp = amps[i_pb - 1]
-                    right_first_sl_amp = amps[i_pb + 1]
-                    cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = left_first_sl_amp / right_first_sl_amp
-            else:
-                cut_dict[f'{parallel_hand}_amp_fit_pars'] = np.full(3, np.nan)
-                cut_dict[f'{parallel_hand}_amp_fit'] = np.full_like(y_data, np.nan)
-                cut_dict[f'{parallel_hand}_n_peaks'] = 1
-                cut_dict[f'{parallel_hand}_pb_fwhm'] = np.nan
-                cut_dict[f'{parallel_hand}_pb_center'] = np.nan
-                cut_dict[f'{parallel_hand}_first_side_lobe_ratio'] = np.nan
-
-            cut_dict[f'{parallel_hand}_fit_succeeded'] = fit_succeeded
-
-    return cut_list
-
-
 def _perform_curvefit_with_given_functions(x_data, y_data, initial_guesses, fit_func, datalabel, maxit=50000):
     try:
         results = curve_fit(fit_func, x_data, y_data, p0=initial_guesses, maxfev=int(maxit))
@@ -527,7 +399,7 @@ def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
     return n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio
 
 
-def _beamcut_multi_lobes_gaussian_fit_xr(cut_xdtree, datalabel):
+def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
     # Get the summary from the first cut, but it should be equal anyway
     summary = cut_xdtree.children['cut_0'].attrs['summary']
     wavelength = summary["spectral"]["rep. wavelength"]
@@ -658,8 +530,8 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
                                  lm_unit)
 
 
-def _plot_single_cut_in_attenuation(cut_dict, ax, par_dict):
-    sub_title = _make_parallel_hand_sub_title(cut_dict["direction"], cut_dict["time_string"])
+def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
     corr_colors = ['blue', 'red']
@@ -668,15 +540,15 @@ def _plot_single_cut_in_attenuation(cut_dict, ax, par_dict):
     pb_center = 0.0
     pb_fwhm = 0.0
     fsl_ratio = 0.0
-    xlabel = f'{cut_dict['xlabel']} [{lm_unit}]'
+    xlabel = f'{cut_xds.attrs['xlabel']} [{lm_unit}]'
     ylabel = f'Attenuation [dB]'
 
     # Loop over correlations
     n_data = 0
-    for i_corr, parallel_hand in enumerate(cut_dict['available_corrs']):
+    for i_corr, parallel_hand in enumerate(cut_xds.attrs['available_corrs']):
         # Init labels
-        x_data = lm_fac * cut_dict['lm_dist']
-        amps = cut_dict[f'{parallel_hand}_amplitude']
+        x_data = lm_fac * cut_xds['lm_dist'].values
+        amps = cut_xds[f'{parallel_hand}_amplitude'].values
         max_amp = np.max(amps)
         y_data = to_db(amps/max_amp)
         y_min = np.min(y_data)
@@ -686,9 +558,9 @@ def _plot_single_cut_in_attenuation(cut_dict, ax, par_dict):
         ax.plot(x_data, y_data, label=parallel_hand, color=corr_colors[i_corr], marker='.', ls='')
 
         if not np.isnan(pb_center):
-            pb_center += cut_dict[f'{parallel_hand}_pb_center']
-            pb_fwhm += cut_dict[f'{parallel_hand}_pb_fwhm']
-            fsl_ratio += cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
+            pb_center += cut_xds.attrs[f'{parallel_hand}_pb_center']
+            pb_fwhm += cut_xds.attrs[f'{parallel_hand}_pb_fwhm']
+            fsl_ratio += cut_xds.attrs[f'{parallel_hand}_first_side_lobe_ratio']
             n_data += 1
 
     ax.set_xlabel(xlabel)
@@ -696,7 +568,6 @@ def _plot_single_cut_in_attenuation(cut_dict, ax, par_dict):
     ax.set_title(sub_title)
     ax.legend(loc='upper right')
 
-    n_corrs = len(cut_dict['available_corrs'])
     pb_center /= n_data
     pb_fwhm /= n_data
     fsl_ratio /= n_data
@@ -705,9 +576,9 @@ def _plot_single_cut_in_attenuation(cut_dict, ax, par_dict):
     set_y_axis_lims_from_default(ax, par_dict['y_scale'], (min_attenuation-y_off, y_off ))
 
     # Add fit peak identifiers
-    first_corr = cut_dict['available_corrs'][0]
+    first_corr = cut_xds.attrs['available_corrs'][0]
 
-    _add_secondary_beam_hpbw_x_axis_to_plot(cut_dict[f'{first_corr}_pb_fwhm'] * lm_fac, ax)
+    _add_secondary_beam_hpbw_x_axis_to_plot(cut_xds.attrs[f'{first_corr}_pb_fwhm'] * lm_fac, ax)
 
     # Add bounded box with Beam parameters
     _add_beam_parameters_box(ax, pb_center * lm_fac, pb_fwhm * lm_fac, fsl_ratio, lm_unit, attenuation_plot=True)

@@ -7,6 +7,7 @@ import numpy as np
 from casacore import tables
 from rich.console import Console
 
+from astrohack.beamcut_mds import AstrohackBeamcutFile
 from astrohack.utils.file import check_if_file_can_be_opened
 from astrohack.mds import AstrohackImageFile
 from astrohack.mds import AstrohackHologFile
@@ -20,6 +21,46 @@ from astrohack.utils.text import print_array
 from typing import Union, List, NewType, Dict, Any, NoReturn
 
 JSON = NewType("JSON", Dict[str, Any])
+
+
+def open_beamcut(file:str) -> Union[AstrohackBeamcutFile, None]:
+    """ Open beamcut file and return instance of the beamcut data object. Object includes summary function to list\
+     available nodes.
+
+    :param file: Path to beamcut file.
+    :type file: str
+
+    :return: beamcut object; None if file not found.
+    :rtype: AstrohackBeamcutFile
+
+    .. _Description:
+    **AstrohackBeamcutFile**
+    Beamcu object allows the user to access beam cut data via a xarray data tree, in order of depth, `ant` -> `ddi` \
+    -> `cut`. The beamcut object also provides a `summary()` helper function to list available nodes for each file. \
+    An outline of the beam object structure is show below:
+
+    .. parsed-literal::
+        beamcut_mds =
+            {
+                ant_0:{
+                    ddi_0:{
+                         cut_0: beamcut_ds,
+                             ⋮
+                         cut_n: beamcut_ds
+                    },
+                    ⋮
+                    ddi_n: …
+                },
+                ⋮
+                ant_n: …
+            }
+    """
+    _data_file = AstrohackBeamcutFile(file=file)
+
+    if _data_file.open():
+        return _data_file
+    else:
+        return None
 
 
 def open_holog(file: str) -> Union[AstrohackHologFile, None]:

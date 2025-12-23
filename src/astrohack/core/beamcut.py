@@ -59,7 +59,7 @@ def plot_beamcut_in_amplitude_chunk(cut_xdtree, par_dict):
         _plot_single_cut_in_amplitude(cut_xds, axes[icut, :], par_dict)
 
     # Header creation
-    summary = cut_xdtree.children['cut_0'].attrs['summary']
+    summary = cut_xdtree.attrs['summary']
     title = _create_beamcut_header(summary, par_dict)
 
     filename = _file_name_factory('amplitude', par_dict)
@@ -74,7 +74,7 @@ def plot_beamcut_in_attenuation_chunk(cut_xdtree, par_dict):
         _plot_single_cut_in_attenuation(cut_xds, axes[icut], par_dict)
 
     # Header creation
-    summary = cut_xdtree.children['cut_0'].attrs['summary']
+    summary = cut_xdtree.attrs['summary']
     title = _create_beamcut_header(summary, par_dict)
 
     filename = _file_name_factory('attenuation', par_dict)
@@ -85,7 +85,7 @@ def create_report_chunk(cut_xdtree, par_dict, spacing=2, item_marker='-', precis
     outstr = f'{item_marker}{spc}'
     lm_unit = par_dict['lm_unit']
     lm_fac = convert_unit('rad', lm_unit, 'trigonometric')
-    summary = cut_xdtree.children['cut_0'].attrs['summary']
+    summary = cut_xdtree.attrs['summary']
 
     items = ['Id', f'Center [{lm_unit}]', 'Amplitude [ ]', f'FWHM [{lm_unit}]', 'Attenuation [dB]']
     outstr += _create_beamcut_header(summary, par_dict) + 2 * lnbr
@@ -148,7 +148,7 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
     cut_xdtree = xr.DataTree(name=f'{antenna}-{ddi}')
     scan_time_ranges = input_xds.attrs['scan_time_ranges']
     scan_list = input_xds.attrs['scan_list']
-    summary = input_xds.attrs["summary"]
+    cut_xdtree.attrs["summary"] = input_xds.attrs["summary"]
 
     lm_offsets = input_xds.DIRECTIONAL_COSINES.values
     time_axis = input_xds.time.values
@@ -186,7 +186,6 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
             'direction': direction,
             'xlabel': xlabel,
             'time_string': timestr,
-            'summary': summary,
         })
 
         xds['lm_offsets'] = xr.DataArray(this_lm_offsets, dims=["time", "lm"])
@@ -372,7 +371,7 @@ def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
 
 def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
     # Get the summary from the first cut, but it should be equal anyway
-    summary = cut_xdtree.children['cut_0'].attrs['summary']
+    summary = cut_xdtree.attrs['summary']
     wavelength = summary["spectral"]["rep. wavelength"]
     telescope = get_proper_telescope(
         summary["general"]["telescope name"], summary["general"]["antenna name"]

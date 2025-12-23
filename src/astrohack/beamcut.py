@@ -6,6 +6,7 @@ from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
+from astrohack.beamcut_mds import AstrohackBeamcutFile
 import xarray as xr
 
 from typing import Union, List
@@ -64,19 +65,17 @@ def beamcut(
 
         for xdtree in graph_results:
             ant , ddi = xdtree.name.split('-')
-            if ant in root.children.keys():
-                ant = root.children[ant].assign({ddi: xdtree})
+            if ant in root.keys():
+                ant = root.children[ant].update({ddi: xdtree})
             else:
                 ant_tree = xr.DataTree(name=ant, children={ddi: xdtree})
                 root = root.assign({ant: ant_tree})
 
         root.to_zarr(beamcut_params["beamcut_name"], mode="w", consolidated=True)
 
-        # beamcut_mds = AstrohackbeamcutFile(beamcut_params["beamcut_name"])
-        # beamcut_mds.open()
-        #
-        # return beamcut_mds
-        return None
+        beamcut_mds = AstrohackBeamcutFile(beamcut_params["beamcut_name"])
+        beamcut_mds.open()
+        return beamcut_mds
     else:
         logger.warning("No data to process")
         return None

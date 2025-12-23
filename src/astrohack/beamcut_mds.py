@@ -1,9 +1,12 @@
 import xarray as xr
+import pathlib
 
 from typing import Any, List, Union, Tuple
 
 import toolviper.utils.logger as logger
 
+from astrohack.core.beamcut import plot_beamcut_in_amplitude_chunk, plot_beamcut_in_attenuation_chunk, \
+    create_report_chunk
 from astrohack.utils.text import print_summary_header, print_dict_table, print_method_list, print_data_contents
 from astrohack.visualization.textual_data import generate_observation_summary_for_beamcut
 from astrohack.utils.graph import compute_graph
@@ -75,7 +78,7 @@ class AstrohackBeamcutFile:
         print_data_contents(self, ["Antenna", "DDI", "Cut"])
         print_method_list([
             self.summary,
-        #         self.get_antenna,
+            self.plot_beamcut_in_amplitude,
         #         self.export_screws,
         #         self.export_to_fits,
         #         self.plot_antennas,
@@ -144,3 +147,60 @@ class AstrohackBeamcutFile:
             output_file.write(full_summary)
         if print_summary:
             print(full_summary)
+
+    def plot_beamcut_in_amplitude(self,
+                                  destination: str,
+                                  ant: Union[str, List[str]] = "all",
+                                  ddi: Union[int, List[int]] = "all",
+                                  lm_unit: str = 'amin',
+                                  azel_unit: str = 'deg',
+                                  y_scale: str = None,
+                                  display: bool = False,
+                                  dpi: int = 300,
+                                  parallel: bool = False,
+                                  ) -> None:
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, plot_beamcut_in_amplitude_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+        return
+    
+    def plot_beamcut_in_attenuation(self,
+                                  destination: str,
+                                  ant: Union[str, List[str]] = "all",
+                                  ddi: Union[int, List[int]] = "all",
+                                  lm_unit: str = 'amin',
+                                  azel_unit: str = 'deg',
+                                  y_scale: str = None,
+                                  display: bool = False,
+                                  dpi: int = 300,
+                                  parallel: bool = False,
+                                  ) -> None:
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, plot_beamcut_in_attenuation_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+        return
+
+    def create_beam_fit_report(self,
+                                  destination: str,
+                                  ant: Union[str, List[str]] = "all",
+                                  ddi: Union[int, List[int]] = "all",
+                                  lm_unit: str = 'amin',
+                                  azel_unit: str = 'deg',
+                                  parallel: bool = False,
+                                  ) -> None:
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, create_report_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+        return

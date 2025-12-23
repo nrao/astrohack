@@ -15,6 +15,7 @@ from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
 
 lnbr = '\n'
 spc = ' '
+quack_chans = 4
 
 ###########################################################
 ### Processing Chunks
@@ -31,27 +32,30 @@ def process_beamcut_chunk(beamcut_chunk_params):
         ddi_id=ddi,
     )
     # This assumes that there will be no more than one mapping
-    this_xds = ant_data_dict[ddi]['map_0']
+    input_xds = ant_data_dict[ddi]['map_0']
     datalabel = create_dataset_label(antenna, ddi)
     logger.info(f"processing {datalabel}")
 
-    scan_time_ranges = this_xds.attrs['scan_time_ranges']
-    scan_list = this_xds.attrs['scan_list']
-    summary = this_xds.attrs["summary"]
+    scan_time_ranges = input_xds.attrs['scan_time_ranges']
+    scan_list = input_xds.attrs['scan_list']
+    summary = input_xds.attrs["summary"]
 
     telescope = get_proper_telescope(
         summary["general"]["telescope name"], summary["general"]["antenna name"]
     )
 
-    lm_offsets = this_xds.DIRECTIONAL_COSINES.values
-    time_axis = this_xds.time.values
-    corr_axis = this_xds.pol.values
-    visibilities = this_xds.VIS.values
-    weights = this_xds.WEIGHT.values
+    lm_offsets = input_xds.DIRECTIONAL_COSINES.values
+    time_axis = input_xds.time.values
+    corr_axis = input_xds.pol.values
+    visibilities = input_xds.VIS.values
+    weights = input_xds.WEIGHT.values
 
-    cut_list = _extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
-                                               visibilities, weights)
+    cut_list = _extract_cuts_from_visibilities_orig(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
+                                                    visibilities, weights)
+    cut_xdtree = _extract_cuts_from_visibilities_xr(input_xds, antenna, ddi)
     _beamcut_multi_lobes_gaussian_fit(cut_list, telescope, summary, datalabel)
+
+    _beamcut_multi_lobes_gaussian_fit_xr(cut_xdtree, datalabel)
 
     destination = beamcut_chunk_params['destination']
     if destination is not None:
@@ -193,8 +197,8 @@ def _time_scan_selection(scan_time_ranges, time_axis):
     return time_selections
 
 
-def _extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
-                                    visibilities, weights):
+def _extract_cuts_from_visibilities_orig(scan_list, scan_time_ranges, time_axis, corr_axis, lm_offsets,
+                                         visibilities, weights):
     cut_list = []
     nchan = visibilities.shape[1]
     fchan = 4
@@ -239,8 +243,72 @@ def _extract_cuts_from_visibilities(scan_list, scan_time_ranges, time_axis, corr
             cut_dict[f'{parallel_hand}_weight'] = avg_wei[:, icorr]
         cut_dict['all_corr_ymax'] = all_corr_ymax
         cut_list.append(cut_dict)
+        #this_branch = this_branch.assign({f'cut_{icut}': xr.DataTree(dataset=xds, name=f'cut_{icut}')})
 
     return cut_list
+
+
+def _extract_cuts_from_visibilities_xr(input_xds, antenna, ddi):
+    cut_xdtree = xr.DataTree(name=f'{antenna}-{ddi}')
+    scan_time_ranges = input_xds.attrs['scan_time_ranges']
+    scan_list = input_xds.attrs['scan_list']
+    summary = input_xds.attrs["summary"]
+
+    lm_offsets = input_xds.DIRECTIONAL_COSINES.values
+    time_axis = input_xds.time.values
+    corr_axis = input_xds.pol.values
+    visibilities = input_xds.VIS.values
+    weights = input_xds.WEIGHT.values
+
+    nchan = visibilities.shape[1]
+    fchan = 4
+    lchan = int(nchan - fchan)
+    for iscan, scan_number in enumerate(scan_list):
+        scan_time_range = scan_time_ranges[iscan]
+        time_selection = np.logical_and(time_axis >= scan_time_range[0],
+                                        time_axis < scan_time_range[1])
+        time = time_axis[time_selection]
+        this_lm_offsets = lm_offsets[time_selection, :]
+
+        lm_angle, lm_dist, direction, xlabel = _cut_direction_determination_and_label_creation(this_lm_offsets)
+        hands_dict = _get_parallel_hand_indexes(corr_axis)
+
+        avg_vis = np.average(visibilities[time_selection, fchan:lchan, :], axis=1,
+                             weights=weights[time_selection, fchan:lchan, :])
+        avg_wei = np.average(weights[time_selection, fchan:lchan, :], axis=1)
+
+        avg_time = np.average(time)*convert_unit('sec', 'day', 'time')
+        timestr = astropy.time.Time(avg_time, format='mjd').to_value('iso', subfmt='date_hm')
+
+        xds = xr.Dataset()
+        coords = {'lm_dist': lm_dist, "time": time}
+
+        xds.attrs.update({
+            'scan_number': scan_number,
+            'lm_angle': lm_angle,
+            'available_corrs': hands_dict['parallel_hands'],
+            'direction': direction,
+            'xlabel': xlabel,
+            'time_string': timestr,
+            'summary': summary,
+        })
+
+        xds['lm_offsets'] = xr.DataArray(this_lm_offsets, dims=["time", "lm"])
+        all_corr_ymax = 1e-34
+        for parallel_hand in hands_dict['parallel_hands']:
+            icorr = hands_dict[parallel_hand]
+            amp = np.abs(avg_vis[:, icorr])
+            maxamp = np.max(amp)
+            if maxamp > all_corr_ymax:
+                all_corr_ymax = maxamp
+            xds[f'{parallel_hand}_amplitude'] = xr.DataArray(amp, dims='lm_dist')
+            xds[f'{parallel_hand}_phase'] = xr.DataArray(np.angle(avg_vis[:, icorr]), dims='lm_dist')
+            xds[f'{parallel_hand}_weight'] = xr.DataArray(avg_wei[:, icorr], dims='lm_dist')
+        xds.attrs.update({'all_corr_ymax': all_corr_ymax})
+        cut_xdtree = cut_xdtree.assign({f'cut_{iscan}': xr.DataTree(dataset=xds.assign_coords(coords),
+                                                                    name=f'cut_{iscan}')})
+
+    return cut_xdtree
 
 
 def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit='deg'):
@@ -414,6 +482,108 @@ def _beamcut_multi_lobes_gaussian_fit(cut_list, telescope, summary, datalabel):
             cut_dict[f'{parallel_hand}_fit_succeeded'] = fit_succeeded
 
     return cut_list
+
+
+def _perform_curvefit_with_given_functions(x_data, y_data, initial_guesses, fit_func, datalabel, maxit=50000):
+    try:
+        results = curve_fit(fit_func, x_data, y_data, p0=initial_guesses, maxfev=int(maxit))
+        fit_pars = results[0]
+        return True, fit_pars
+    except RuntimeError:
+        logger.warning(f'{fit_func.__name__} fit to lobes failed for {datalabel}.')
+        return False, np.full_like(initial_guesses, np.nan)
+
+
+def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
+    centers = fit_pars[0::3]
+    amps = fit_pars[1::3]
+    fwhms = fit_pars[2::3]
+
+    # select fits that are within x_data
+    x_min = np.min(x_data)
+    x_max = np.max(x_data)
+    selection = ~ np.logical_or(centers < x_min, centers > x_max)
+
+    # apply selection
+    centers = centers[selection]
+    amps = amps[selection]
+    fwhms = fwhms[selection]
+
+    # Reconstruct fit metadata
+    n_peaks = centers.shape[0]
+    fit_pars = np.zeros((3*n_peaks))
+    fit_pars[0::3] = centers
+    fit_pars[1::3] = amps
+    fit_pars[2::3] = fwhms
+
+    # This assumes the primary beam is the closest to the center, which is expected
+    i_pb_cen = np.argmin(np.abs(centers))
+    # This assumes the primary beam is the strongest
+    i_pb_amp = np.argmax(amps)
+    pb_problem = i_pb_cen != i_pb_amp
+
+    if pb_problem:
+        logger.warning(f'Cannot reliably identify primary beam for {datalabel}.')
+        pb_center, pb_fwhm, first_side_lobe_ratio = np.nan, np.nan, np.nan
+
+    else:
+        pb_fwhm = fwhms[i_pb_cen]
+        pb_center = centers[i_pb_cen]
+
+        pb_cen = centers[i_pb_cen]
+        i_closest_to_center = np.argsort(np.abs(centers - pb_cen))
+        if centers[i_closest_to_center[1]] < 0:
+            i_lsl = i_closest_to_center[1]
+            i_rsl = i_closest_to_center[2]
+        else:
+            i_lsl = i_closest_to_center[2]
+            i_rsl = i_closest_to_center[1]
+        left_first_sl_amp = amps[i_lsl]
+        right_first_sl_amp = amps[i_rsl]
+        first_side_lobe_ratio = left_first_sl_amp / right_first_sl_amp
+
+    return n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio
+
+
+
+def _beamcut_multi_lobes_gaussian_fit_xr(cut_xdtree, datalabel):
+    # Get the summary from the first cut, but it should be equal anyway
+    summary = cut_xdtree.children['cut_0'].dataset.attrs['summary']
+    wavelength = summary["spectral"]["rep. wavelength"]
+    telescope = get_proper_telescope(
+        summary["general"]["telescope name"], summary["general"]["antenna name"]
+    )
+    primary_fwhm = 1.2 * wavelength / telescope.diameter
+
+    for cut_xds in cut_xdtree.children.values():
+        x_data = cut_xds['lm_dist'].values
+        for parallel_hand in cut_xds.attrs['available_corrs']:
+            y_data = cut_xds[f'{parallel_hand}_amplitude']
+
+            p0, n_peaks = _build_multi_gaussian_initial_guesses(x_data, y_data, primary_fwhm)
+            fit_succeeded, fit_pars = _perform_curvefit_with_given_functions(x_data,
+                                                                             y_data,
+                                                                             p0,
+                                                                             _multi_gaussian,
+                                                                             f'{datalabel}, corr = {parallel_hand}')
+
+            if fit_succeeded:
+                fit = _multi_gaussian(x_data, *fit_pars)
+                n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio = \
+                    _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars)
+            else:
+                pb_center, pb_fwhm, first_side_lobe_ratio = np.nan, np.nan, np.nan
+                fit = np.full_like(y_data, np.nan)
+
+            cut_xds.attrs[f'{parallel_hand}_amp_fit_pars'] = fit_pars
+            cut_xds.attrs[f'{parallel_hand}_n_peaks'] = n_peaks
+            cut_xds.attrs[f'{parallel_hand}_pb_fwhm'] = pb_fwhm
+            cut_xds.attrs[f'{parallel_hand}_pb_center'] = pb_center
+            cut_xds.attrs[f'{parallel_hand}_first_side_lobe_ratio'] = first_side_lobe_ratio
+            cut_xds.attrs[f'{parallel_hand}_fit_succeeded'] = fit_succeeded
+
+            cut_xds[f'{parallel_hand}_amp_fit'] = xr.DataArray(fit, dims='lm_dist')
+    return
 
 
 ###########################################################

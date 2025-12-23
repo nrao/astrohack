@@ -23,7 +23,7 @@ from typing import Union, List, NewType, Dict, Any, NoReturn
 JSON = NewType("JSON", Dict[str, Any])
 
 
-def open_beamcut(file:str) -> Union[AstrohackBeamcutFile, None]:
+def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
     """ Open beamcut file and return instance of the beamcut data object. Object includes summary function to list\
      available nodes.
 

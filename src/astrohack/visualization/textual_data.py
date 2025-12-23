@@ -615,7 +615,7 @@ def generate_observation_summary_for_beamcut(parm_dict):
     tab_count = 1
     header = f"{antenna}, {ddi}"
     outstr = make_header(header, "#", 60, 3)
-    spc = ' '
+    spc = " "
 
     outstr += (
         format_observation_summary(
@@ -630,7 +630,7 @@ def generate_observation_summary_for_beamcut(parm_dict):
         + "\n"
     )
     for cut in xdt.children.values():
-        outstr += f'{tab_count*tab_size*spc}{cut.name}:\n'
+        outstr += f"{tab_count*tab_size*spc}{cut.name}:\n"
         outstr += f'{(tab_count+1)*tab_size*spc}{cut.attrs["direction"]} at {cut.attrs["time_string"]} UTC\n\n'
 
     return outstr

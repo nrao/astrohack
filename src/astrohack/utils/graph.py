@@ -8,13 +8,13 @@ from astrohack.utils.text import param_to_list
 
 
 def _construct_xdtree_graph_recursively(
-        xr_datatree,
-        chunk_function,
-        param_dict,
-        delayed_list,
-        key_order,
-        parallel=False,
-        oneup=None,
+    xr_datatree,
+    chunk_function,
+    param_dict,
+    delayed_list,
+    key_order,
+    parallel=False,
+    oneup=None,
 ):
     if len(key_order) == 0:
         param_dict["xdt_data"] = xr_datatree
@@ -48,7 +48,6 @@ def _construct_xdtree_graph_recursively(
                     logger.warning(f"{item} is not present in DataTree")
                 else:
                     logger.warning(f"{item} is not present for {oneup}")
-
 
 
 def _construct_general_graph_recursively(
@@ -126,13 +125,13 @@ def compute_graph(
     delayed_list = []
     if hasattr(looping_dict, "xdt"):
         _construct_xdtree_graph_recursively(
-                    xr_datatree=looping_dict.xdt,
-                    chunk_function=chunk_function,
-                    param_dict=param_dict,
-                    delayed_list=delayed_list,
-                    key_order=key_order,
-                    parallel=parallel,
-                )
+            xr_datatree=looping_dict.xdt,
+            chunk_function=chunk_function,
+            param_dict=param_dict,
+            delayed_list=delayed_list,
+            key_order=key_order,
+            parallel=parallel,
+        )
     else:
         _construct_general_graph_recursively(
             looping_dict=looping_dict,

@@ -110,7 +110,7 @@ def process_extract_holog_chunk(extract_holog_params):
         flagged_mapping_antennas,
         used_samples_dict,
         scan_time_ranges,
-        unq_scans
+        unq_scans,
     ) = _extract_holog_chunk_jit(
         vis_data,
         weight,
@@ -256,7 +256,9 @@ def _extract_holog_chunk_jit(
         polarization)
     """
 
-    time_samples, scan_time_ranges, unq_scans = _get_time_intervals(time_vis_row, scan_list, time_interval)
+    time_samples, scan_time_ranges, unq_scans = _get_time_intervals(
+        time_vis_row, scan_list, time_interval
+    )
     n_time = len(time_samples)
 
     n_row, n_chan, n_pol = vis_data.shape
@@ -361,7 +363,7 @@ def _extract_holog_chunk_jit(
         flagged_mapping_antennas,
         used_samples_dict,
         scan_time_ranges,
-        unq_scans
+        unq_scans,
     )
 
 

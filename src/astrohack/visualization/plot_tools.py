@@ -249,7 +249,7 @@ def scatter_plot(
     regression_linestyle="-",
     regression_color="black",
     add_legend=True,
-    legend_location='best',
+    legend_location="best",
 ):
     """
     Do scatter simple scatter plots of data to a plotting axis
@@ -333,7 +333,6 @@ def scatter_plot(
             label=regression_label,
             lw=2,
         )
-
 
     if model is not None:
         ax.plot(
@@ -441,4 +440,3 @@ def set_y_axis_lims_from_default(ax, user_y_scale, prog_defaults):
         ax.set_ylim(prog_defaults)
     else:
         ax.set_ylim(user_y_scale)
-

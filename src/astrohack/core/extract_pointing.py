@@ -189,8 +189,9 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
     # ## NB: Is VLA's definition of Azimuth the same for ALMA, MeerKAT, etc.? (positive for a clockwise rotation from
     # north, viewed from above) ## NB: Compare with calculation using WCS in astropy.
     l = np.cos(target[:, 1]) * np.sin(target[:, 0] - direction[:, 0])
-    m = (np.sin(target[:, 1]) * np.cos(direction[:, 1]) - np.cos(target[:, 1]) * np.sin(direction[:, 1])
-         * np.cos(target[:, 0] - direction[:, 0]))
+    m = np.sin(target[:, 1]) * np.cos(direction[:, 1]) - np.cos(target[:, 1]) * np.sin(
+        direction[:, 1]
+    ) * np.cos(target[:, 0] - direction[:, 0])
 
     pnt_xds["DIRECTIONAL_COSINES"] = xr.DataArray(
         np.array([l, m]).T, dims=("time", "lm")

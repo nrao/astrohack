@@ -22,7 +22,7 @@ from .dio import (
     open_panel,
     open_locit,
     open_position,
-    open_beamcut
+    open_beamcut,
 )
 from .panel import panel
 from .combine import combine

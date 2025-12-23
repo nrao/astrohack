@@ -119,40 +119,6 @@ def create_report_chunk(cut_xdtree, par_dict, spacing=2, item_marker='-', precis
 ###########################################################
 ### Data IO
 ###########################################################
-def _create_output_datatree(cut_list, antenna, ddi, summary):
-    this_branch = xr.DataTree(name=f'{antenna}-{ddi}')
-    for icut, cut_dict in enumerate(cut_list):
-        xds = xr.Dataset()
-        xds.attrs['scan_number'] = cut_dict['scan_number']
-        xds.attrs['lm_angle'] = cut_dict['lm_angle']
-        xds.attrs['available_corrs'] = cut_dict['available_corrs']
-        xds.attrs['direction'] = cut_dict['direction']
-        xds.attrs['xlabel'] = cut_dict['xlabel']
-        xds.attrs['time_string'] = cut_dict['time_string']
-        xds.attrs['all_corr_ymax'] = cut_dict['all_corr_ymax']
-        xds.attrs['summary'] = summary
-
-        coords = {"time": cut_dict['time'], "lm_dist": cut_dict['lm_dist']}
-
-        xds['lm_offsets'] = xr.DataArray(cut_dict['lm_offsets'], dims=["time", "lm"])
-
-        for parallel_hand in cut_dict['available_corrs']:
-            xds.attrs[f'{parallel_hand}_n_peaks'] = cut_dict[f'{parallel_hand}_n_peaks']
-            xds.attrs[f'{parallel_hand}_amp_fit_pars'] = cut_dict[f'{parallel_hand}_amp_fit_pars']
-            xds.attrs[f'{parallel_hand}_pb_fwhm'] = cut_dict[f'{parallel_hand}_pb_fwhm']
-            xds.attrs[f'{parallel_hand}_pb_center'] = cut_dict[f'{parallel_hand}_pb_center']
-            xds.attrs[f'{parallel_hand}_first_side_lobe_ratio'] = cut_dict[f'{parallel_hand}_first_side_lobe_ratio']
-
-            xds[f'{parallel_hand}_amplitude'] = xr.DataArray(cut_dict[f'{parallel_hand}_amplitude'], dims='lm_dist')
-            xds[f'{parallel_hand}_phase'] = xr.DataArray(cut_dict[f'{parallel_hand}_phase'], dims='lm_dist')
-            xds[f'{parallel_hand}_weight'] = xr.DataArray(cut_dict[f'{parallel_hand}_weight'], dims='lm_dist')
-            xds[f'{parallel_hand}_amp_fit'] = xr.DataArray(cut_dict[f'{parallel_hand}_amp_fit'], dims='lm_dist')
-
-        xds = xds.assign_coords(coords)
-        this_branch = this_branch.assign({f'cut_{icut}': xr.DataTree(dataset=xds, name=f'cut_{icut}')})
-    return this_branch
-
-
 def _file_name_factory(file_type, par_dict):
     destination = par_dict['destination']
     antenna = par_dict['this_ant']

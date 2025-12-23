@@ -5,6 +5,8 @@ from typing import Any, List, Union, Tuple
 import toolviper.utils.logger as logger
 
 from astrohack.utils.text import print_summary_header, print_dict_table, print_method_list, print_data_contents
+from astrohack.visualization.textual_data import generate_observation_summary_for_beamcut
+from astrohack.utils.graph import compute_graph
 
 class AstrohackBeamcutFile:
 
@@ -67,79 +69,78 @@ class AstrohackBeamcutFile:
         return self._file_is_open
 
     def summary(self) -> None:
-        """Prints summary of the AstrohackPanelFile object, with available data, attributes and available methods"""
+        """Prints summary of the AstrohackBeamcutFile object, with available data, attributes and available methods"""
         print_summary_header(self.file)
         print_dict_table(self._input_pars)
         print_data_contents(self, ["Antenna", "DDI", "Cut"])
-        # print_method_list(
-        #     [
-        #         self.summary,
+        print_method_list([
+            self.summary,
         #         self.get_antenna,
         #         self.export_screws,
         #         self.export_to_fits,
         #         self.plot_antennas,
         #         self.export_gain_tables,
-        #         self.observation_summary,
-        #     ]
-        # )
-    #
-    # def observation_summary(
-    #     self,
-    #     summary_file: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[int, List[int]] = "all",
-    #     az_el_key: str = "center",
-    #     phase_center_unit: str = "radec",
-    #     az_el_unit: str = "deg",
-    #     time_format: str = "%d %h %Y, %H:%M:%S",
-    #     tab_size: int = 3,
-    #     print_summary: bool = True,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Create a Summary of observation information
-    #
-    #     :param summary_file: Text file to put the observation summary
-    #     :type summary_file: str
-    #     :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param az_el_key: What type of Azimuth & Elevation information to print, 'mean', 'median' or 'center', default\
-    #     is 'center'
-    #     :type az_el_key: str, optional
-    #     :param phase_center_unit: What unit to display phase center coordinates, 'radec' and angle units supported, \
-    #     default is 'radec'
-    #     :type phase_center_unit: str, optional
-    #     :param az_el_unit: Angle unit used to display Azimuth & Elevation information, default is 'deg'
-    #     :type az_el_unit: str, optional
-    #     :param time_format: datetime time format for the start and end dates of observation, default is \
-    #     "%d %h %Y, %H:%M:%S"
-    #     :type time_format: str, optional
-    #     :param tab_size: Number of spaces in the tab levels, default is 3
-    #     :type tab_size: int, optional
-    #     :param print_summary: Print the summary at the end of execution, default is True
-    #     :type print_summary: bool, optional
-    #     :param parallel: Run in parallel, defaults to False
-    #     :type parallel: bool, optional
-    #
-    #     **Additional Information**
-    #
-    #     This method produces a summary of the data in the AstrohackPanelFile displaying general information,
-    #     spectral information, beam image characteristics and aperture image characteristics.
-    #     """
-    #
-    #     param_dict = locals()
-    #     key_order = ["ant", "ddi"]
-    #     execution, summary = compute_graph(
-    #         self,
-    #         generate_observation_summary,
-    #         param_dict,
-    #         key_order,
-    #         parallel,
-    #         fetch_returns=True,
-    #     )
-    #     summary = "".join(summary)
-    #     with open(summary_file, "w") as output_file:
-    #         output_file.write(summary)
-    #     if print_summary:
-    #         print(summary)
+            self.observation_summary,
+        ])
+
+    def observation_summary(
+         self,
+         summary_file: str,
+         ant: Union[str, List[str]] = "all",
+         ddi: Union[int, List[int]] = "all",
+         az_el_key: str = "center",
+         phase_center_unit: str = "radec",
+         az_el_unit: str = "deg",
+         time_format: str = "%d %h %Y, %H:%M:%S",
+         tab_size: int = 3,
+         print_summary: bool = True,
+         parallel: bool = False,
+    ) -> None:
+        """ Create a Summary of observation information
+
+        :param summary_file: Text file to put the observation summary
+        :type summary_file: str
+        :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+        :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+        :param az_el_key: What type of Azimuth & Elevation information to print, 'mean', 'median' or 'center', default\
+        is 'center'
+        :type az_el_key: str, optional
+        :param phase_center_unit: What unit to display phase center coordinates, 'radec' and angle units supported, \
+        default is 'radec'
+        :type phase_center_unit: str, optional
+        :param az_el_unit: Angle unit used to display Azimuth & Elevation information, default is 'deg'
+        :type az_el_unit: str, optional
+        :param time_format: datetime time format for the start and end dates of observation, default is \
+        "%d %h %Y, %H:%M:%S"
+        :type time_format: str, optional
+        :param tab_size: Number of spaces in the tab levels, default is 3
+        :type tab_size: int, optional
+        :param print_summary: Print the summary at the end of execution, default is True
+        :type print_summary: bool, optional
+        :param parallel: Run in parallel, defaults to False
+        :type parallel: bool, optional
+
+        **Additional Information**
+
+        This method produces a summary of the data in the AstrohackBeamcutFile displaying general information,
+        spectral information, beam image characteristics and aperture image characteristics.
+        """
+
+
+        param_dict = locals()
+        key_order = ["ant", "ddi"]
+        execution, summary_list = compute_graph(
+            self,
+            generate_observation_summary_for_beamcut,
+            param_dict,
+            key_order,
+            parallel,
+            fetch_returns=True,
+        )
+        full_summary = "".join(summary_list)
+        with open(summary_file, "w") as output_file:
+            output_file.write(full_summary)
+        if print_summary:
+            print(full_summary)

@@ -1,3 +1,4 @@
+import numpy
 import toolviper.utils.logger as logger
 import numpy as np
 from scipy.optimize import curve_fit
@@ -26,7 +27,7 @@ quack_chans = 4
 
 
 ###########################################################
-### Processing Chunks
+### Working Chunks
 ###########################################################
 def process_beamcut_chunk(beamcut_chunk_params):
     """
@@ -199,6 +200,18 @@ def create_report_chunk(
 ### Data IO
 ###########################################################
 def _file_name_factory(file_type, par_dict):
+    """
+    Generate filenames from file type and execution parameters
+
+    :param file_type: File type description
+    :type file_type: str
+
+    :param par_dict: Paremeter dictionary containing destination, antenna and ddi parameters
+    :type par_dict: dict
+
+    :return: Filename
+    :rtype: str
+    """
     destination = par_dict["destination"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
@@ -215,6 +228,17 @@ def _file_name_factory(file_type, par_dict):
 ### Data extraction
 ###########################################################
 def _time_scan_selection(scan_time_ranges, time_axis):
+    """
+    Produce scan based time selection
+    :param scan_time_ranges: MS derived scan time ranges
+    :type scan_time_ranges: list
+
+    :param time_axis: Visibilities time axis
+    :type time_axis: numpy.array
+
+    :return: Selection in time for each scan.
+    :rtype: numpy.array(dtype=bool)
+    """
     time_selections = []
     for scan_time_range in scan_time_ranges:
         time_selection = np.logical_and(
@@ -225,6 +249,21 @@ def _time_scan_selection(scan_time_ranges, time_axis):
 
 
 def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
+    """
+    Creates data tree containing the different cuts from a holog xds.
+
+    :param input_xds: holog xds containing visibilities with beam cuts.
+    :type input_xds: xarray.Dataset
+
+    :param antenna: Antenna key
+    :type antenna: str
+
+    :param ddi: DDI key
+    :type ddi: str
+
+    :return: Data tree containing the beamcut xdses.
+    :rtype: xarray.DataTree
+    """
     cut_xdtree = xr.DataTree(name=f"{antenna}-{ddi}")
     scan_time_ranges = input_xds.attrs["scan_time_ranges"]
     scan_list = input_xds.attrs["scan_list"]
@@ -271,7 +310,7 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
             {
                 "scan_number": scan_number,
                 "lm_angle": lm_angle,
-                "available_corrs": hands_dict["parallel_hands"],
+                "available_corrs": list(hands_dict.keys()),
                 "direction": direction,
                 "xlabel": xlabel,
                 "time_string": timestr,
@@ -280,8 +319,7 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
 
         xds["lm_offsets"] = xr.DataArray(this_lm_offsets, dims=["time", "lm"])
         all_corr_ymax = 1e-34
-        for parallel_hand in hands_dict["parallel_hands"]:
-            icorr = hands_dict[parallel_hand]
+        for parallel_hand, icorr in hands_dict.items():
             amp = np.abs(avg_vis[:, icorr])
             maxamp = np.max(amp)
             if maxamp > all_corr_ymax:
@@ -306,6 +344,20 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
 
 
 def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"):
+    """
+    Determines cut's direction using a linear regression between L and M offsets.
+
+    :param lm_offsets: Array containing the cut's L and M offsets over type expected to be of shape [n_time, lm]
+    :type lm_offsets: numpy.ndarray
+
+    :param angle_unit: Unit to represent cut's direction in a mixed cut.
+    :type angle_unit: str
+
+    :return: Tuple containing the cuts direction angle in the sky, distance from center for each point, direction \
+    label, and x-axis label for plots.
+    :rtype: tuple([float, numpy.array, str, str])
+
+    """
     dx = lm_offsets[-1, 0] - lm_offsets[0, 0]
     dy = lm_offsets[-1, 1] - lm_offsets[0, 1]
     lm_dist = np.sqrt(lm_offsets[:, 0] ** 2 + lm_offsets[:, 1] ** 2)
@@ -360,14 +412,24 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
 
 
 def _get_parallel_hand_indexes(corr_axis):
+    """
+    Get the indices of parallel hands along the correlation axis.
+
+    :param corr_axis: Visibilities correlation axis
+    :rtype: numpy.array(str)
+
+    :return: Dictionary containing the parallel hands and their indices
+    :rtype: dict
+    """
     if "L" in corr_axis[0] or "R" in corr_axis[0]:
         parallel_hands = ["RR", "LL"]
     else:
         parallel_hands = ["XX", "YY"]
 
-    hands_dict = {"parallel_hands": parallel_hands}
+    hands_dict = {}
     for icorr, corr in enumerate(corr_axis):
-        hands_dict[corr] = icorr
+        if corr in parallel_hands:
+            hands_dict[corr] = icorr
     return hands_dict
 
 

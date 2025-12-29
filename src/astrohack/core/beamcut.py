@@ -818,6 +818,21 @@ def _add_beam_parameters_box(
 ### Plot correlation subroutines
 ###########################################################
 def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
+    """
+    Plot a single beam cut in amplitude with each correlation in a different panel
+
+    :param cut_xds: xarray dataset containing the beamcut
+    :type cut_xds: xarray.Dataset
+
+    :param axes: numpy array with the Matplotlib Axes objects for the different panels
+    :type axes: numpy.array([Matplotlib.axes.Axes])
+
+    :param par_dict: Parameter dictionary containing plot configuration
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
     # Init
     sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
     max_amp = cut_xds.attrs["all_corr_ymax"]
@@ -900,6 +915,21 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
 
 
 def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
+    """
+    Plot a single beam cut in attenuation with superposed correlations
+
+    :param cut_xds: xarray dataset containing the beamcut
+    :type cut_xds: xarray.Dataset
+
+    :param ax: Matplotlib Axes object
+    :type ax: Matplotlib.axes.Axes
+
+    :param par_dict: Parameter dictionary containing plot configuration
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
     sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
     lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
@@ -976,12 +1006,33 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
 ### Data labeling
 ###########################################################
 def _make_parallel_hand_sub_title(attributes):
+    """
+    Make subtitle for data based on XDS attributes.
+
+    :param attributes: beamcut xds attributes
+    :type attributes: dict
+
+    :return: Subtitle string
+    :rtype: str
+    """
     direction = attributes["direction"]
     time_string = attributes["time_string"]
     return f"{direction}, {time_string} UTC"
 
 
 def _create_beamcut_header(summary, par_dict):
+    """
+    Create a data labeling header for plots and/or reports.
+
+    :param summary: Data summary from xds attributes
+    :type summary: dict
+
+    :param par_dict: Parameter dictionary containing configuration parameters
+    :type par_dict: dict
+
+    :return: Data labeling header for plots and/or reports.
+    :rtype: str
+    """
     azel_unit = par_dict["azel_unit"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]

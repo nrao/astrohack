@@ -700,6 +700,18 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
 ### Plot utilities
 ###########################################################
 def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
+    """
+    Add a secondary X axis on top of the figure representing the LM distances in primary beam FWHMs.
+
+    :param pb_fwhm: Primary beam FWHM
+    :type pb_fwhm: float
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :return: None
+    :rtype: NoneType
+    """
     if np.isnan(pb_fwhm):
         return
     sec_x_axis = ax.secondary_xaxis(
@@ -718,6 +730,24 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
 
 
 def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
+    """
+    Add gaussians identification to plot
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :param centers: Gaussian centers
+    :type centers: list
+
+    :param peaks: Gaussian peaks
+    :type peaks: list
+
+    :param y_off: Y offset to add peak Ids
+    :type y_off: float
+
+    :return: None
+    :rtype: NoneType
+    """
     for i_peak, peak in enumerate(peaks):
         ax.text(centers[i_peak], peak + y_off, f"{i_peak+1})", ha="center", va="bottom")
 
@@ -733,6 +763,39 @@ def _add_beam_parameters_box(
     y_pos=0.95,
     attenuation_plot=False,
 ):
+    """
+    Add text bos with beam parameters
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :param pb_center: Primary beam center offset
+    :type pb_center: float
+
+    :param pb_fwhm: Primary beam FWHM
+    :type pb_fwhm: float
+
+    :param sidelobe_ratio: First side lobe ratio
+    :type sidelobe_ratio: float
+
+    :param lm_unit: L/M axis unit
+    :type lm_unit: str
+
+    :param alpha: Opacity of text box
+    :type alpha: float
+
+    :param x_pos: Relative x position of the text box
+    :type x_pos: float
+
+    :param y_pos: Relative y position of the text box
+    :type y_pos: float
+
+    :param attenuation_plot: Is this an attenuation plot?
+    :type attenuation_plot: bool
+
+    :return: None
+    :rtype: NoneType
+    """
     if attenuation_plot:
         head = "avg "
     else:

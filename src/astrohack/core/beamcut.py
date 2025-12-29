@@ -437,6 +437,24 @@ def _get_parallel_hand_indexes(corr_axis):
 ### Multiple side lobe Gaussian fitting
 ###########################################################
 def _fwhm_gaussian(x_axis, x_off, amp, fwhm):
+    """
+    Returns a gaussian of the same shape as x_axis with fwhm instead of sigma as the input parameter
+
+    :param x_axis: X-axis of the beam cut data
+    :type x_axis: numpy.array
+
+    :param x_off: X offset of the center of the gaussian
+    :type x_off: float
+
+    :param amp: Amplitude of the gaussian
+    :type amp: float
+
+    :param fwhm: Full width at half maximum of the gaussian
+    :type fwhm: float
+
+    :return: Gaussian evaluated at x_axis points
+    :rtype: numpy.array
+    """
     sigma = fwhm / sig_2_fwhm
     return amp * np.exp(-((x_axis - x_off) ** 2) / (2 * sigma**2))
 
@@ -444,6 +462,24 @@ def _fwhm_gaussian(x_axis, x_off, amp, fwhm):
 def _build_multi_gaussian_initial_guesses(
     x_data, y_data, pb_fwhm, min_dist_fraction=1.3
 ):
+    """
+    Build initial guesses array for a multi gaussian fitting from X and Y axes heuristics
+
+    :param x_data: Fit's X-axis data.
+    :type x_data: numpy.array
+
+    :param y_data: Fit's Y-axis data.
+    :type  y_data: numpy.array
+
+    :param pb_fwhm: Estimated FWHM of the primary beam
+    :type pb_fwhm: float
+
+    :param min_dist_fraction: Fraction of pb_fwhm to use as estimate for the minimal peak distance
+    :type min_dist_fraction: float
+
+    :return: Tuple containing the initial_guesses, bounds and number of peaks to fit
+    :rtype: tuple([list, list([list]), int])
+    """
     initial_guesses = []
     lower_bounds = []
     upper_bounds = []
@@ -462,6 +498,18 @@ def _build_multi_gaussian_initial_guesses(
 
 
 def _multi_gaussian(xdata, *args):
+    """
+    Produces a multiple gaussian Y array from parameters derived fromm list of arguments
+
+    :param xdata: X-axis data
+    :type xdata: numpy.array
+
+    :param args: List of gaussian parameters [x_off_0, amp_0, fwhm_0, ..., x_off_n, amp_n, fwhm_n]
+    :type args: list([float])
+
+    :return: Multiple gaussian evaluated at x-axis points
+    :rtype: numpy.array
+    """
     nargs = len(args)
     if nargs % 3 != 0:
         raise ValueError("Number of arguments should be multiple of 3")
@@ -474,6 +522,33 @@ def _multi_gaussian(xdata, *args):
 def _perform_curvefit_with_given_functions(
     x_data, y_data, initial_guesses, bounds, fit_func, datalabel, maxit=50000
 ):
+    """
+    Invoke scipy optimize curve_fit with customized parameters
+
+    :param x_data: x-axis data for the curve fit
+    :type x_data: numpy.array
+
+    :param y_data: y-axis data to be fitted
+    :type y_data: numpy.array
+
+    :param initial_guesses: list of initial guesses
+    :type initial_guesses: list
+
+    :param bounds: List containing the lists of lower and upper bounds for each parameter
+    :type bounds: list([list])
+
+    :param fit_func: Function with which to fit the parameters.
+    :type fit_func: function
+
+    :param datalabel: Data label for messaging
+    :type datalabel: str
+
+    :param maxit: Maximum number of iterations
+    :type maxit: int
+
+    :return: Tuple containing sucess flag and fit results (NaNs if fit failed)
+    :rtype: tuple([bool, numpy.array])
+    """
     try:
         results = curve_fit(
             fit_func,
@@ -491,6 +566,22 @@ def _perform_curvefit_with_given_functions(
 
 
 def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
+    """
+    Identify primary beam and first sidelobes in fit using expected beam shape heuristics.
+
+    :param datalabel: Data label for messaging
+    :type datalabel: str
+
+    :param x_data: X-axis data
+    :type x_data: numpy.array
+
+    :param fit_pars: Fit parameters
+    :type fit_pars: numpy.array
+
+    :return: Tuple containing: Number of peaks in beam, filtered fit parameters, primary beam center offset, primary \
+    beam measured fwhm, ratio between left and right first sidelobes
+    :rtype: tuple([int, numpy.array, float, float, float])
+    """
     centers = fit_pars[0::3]
     amps = fit_pars[1::3]
     fwhms = fit_pars[2::3]
@@ -542,6 +633,18 @@ def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
 
 
 def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
+    """
+    Execute multi gaussian fit to beam cut data.
+
+    :param cut_xdtree: Datatree containing a single beam cut.
+    :type cut_xdtree: xarray.DataTree
+
+    :param datalabel: Data label for messaging
+    :type datalabel: str
+
+    :return: None
+    :rtype: NoneType
+    """
     # Get the summary from the first cut, but it should be equal anyway
     summary = cut_xdtree.attrs["summary"]
     wavelength = summary["spectral"]["rep. wavelength"]

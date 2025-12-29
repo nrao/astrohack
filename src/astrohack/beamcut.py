@@ -17,16 +17,92 @@ def beamcut(
     beamcut_name: str = None,
     ant: Union[str, List[str]] = "all",
     ddi: Union[int, List[str]] = "all",
-    correlations: str = "all",
     destination: str = None,
     lm_unit: str = "amin",
     azel_unit: str = "deg",
     dpi: int = 300,
     display: bool = False,
-    y_scale: str = None,
+    y_scale: list[float] = None,
     parallel: bool = False,
     overwrite: bool = False,
 ):
+    """
+    Process beamcut data from a .holog.zarr file to produce reports and plots.
+
+    :param holog_name: Name of the .holog.zarr file to use as input.
+    :type holog_name: str
+
+    :param beamcut_name: Name for the output .beamcut.zarr file to save data.
+    :type beamcut_name: str
+
+    :param ant: List of antennas/antenna to be processed, defaults to "all" when None, ex. ea25.
+    :type ant: list or str, optional
+
+    :param ddi: List of ddi to be processed, defaults to "all" when None, ex. 0.
+    :type ddi: list or int, optional
+
+    :param destination: Destination directory for plots and reports if not None, defaults to None.
+    :type destination: str, optional
+
+    :param lm_unit: Unit for L/M offsets in plots and report, default is "amin".
+    :type lm_unit: str, optional
+
+    :param azel_unit: Unit for Az/El information in plots and report, default is "deg".
+    :type azel_unit: str, optional
+
+    :param dpi: Resolution in pixels, defaults to 300.
+    :type dpi: int, optional
+
+    :param display: Display plots during execution, defaults to False.
+    :type display: bool, optional
+
+    :param y_scale: Define amplitude plot Y scale, defaults to None.
+    :type y_scale: str, optional
+
+    :param parallel: Process beamcuts in parallel, defaults to False.
+    :type parallel: bool, optional
+
+    :param overwrite: Overwrite previously existing beamcut file of same name, defaults to False.
+    :type overwrite: bool, optional
+
+    :return: Beamcut mds object
+    :rtype: AstrohackBeamcutFile
+
+    .. _Description:
+    **AstrohackImageFile**
+
+    Image object allows the user to access image data via compound dictionary keys with values, in order of depth,\
+     `ant` -> `ddi`. The image object also provides a `summary()` helper function to list available keys for each file.\
+      An outline of the image object structure is show below:
+
+    .. parsed-literal::
+        image_mds =
+            {
+            ant_0:{
+                ddi_0: image_ds,
+                 ⋮
+                ddi_m: image_ds
+            },
+            ⋮
+            ant_n: …
+        }
+
+    **Example Usage**
+
+    .. parsed-literal::
+        from astrohack.holog import holog
+
+        holog(
+            holog_name="astrohack_observation.holog.zarr",
+            padding_factor=50,
+            grid_interpolation_mode='linear',
+            chan_average = True,
+            scan_average = True,
+            ant='ea25',
+            overwrite=True,
+            parallel=True
+        )
+    """
 
     check_if_file_can_be_opened(holog_name, "0.9.4")
 

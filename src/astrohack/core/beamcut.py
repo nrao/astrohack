@@ -29,6 +29,15 @@ quack_chans = 4
 ### Processing Chunks
 ###########################################################
 def process_beamcut_chunk(beamcut_chunk_params):
+    """
+    Ingests a holog_xds containing beamcuts and produces a beamcut_xdtree containing the cuts separated in xdses.
+
+    :param beamcut_chunk_params: Parameter dictionary with inputs
+    :type beamcut_chunk_params: dict
+
+    :return: Beamcut_xdtree containing the different cuts for this antenna and DDI.
+    :rtype: xr.DataTree
+    """
     ddi = beamcut_chunk_params["this_ddi"]
     antenna = beamcut_chunk_params["this_ant"]
 
@@ -60,6 +69,18 @@ def process_beamcut_chunk(beamcut_chunk_params):
 
 
 def plot_beamcut_in_amplitude_chunk(par_dict, cut_xdtree=None):
+    """
+    Produce Amplitude beam cut plots from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :return: None
+    :rtype: NoneType
+    """
     if cut_xdtree is None:
         cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
@@ -77,6 +98,18 @@ def plot_beamcut_in_amplitude_chunk(par_dict, cut_xdtree=None):
 
 
 def plot_beamcut_in_attenuation_chunk(par_dict, cut_xdtree=None):
+    """
+    Produce attenuation beam cut plots from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :return: None
+    :rtype: NoneType
+    """
     if cut_xdtree is None:
         cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
@@ -96,6 +129,27 @@ def plot_beamcut_in_attenuation_chunk(par_dict, cut_xdtree=None):
 def create_report_chunk(
     par_dict, cut_xdtree=None, spacing=2, item_marker="-", precision=3
 ):
+    """
+    Produce a report on beamcut fit results from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling report aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :param spacing: Identation
+    :type spacing: int
+
+    :param item_marker: Character to denote a different item in a list
+    :type item_marker: str
+
+    :param precision: Number of decimal places to include in table results
+    :type precision: int
+
+    :return: None
+    :rtype: NoneType
+    """
     if cut_xdtree is None:
         cut_xdtree = par_dict["xdt_data"]
     outstr = f"{item_marker}{spc}"

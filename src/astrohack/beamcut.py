@@ -69,19 +69,24 @@ def beamcut(
     :rtype: AstrohackBeamcutFile
 
     .. _Description:
-    **AstrohackImageFile**
+    **AstrohackBeamcutFile**
 
-    Image object allows the user to access image data via compound dictionary keys with values, in order of depth,\
-     `ant` -> `ddi`. The image object also provides a `summary()` helper function to list available keys for each file.\
-      An outline of the image object structure is show below:
+    The beamcut mds object allows the user to access the underlying xarray datatree using compound keys, which are in \
+    order of depth, `ant` -> `ddi`. This object also provides a `summary()` method to list available data and available\
+     data visualization methods.
+
+      An outline of the beamcut mds data tree is show below:
 
     .. parsed-literal::
         image_mds =
             {
             ant_0:{
-                ddi_0: image_ds,
-                 ⋮
-                ddi_m: image_ds
+                ddi_0: {
+                    cut_0: beamcut_ds
+                    ⋮
+                    cut_p: beamcut_ds
+                },
+                ddi_m: …
             },
             ⋮
             ant_n: …
@@ -90,14 +95,13 @@ def beamcut(
     **Example Usage**
 
     .. parsed-literal::
-        from astrohack.holog import holog
+        from astrohack import beamcut
 
-        holog(
+        beamcut(
             holog_name="astrohack_observation.holog.zarr",
-            padding_factor=50,
-            grid_interpolation_mode='linear',
-            chan_average = True,
-            scan_average = True,
+            beamcut_name="astrohack_observation.beamcut.zarr",
+            destination="beamcut_exports",
+            display=False,
             ant='ea25',
             overwrite=True,
             parallel=True

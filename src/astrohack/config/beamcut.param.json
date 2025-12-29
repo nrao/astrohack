@@ -1,0 +1,79 @@
+{
+    "beamcut":{
+        "holog_name":{
+            "required": true,
+            "type": ["string"]
+        },
+        "beamcut_name":{
+            "required": false,
+            "type": ["string"],
+            "nullable": true
+        },
+        "ant":{
+            "nullable": false,
+            "required": false,
+            "struct_type": ["str"],
+            "type": ["string", "list"]
+        },
+        "ddi":{
+            "nullable": false,
+            "required": false,
+            "struct_type": ["str", "int"],
+            "type": ["int", "list", "string"]
+        },
+        "destination":{
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        },
+        "lm_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "dpi":{
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "y_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": [
+                "float",
+                "int"
+            ],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": [
+                "list",
+                "tuple",
+                "ndarray"
+            ]
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "overwrite":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    }
+}

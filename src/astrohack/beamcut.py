@@ -1,17 +1,21 @@
 import pathlib
-import toolviper.utils.logger as logger
 import json
+import xarray as xr
+
+import toolviper.utils.logger as logger
+
+from toolviper.utils.parameter import validate
 
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
 from astrohack.beamcut_mds import AstrohackBeamcutFile
-import xarray as xr
+from astrohack.utils.validation import custom_plots_checker
 
 from typing import Union, List
 
-
+@validate(custom_checker=custom_plots_checker)
 def beamcut(
     holog_name: str,
     beamcut_name: str = None,

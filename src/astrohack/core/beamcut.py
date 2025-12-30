@@ -879,7 +879,10 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
             amps = np.array(cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][1::3])
 
             _add_lobe_identification_to_plot(
-                this_ax, centers, amps, y_off,
+                this_ax,
+                centers,
+                amps,
+                y_off,
             )
         else:
             scatter_plot(

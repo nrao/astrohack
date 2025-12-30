@@ -322,7 +322,7 @@ class AstrohackBeamcutFile:
         :return: None
         :rtype: NoneType
         """
-        
+
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)

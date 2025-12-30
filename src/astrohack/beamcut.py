@@ -15,6 +15,7 @@ from astrohack.utils.validation import custom_plots_checker
 
 from typing import Union, List
 
+
 @validate(custom_checker=custom_plots_checker)
 def beamcut(
     holog_name: str,

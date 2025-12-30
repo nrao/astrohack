@@ -79,7 +79,7 @@ class AstrohackBeamcutFile:
         """
         return self._file_is_open
 
-    def children_keys(self, *args, **kwargs):
+    def keys(self, *args, **kwargs):
         """
         Get children keys
 

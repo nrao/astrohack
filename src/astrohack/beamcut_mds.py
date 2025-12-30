@@ -5,6 +5,8 @@ from typing import List, Union
 
 import toolviper.utils.logger as logger
 
+from toolviper.utils.parameter import validate
+
 from astrohack.core.beamcut import (
     plot_beamcut_in_amplitude_chunk,
     plot_beamcut_in_attenuation_chunk,
@@ -20,6 +22,7 @@ from astrohack.visualization.textual_data import (
     generate_observation_summary_for_beamcut,
 )
 from astrohack.utils.graph import compute_graph
+from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
 class AstrohackBeamcutFile:
@@ -139,6 +142,7 @@ class AstrohackBeamcutFile:
             ]
         )
 
+    @validate(custom_checker=custom_unit_checker)
     def observation_summary(
         self,
         summary_file: str,
@@ -213,6 +217,7 @@ class AstrohackBeamcutFile:
         if print_summary:
             print(full_summary)
 
+    @validate(custom_checker=custom_plots_checker)
     def plot_beamcut_in_amplitude(
         self,
         destination: str,
@@ -271,6 +276,7 @@ class AstrohackBeamcutFile:
         )
         return
 
+    @validate(custom_checker=custom_plots_checker)
     def plot_beamcut_in_attenuation(
         self,
         destination: str,
@@ -329,6 +335,7 @@ class AstrohackBeamcutFile:
         )
         return
 
+    @validate(custom_checker=custom_plots_checker)
     def create_beam_fit_report(
         self,
         destination: str,

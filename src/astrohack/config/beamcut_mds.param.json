@@ -1,5 +1,5 @@
 {
-    "observation_summary":{
+    "AstrohackBeamcutFile.observation_summary":{
                 "summary_file": {
             "nullable": false,
             "required": true,
@@ -74,7 +74,7 @@
             ]
         }
     },
-    "plot_beamcut_in_amplitude":{
+    "AstrohackBeamcutFile.plot_beamcut_in_amplitude":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -150,7 +150,7 @@
             "type": ["boolean"]
         }
     },
-    "plot_beamcut_in_attenuation":{
+    "AstrohackBeamcutFile.plot_beamcut_in_attenuation":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -226,7 +226,7 @@
             "type": ["boolean"]
         }
     },
-    "create_beam_fit_report":{
+    "AstrohackBeamcutFile.create_beam_fit_report":{
         "destination":{
             "nullable": false,
             "required": true,

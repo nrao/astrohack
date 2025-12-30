@@ -13,4 +13,5 @@ on:
 
 jobs:
   call-testing-linux:
-    uses: nrao/gh-actions-templates-public/.github/workflows/python-testing-macos-template.yml@main
+    uses: nrao/gh-actions-templates-public/.github/workflows/python-testing-macos-template.yml@honeycomb
+    secrets: inherit

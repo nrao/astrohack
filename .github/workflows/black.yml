@@ -5,4 +5,5 @@ on: [push, pull_request]
 
 jobs:
     call-testing-linux:
-      uses: nrao/gh-actions-templates-public/.github/workflows/black-template.yml@main
+      uses: nrao/gh-actions-templates-public/.github/workflows/black-template.yml@honeycomb
+      secrets: inherit

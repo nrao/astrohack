@@ -737,10 +737,10 @@ def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
     :type ax: matplotlib.axes.Axes
 
     :param centers: Gaussian centers
-    :type centers: list
+    :type centers: list, numpy.array
 
     :param peaks: Gaussian peaks
-    :type peaks: list
+    :type peaks: list, numpy.array
 
     :param y_off: Y offset to add peak Ids
     :type y_off: float

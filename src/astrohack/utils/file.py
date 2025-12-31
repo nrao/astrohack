@@ -570,7 +570,6 @@ def _compare_dictionaries(dict_a, dict_b, metaname):
     different_values = False
     for key, value in dict_a.items():
         if isinstance(value, np.ndarray) or isinstance(value, xr.DataArray):
-            # print(key, value.dtype.char)
             if isinstance(value, np.ndarray):
                 value_a = value
                 value_b = dict_b[key]
@@ -632,6 +631,8 @@ def _are_data_dicts_different(dict_a, dict_b, label=""):
         for key in dict_a.keys():
             if key not in dict_b.keys():
                 return True, f"{label[2:]} keys do not match"
+            elif "info" in key:
+                return _compare_dictionaries(dict_a[key], dict_b[key], label)
             else:
                 data_dicts_are_different, msg = _are_data_dicts_different(
                     dict_a[key], dict_b[key], label=f"{label}, {key}"

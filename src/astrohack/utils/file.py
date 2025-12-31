@@ -569,10 +569,19 @@ def _compare_dictionaries(dict_a, dict_b, metaname):
 
     different_values = False
     for key, value in dict_a.items():
-        if isinstance(value, np.ndarray):
-            different_values = np.any(value != dict_b[key])
-        elif isinstance(value, xr.DataArray):
-            different_values = np.any(value.values != dict_b[key].values)
+        if isinstance(value, np.ndarray) or isinstance(value, xr.DataArray):
+            # print(key, value.dtype.char)
+            if isinstance(value, np.ndarray):
+                value_a = value
+                value_b = dict_b[key]
+            else:
+                value_a = value.values
+                value_b = dict_b[key].values
+            is_str_arr = value_a.dtype.char in ["U", "S", "O"]
+            if is_str_arr:
+                different_values = np.any(value_a != value_b)
+            else:
+                different_values = not np.allclose(value_a, value_b, equal_nan=True)
         else:
             different_values = value != dict_b[key]
     if different_values:

@@ -61,6 +61,9 @@ parser.add_argument(
 )
 
 
+remote_download_json_name = "file.download.json"
+
+
 def execute_shell_command(command):
     results = subprocess.run(command, capture_output=True, text=True)
     return results.stdout
@@ -70,7 +73,7 @@ def download_manifest(args, manifest_filename=".manifest.json"):
     if args.manifest_path is None:
         downloaded_manifest = (
             toolviper.utils.data.__file__.split("__")[0]
-            + ".cloudflare/file.download.json"
+            + f".cloudflare/{remote_download_json_name}"
         )
         toolviper.utils.data.update()
         shutil.copyfile(downloaded_manifest, manifest_filename)
@@ -86,7 +89,9 @@ def prepare_data_for_upload(args):
     is_dir = pathlib.Path(args.file).is_dir()
     if is_dir:
         meta_name = args.file + ".zip"
+        print(f"Creating Ziped version of {args.file}...")
         execute_shell_command(["zip", "-r", meta_name, args.file])
+        print("Done!")
     else:
         meta_name = args.file
 
@@ -124,6 +129,52 @@ def add_data_to_manifest(args, manifest, file_properties, manifest_filename):
         json.dump(manifest, manifest_file, indent=4)
 
 
+def upload_a_file_to_cloudflare(
+    s3_client, bucket_name, local_file_path, remote_file_path
+):
+    try:
+        s3_client.upload_file(
+            Filename=local_file_path, Bucket=bucket_name, Key=remote_file_path
+        )
+        print(
+            f"File '{local_file_path}' uploaded successfully to '{bucket_name}/{remote_file_path}'"
+        )
+    except Exception as e:
+        print(f"An error occurred during upload: {e}")
+
+
+def upload_data_to_cloudflare(manifest_filename, file_properties):
+    import boto3
+    import os
+
+    ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    BUCKET_NAME = "public-data"
+    ACCESS_KEY_ID = os.environ.get("CLOUDFLARE_ACCESS_KEY_ID")
+    SECRET_ACCESS_KEY = os.environ.get("CLOUDFLARE_SECRET_ACCESS_KEY")
+
+    s3_client = boto3.client(
+        service_name="s3",
+        # Provide your Cloudflare account ID
+        endpoint_url=f"https://{ACCOUNT_ID}.r2.cloudflarestorage.com",
+        # Retrieve your S3 API credentials for your R2 bucket via API tokens (see: https://developers.cloudflare.com/r2/api/tokens)
+        aws_access_key_id=ACCESS_KEY_ID,
+        aws_secret_access_key=SECRET_ACCESS_KEY,
+        region_name="auto",  # Required by SDK but not used by R2
+    )
+
+    upload_a_file_to_cloudflare(
+        s3_client, BUCKET_NAME, manifest_filename, remote_download_json_name
+    )
+    local_file_name = file_properties["file"]
+    remote_file_name = f'{file_properties["path"]}/{local_file_name}'
+    upload_a_file_to_cloudflare(
+        s3_client, BUCKET_NAME, local_file_name, remote_file_name
+    )
+
+    # Update local version of toolviper database
+    toolviper.utils.data.update()
+
+
 def main():
     args = parser.parse_args()
 
@@ -137,6 +188,8 @@ def main():
         file_properties,
         manifest_filename,
     )
+
+    upload_data_to_cloudflare(manifest_filename, file_properties)
 
     return
 

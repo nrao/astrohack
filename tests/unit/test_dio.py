@@ -13,6 +13,7 @@ from astrohack.extract_pointing import extract_pointing
 from astrohack import locit, extract_locit
 from astrohack.panel import panel
 from astrohack.beamcut import beamcut
+from astrohack.utils.file import mds_equality_test
 
 
 class TestAstrohackDio:
@@ -27,6 +28,7 @@ class TestAstrohackDio:
     holog_mds = None
     image_mds = None
     panel_mds = None
+    point_mds = None
 
     locit_cal_table_name = "locit-input-pha.cal"
     locit_name = "locit-input-pha.locit.zarr"
@@ -60,7 +62,7 @@ class TestAstrohackDio:
                     setattr(cls, varname, f"{cls.datafolder}/{varvalue}")
 
         # Holography pre-processing
-        extract_pointing(
+        cls.point_mds = extract_pointing(
             ms_name=cls.holography_ms_name,
             point_name=cls.point_name,
             parallel=True,
@@ -111,10 +113,6 @@ class TestAstrohackDio:
         )
 
         # Beam cut preprocessing
-        toolviper.utils.data.download(
-            file="kband_beamcut_small.ms", folder=cls.datafolder
-        )
-
         extract_pointing(
             ms_name=cls.beamcut_ms_name,
             point_name=cls.beamcut_point_name,
@@ -143,43 +141,38 @@ class TestAstrohackDio:
     def test_open_holog(self):
         """Open a holog file and return a holog data object"""
         holog_data = open_holog(self.holog_name)
-
-        assert holog_data == self.holog_mds
+        assertion, msg = mds_equality_test(holog_data, self.holog_mds)
+        assert assertion, msg
 
     def test_open_image(self):
         """Open an image file and return an image data object"""
-        image_data = open_image(self.holog_name)
-
-        assert image_data == self.image_mds
+        image_data = open_image(self.image_name)
+        assertion, msg = mds_equality_test(image_data, self.image_mds)
+        assert assertion, msg
 
     def test_open_panel(self):
         """Open a panel file and return a panel data object"""
         panel_data = open_panel(self.panel_name)
-
-        assert panel_data == self.panel_mds
+        assertion, msg = mds_equality_test(panel_data, self.panel_mds)
+        assert assertion, msg
 
     def test_open_pointing(self):
         """Open a pointing file and return a pointing data object"""
         pointing_data = open_pointing(self.point_name)
-        # check if keys match expected?
-        # How to check xarray content...
-
-        expected_keys = ["point_meta_ds", "ant_ea25", "ant_ea04", "ant_ea06"]
-
-        for key in pointing_data.keys():
-            assert key in expected_keys
+        assertion, msg = mds_equality_test(pointing_data, self.point_mds)
+        assert assertion, msg
 
     def test_open_locit(self):
         locit_data = open_locit(self.locit_name)
-
-        assert locit_data == self.locit_mds
+        assertion, msg = mds_equality_test(locit_data, self.locit_mds)
+        assert assertion, msg
 
     def test_open_position(self):
-        locit_data = open_position(self.position_name)
-
-        assert locit_data == self.position_mds
+        position_data = open_position(self.position_name)
+        assertion, msg = mds_equality_test(position_data, self.position_mds)
+        assert assertion, msg
 
     def test_open_beamcut(self):
         beamcut_data = open_beamcut(self.beamcut_name)
-
-        assert beamcut_data == self.beamcut_mds
+        assertion, msg = mds_equality_test(beamcut_data, self.beamcut_mds)
+        assert assertion, msg

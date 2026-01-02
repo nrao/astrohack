@@ -36,15 +36,6 @@ class TestHolog:
             parallel=False,
         )
 
-        # Extract holography data using holog_obd_dict
-        holog_mds = extract_holog(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            data_column="CORRECTED_DATA",
-            parallel=False,
-            overwrite=True,
-        )
-
         extract_holog(
             ms_name="data/ea25_cal_small_before_fixed.split.ms",
             point_name="data/ea25_cal_small_before_fixed.split.point.zarr",

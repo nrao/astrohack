@@ -421,6 +421,41 @@ def print_method_list(method_list, alignment="l", print_len=100):
     print()
 
 
+def print_method_list_xdt(astrohack_obj, alignment="l", print_len=100):
+    """Print the method list of a mds object"""
+    method_list = inspect.getmembers(astrohack_obj, predicate=inspect.ismethod)
+
+    name_len = 0
+    for name, method in method_list:
+        meth_len = len(name)
+        if meth_len > name_len:
+            name_len = meth_len
+    desc_len = print_len - name_len - 3 - 4  # Separators and padding
+
+    print("\nAvailable methods:")
+    table = create_pretty_table(["Methods", "Description"], alignment)
+    for name, method in method_list:
+        # ignore dunder methods
+        if name[0:2] == "__":
+            continue
+        docstring = inspect.getdoc(method)
+        lines = docstring.splitlines()
+        method_summary = "Failed to get method summary..."
+        for line in lines:
+            if line.strip() != "":
+                method_summary = line.strip()
+                break
+
+        table.add_row(
+            [
+                name,
+                textwrap.fill(method_summary, width=desc_len),
+            ]
+        )
+    print(table)
+    print()
+
+
 def format_frequency(freq_value, unit="Hz", decimal_places=4):
     if isinstance(freq_value, str):
         freq_value = float(freq_value)

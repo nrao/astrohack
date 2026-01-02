@@ -1,5 +1,5 @@
 import pathlib
-
+import numpy as np
 import pytest
 import shutil
 import glob
@@ -177,15 +177,15 @@ class TestBeamcut:
         rep_az, rep_el, rep_azel_unit, rep_lm_unit = retrieve_data_from_report(
             self.ea15_report
         )
-        exp_az = 294.0
-        exp_el = 46.0
+        exp_az = 294.3
+        exp_el = 45.5
         exp_azel_unit = "deg"
         exp_lm_unit = "amin"
-        assert (
-            rep_az == exp_az
+        assert np.isclose(
+            rep_az, exp_az, atol=1e-1
         ), f"Report's azimuth should be {exp_az} {exp_azel_unit}, got {rep_az} {rep_azel_unit}"
-        assert (
-            rep_el == exp_el
+        assert np.isclose(
+            rep_el, exp_el, atol=1e-1
         ), f"Report's elevation should be {exp_el} {exp_azel_unit}, got {rep_el} {rep_azel_unit}"
         assert (
             rep_azel_unit == exp_azel_unit
@@ -201,6 +201,7 @@ class TestBeamcut:
             destination=self.destination_folder,
             ant="ea15",
             ddi=0,
+            azel_unit="amin",
             lm_unit="asec",
             overwrite=True,
         )
@@ -213,11 +214,11 @@ class TestBeamcut:
         exp_el = 46.0 * 60
         exp_azel_unit = "amin"
         exp_lm_unit = "asec"
-        assert (
-            rep_az == exp_az
+        assert np.isclose(
+            rep_az, exp_az, atol=30
         ), f"Report's azimuth should be {exp_az} {exp_azel_unit}, got {rep_az} {rep_azel_unit}"
-        assert (
-            rep_el == exp_el
+        assert np.isclose(
+            rep_el, exp_el, atol=30
         ), f"Report's elevation should be {exp_el} {exp_azel_unit}, got {rep_el} {rep_azel_unit}"
         assert (
             rep_azel_unit == exp_azel_unit

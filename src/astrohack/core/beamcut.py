@@ -360,6 +360,8 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
     """
     dx = lm_offsets[-1, 0] - lm_offsets[0, 0]
     dy = lm_offsets[-1, 1] - lm_offsets[0, 1]
+    # VVV
+    # How robust is this choice? the center point could be set on the wrong side of zero
     lm_dist = np.sqrt(lm_offsets[:, 0] ** 2 + lm_offsets[:, 1] ** 2)
     imin_lm = np.argmin(lm_dist)
     lm_dist[:imin_lm] = -lm_dist[:imin_lm]
@@ -1037,6 +1039,7 @@ def _create_beamcut_header(summary, par_dict):
     :rtype: str
     """
     azel_unit = par_dict["azel_unit"]
+
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
     freq_str = format_frequency(summary["spectral"]["rep. frequency"], decimal_places=3)
@@ -1047,6 +1050,10 @@ def _create_beamcut_header(summary, par_dict):
         + r"$\nu$ = "
         + f"{freq_str}, "
     )
-    title += f"Az ~ {format_value_unit(mean_azel[0], 'deg', decimal_places=0)}, "
-    title += f"El ~ {format_value_unit(mean_azel[1], 'deg', decimal_places=0)}"
+    if azel_unit == "rad":
+        decimal_places = 3
+    else:
+        decimal_places = 1
+    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
+    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
     return title

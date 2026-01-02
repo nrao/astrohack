@@ -12,6 +12,7 @@ from astrohack.core.beamcut import (
     plot_beamcut_in_attenuation_chunk,
     create_report_chunk,
 )
+from astrohack.utils import print_method_list_xdt
 from astrohack.utils.text import (
     print_summary_header,
     print_dict_table,
@@ -132,15 +133,7 @@ class AstrohackBeamcutFile:
         print_summary_header(self.file)
         print_dict_table(self._input_pars)
         print_data_contents(self, ["Antenna", "DDI", "Cut"])
-        print_method_list(
-            [
-                self.summary,
-                self.plot_beamcut_in_amplitude,
-                self.plot_beamcut_in_attenuation,
-                self.create_beam_fit_report,
-                self.observation_summary,
-            ]
-        )
+        print_method_list_xdt(self)
 
     @validate(custom_checker=custom_unit_checker)
     def observation_summary(

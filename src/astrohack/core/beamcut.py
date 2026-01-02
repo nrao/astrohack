@@ -360,10 +360,11 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
     """
     dx = lm_offsets[-1, 0] - lm_offsets[0, 0]
     dy = lm_offsets[-1, 1] - lm_offsets[0, 1]
-    # VVV
-    # How robust is this choice? the center point could be set on the wrong side of zero
+
+    # determine where to flip signal of distances
     lm_dist = np.sqrt(lm_offsets[:, 0] ** 2 + lm_offsets[:, 1] ** 2)
     imin_lm = np.argmin(lm_dist)
+    x_min, y_min = lm_offsets[imin_lm, :]
     lm_dist[:imin_lm] = -lm_dist[:imin_lm]
 
     if np.isclose(dx, dy, rtol=3e-1):  # X case
@@ -372,14 +373,26 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
         direction = "mixed cut("
         if dy < 0 and dx < 0:
             direction += "NW -> SE"
+            # Fix the sign of the minimum
+            if x_min > 0:
+                lm_dist[imin_lm] *= -1
 
         elif dy < 0 < dx:
+            # Fix the sign of the minimum
+            if x_min < 0:
+                lm_dist[imin_lm] *= -1
             direction += "NE -> SW"
 
         elif dy > 0 > dx:
+            # Fix the sign of the minimum
+            if x_min > 0:
+                lm_dist[imin_lm] *= -1
             direction += "SW -> NE"
 
         else:
+            # Fix the sign of the minimum
+            if x_min < 0:
+                lm_dist[imin_lm] *= -1
             direction += "SE -> NW"
 
         direction += (
@@ -390,6 +403,9 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
     elif np.abs(dy) > np.abs(dx):  # Elevation case
         result = linregress(lm_offsets[:, 1], lm_offsets[:, 0])
         lm_angle = np.arctan(result.slope)
+        # Fix the sign of the minimum
+        if y_min < 0:
+            lm_dist[imin_lm] *= -1
         direction = "El. cut ("
         if dy < 0:
             direction += "N -> S"
@@ -400,6 +416,9 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
     else:  # Azimuth case
         result = linregress(lm_offsets[:, 0], lm_offsets[:, 1])
         lm_angle = np.arctan(result.slope) + np.pi / 2
+        # Fix the sign of the minimum
+        if x_min < 0:
+            lm_dist[imin_lm] *= -1
         direction = "Az. cut ("
         if dx > 0:
             direction += "E -> W"

@@ -117,6 +117,7 @@ class AstrohackBeamcutFile:
             self._input_pars = self.xdt.attrs
 
             self._file_is_open = True
+            self.file = file
 
         except Exception as error:
             logger.error(f"There was an exception opening the file: {error}")

@@ -61,7 +61,7 @@ nbsphinx_execute = "never"
 # ----
 # """
 
-autoapi_dirs = ["../src/astrohack"]
+autoapi_dirs = ["../src/astrohack", "../src/astrohack/io"]
 # autoapi_dirs = ['../']
 autoapi_add_toctree_entry = False
 autoapi_generate_api_docs = True

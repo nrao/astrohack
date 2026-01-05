@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "Holography Antenna Commissioning Kit"
-copyright = "2025, National Radio Astronomy Observatory"
+copyright = "2026, National Radio Astronomy Observatory"
 author = "National Radio Astronomy Observatory"
 
 # The short X.Y version

@@ -6,8 +6,6 @@ import toolviper
 import numpy as np
 
 from astrohack.locit import locit
-from astrohack.dio import open_locit
-from astrohack.dio import open_position
 from astrohack.extract_locit import extract_locit
 
 

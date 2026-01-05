@@ -11,7 +11,7 @@ from astrohack.utils.file import overwrite_file
 from astrohack.utils.data import write_meta_data
 from astrohack.utils.text import get_default_file_name
 
-from astrohack.mds import AstrohackImageFile
+from astrohack.io.mds import AstrohackImageFile
 
 
 @toolviper.utils.parameter.validate()

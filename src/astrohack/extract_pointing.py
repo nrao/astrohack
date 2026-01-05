@@ -7,7 +7,7 @@ from astrohack.utils.file import overwrite_file
 from astrohack.utils.file import load_point_file
 from astrohack.utils.data import write_meta_data
 from astrohack.core.extract_pointing import process_extract_pointing
-from astrohack.mds import AstrohackPointFile
+from astrohack.io.mds import AstrohackPointFile
 
 from typing import List, Union
 

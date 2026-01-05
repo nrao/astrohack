@@ -12,7 +12,7 @@ from astrohack.core.extract_locit import (
     extract_antenna_phase_gains,
 )
 from astrohack.utils.text import get_default_file_name
-from astrohack.mds import AstrohackLocitFile
+from astrohack.io.mds import AstrohackLocitFile
 
 
 @toolviper.utils.parameter.validate()

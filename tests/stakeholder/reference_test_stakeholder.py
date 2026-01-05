@@ -10,7 +10,7 @@ from astrohack.holog import holog
 from astrohack.panel import panel
 from astrohack.extract_holog import extract_holog
 
-from astrohack.dio import open_panel
+from astrohack.io.dio import open_panel
 
 # from astrohack.client import local_client
 
@@ -112,7 +112,7 @@ def verify_panel_shifts(
 def verify_center_pixels(
     file, antenna, ddi, reference_center_pixels, number_of_digits=7
 ):
-    from astrohack.dio import open_image
+    from astrohack.io.dio import open_image
 
     mds = open_image(file)[antenna][ddi]
 

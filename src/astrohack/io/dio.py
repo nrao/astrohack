@@ -7,14 +7,14 @@ import numpy as np
 from casacore import tables
 from rich.console import Console
 
-from astrohack.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.utils.file import check_if_file_can_be_opened
-from astrohack.mds import AstrohackImageFile
-from astrohack.mds import AstrohackHologFile
-from astrohack.mds import AstrohackPanelFile
-from astrohack.mds import AstrohackPointFile
-from astrohack.mds import AstrohackLocitFile
-from astrohack.mds import AstrohackPositionFile
+from astrohack.io.mds import AstrohackImageFile
+from astrohack.io.mds import AstrohackHologFile
+from astrohack.io.mds import AstrohackPanelFile
+from astrohack.io.mds import AstrohackPointFile
+from astrohack.io.mds import AstrohackLocitFile
+from astrohack.io.mds import AstrohackPositionFile
 
 from astrohack.utils.text import print_array
 

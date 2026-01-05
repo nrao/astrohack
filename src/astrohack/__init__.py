@@ -11,11 +11,11 @@ from .extract_holog import (
 )
 
 from .beamcut import beamcut
-from .beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 
 from .extract_pointing import extract_pointing
 from .holog import holog
-from .dio import (
+from astrohack.io.dio import (
     open_holog,
     open_image,
     open_pointing,
@@ -26,7 +26,7 @@ from .dio import (
 )
 from .panel import panel
 from .combine import combine
-from .mds import (
+from astrohack.io.mds import (
     AstrohackHologFile,
     AstrohackPointFile,
     AstrohackImageFile,

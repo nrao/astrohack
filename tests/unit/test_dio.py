@@ -3,10 +3,10 @@ import shutil
 import toolviper
 
 from astrohack import holog, open_locit, open_position, open_beamcut
-from astrohack.dio import open_holog
-from astrohack.dio import open_image
-from astrohack.dio import open_panel
-from astrohack.dio import open_pointing
+from astrohack.io.dio import open_holog
+from astrohack.io.dio import open_image
+from astrohack.io.dio import open_panel
+from astrohack.io.dio import open_pointing
 
 from astrohack.extract_holog import extract_holog
 from astrohack.extract_pointing import extract_pointing

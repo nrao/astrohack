@@ -3,7 +3,7 @@ import json
 import astrohack
 import numpy as np
 import pytest
-from astrohack.dio import open_panel
+from astrohack.io.dio import open_panel
 from astrohack.extract_holog import extract_holog
 from astrohack.extract_pointing import extract_pointing
 from astrohack.holog import holog
@@ -56,7 +56,7 @@ def verify_panel_positions(
 
 
 def verify_center_pixels(file, antenna, ddi, reference_center_pixels, tolerance=1e-6):
-    from astrohack.dio import open_image
+    from astrohack.io.dio import open_image
 
     mds = open_image(file)[antenna][ddi]
 

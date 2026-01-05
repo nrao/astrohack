@@ -10,7 +10,7 @@ from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import compute_graph
-from astrohack.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.utils.validation import custom_plots_checker
 
 from typing import Union, List

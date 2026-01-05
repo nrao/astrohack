@@ -14,11 +14,6 @@ from astrohack import open_beamcut, AstrohackBeamcutFile
 
 
 def are_png_files_equal(img_path1, img_path2):
-    # with open(file_a, "rb") as bin_file_a:
-    #     hash_a = hashlib.md5(bin_file_a.read()).hexdigest()
-    # with open(file_b, "rb") as bin_file_b:
-    #     hash_b = hashlib.md5(bin_file_b.read()).hexdigest()
-    # return hash_a == hash_b
     try:
         # Open images (Pillow handles various modes and removes metadata concerns for pixel data)
         with Image.open(img_path1) as img1, Image.open(img_path2) as img2:

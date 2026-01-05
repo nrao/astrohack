@@ -4,6 +4,7 @@ import os
 import io
 import contextlib
 import xarray
+import hashlib
 
 from collections.abc import KeysView
 
@@ -12,21 +13,21 @@ from toolviper.utils import data
 from astrohack import open_beamcut, AstrohackBeamcutFile
 
 
+def are_binary_files_equal(file_a, file_b):
+    with open(file_a, "rb") as bin_file_a:
+        hash_a = hashlib.md5(bin_file_a.read()).hexdigest()
+    with open(file_b, "rb") as bin_file_b:
+        hash_b = hashlib.md5(bin_file_b.read()).hexdigest()
+    return hash_a == hash_b
+
+
 class TestBeamcut:
     data_folder = "beamcut_data"
     destination_folder = "beamcut_exports"
+    ref_products_folder = f"{data_folder}/ref_beamcut_products"
 
-    silly_name = "azurbanipal"
-    # ms_name = "kband_beamcut_small.ms"
-    # point_name = "kband_beamcut_small.point.zarr"
-    # holog_name = "kband_beamcut_small.holog.zarr"
-    # local_beamcut_name = "kband_beamcut_small_local.beamcut.zarr"
+    silly_name = "Anything"
     remote_beamcut_name = "kband_beamcut_small.beamcut.zarr"
-    summary_reference_name = "summary_reference.txt"
-    obs_summary_reference_name = "obs_summary_reference.txt"
-
-    local_obs_summary = f"{destination_folder}/obs_summary.txt"
-    # ea15_report = "beamcut_exports/beamcut_report_ant_ea15_ddi_0.txt"
 
     @classmethod
     def setup_class(cls):
@@ -98,6 +99,7 @@ class TestBeamcut:
 
     def test_beamcut_summary(self):
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
+        summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
 
         output_capture = io.StringIO()
 
@@ -108,7 +110,7 @@ class TestBeamcut:
         # Get the captured output as a string
         captured_output = output_capture.getvalue()
 
-        with open(self.summary_reference_name, "r") as ref_file:
+        with open(summary_reference_name, "r") as ref_file:
             ref_content = ref_file.read()
         assert (
             captured_output == ref_content
@@ -119,13 +121,18 @@ class TestBeamcut:
     def test_beamcut_observation_summary(self):
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
-        os.makedirs(self.destination_folder, exist_ok=True)
-        beamcut_mds.observation_summary(self.local_obs_summary)
+        obs_summary_reference_name = (
+            f"{self.ref_products_folder}/obs_summary_reference.txt"
+        )
+        local_obs_summary = f"{self.destination_folder}/obs_summary.txt"
 
-        with open(self.local_obs_summary, "r") as sum_file:
+        os.makedirs(self.destination_folder, exist_ok=True)
+        beamcut_mds.observation_summary(local_obs_summary)
+
+        with open(local_obs_summary, "r") as sum_file:
             local_obs_sum = sum_file.read()
 
-        with open(self.obs_summary_reference_name, "r") as ref_file:
+        with open(obs_summary_reference_name, "r") as ref_file:
             ref_content = ref_file.read()
 
         assert (
@@ -134,11 +141,52 @@ class TestBeamcut:
         return
 
     def test_beamcut_plots(self):
-        # plot_beamcut_in_amplitude
-        # plot_beamcut_in_attenuation
-        # plot_beam_cuts_over_sky
+        ant = "ea15"
+        ddi = 0
+        amp_plot_name = f"beamcut_amplitude_ant_{ant}_ddi_{ddi}.png"
+        att_plot_name = f"beamcut_attenuation_ant_{ant}_ddi_{ddi}.png"
+        lm_plot_name = f"beamcut_lm_offsets_ant_{ant}_ddi_{ddi}.png"
+
+        beamcut_mds = open_beamcut(self.remote_beamcut_name)
+
+        beamcut_mds.plot_beamcut_in_amplitude(self.destination_folder, ant=ant, ddi=ddi)
+        assert are_binary_files_equal(
+            f"{self.destination_folder}/{amp_plot_name}",
+            f"{self.ref_products_folder}/{amp_plot_name}",
+        ), "Amplitude plot hash is different from the expected hash"
+
+        beamcut_mds.plot_beamcut_in_attenuation(
+            self.destination_folder, ant=ant, ddi=ddi
+        )
+        assert are_binary_files_equal(
+            f"{self.destination_folder}/{att_plot_name}",
+            f"{self.ref_products_folder}/{att_plot_name}",
+        ), "Attenuation plot hash is different from the expected hash"
+
+        beamcut_mds.plot_beam_cuts_over_sky(self.destination_folder, ant=ant, ddi=ddi)
+        assert are_binary_files_equal(
+            f"{self.destination_folder}/{lm_plot_name}",
+            f"{self.ref_products_folder}/{lm_plot_name}",
+        ), "lm plot hash is different from the expected hash"
 
         return
 
     def test_beam_fit_report(self):
+        ant = "ea15"
+        ddi = 0
+        report_name = f"beamcut_report_ant_{ant}_ddi_{ddi}.txt"
+
+        beamcut_mds = open_beamcut(self.remote_beamcut_name)
+
+        beamcut_mds.create_beam_fit_report(self.destination_folder, ant=ant, ddi=ddi)
+
+        with open(f"{self.destination_folder}/{report_name}", "r") as local_report_file:
+            local_rep = local_report_file.read()
+
+        with open(
+            f"{self.ref_products_folder}/{report_name}", "r"
+        ) as remote_report_file:
+            ref_rep = remote_report_file.read()
+
+        assert local_rep == ref_rep, "Local and reference beamfit reports do not match"
         return

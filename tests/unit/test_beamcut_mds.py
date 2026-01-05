@@ -1,5 +1,8 @@
 import pytest
 import shutil
+import os
+import io
+import contextlib
 import xarray
 
 from collections.abc import KeysView
@@ -20,6 +23,9 @@ class TestBeamcut:
     # local_beamcut_name = "kband_beamcut_small_local.beamcut.zarr"
     remote_beamcut_name = "kband_beamcut_small.beamcut.zarr"
     summary_reference_name = "summary_reference.txt"
+    obs_summary_reference_name = "obs_summary_reference.txt"
+
+    local_obs_summary = f"{destination_folder}/obs_summary.txt"
     # ea15_report = "beamcut_exports/beamcut_report_ant_ea15_ddi_0.txt"
 
     @classmethod
@@ -91,9 +97,40 @@ class TestBeamcut:
         return
 
     def test_beamcut_summary(self):
+        beamcut_mds = open_beamcut(self.remote_beamcut_name)
+
+        output_capture = io.StringIO()
+
+        # Use redirect_stdout to capture the function's output
+        with contextlib.redirect_stdout(output_capture):
+            beamcut_mds.summary()
+
+        # Get the captured output as a string
+        captured_output = output_capture.getvalue()
+
+        with open(self.summary_reference_name, "r") as ref_file:
+            ref_content = ref_file.read()
+        assert (
+            captured_output == ref_content
+        ), "Summary should be exactly equal to reference summary"
+
         return
 
     def test_beamcut_observation_summary(self):
+        beamcut_mds = open_beamcut(self.remote_beamcut_name)
+
+        os.makedirs(self.destination_folder, exist_ok=True)
+        beamcut_mds.observation_summary(self.local_obs_summary)
+
+        with open(self.local_obs_summary, "r") as sum_file:
+            local_obs_sum = sum_file.read()
+
+        with open(self.obs_summary_reference_name, "r") as ref_file:
+            ref_content = ref_file.read()
+
+        assert (
+            local_obs_sum == ref_content
+        ), "Observation summary should be exactly equal to reference observation summary"
         return
 
     def test_beamcut_plots(self):

@@ -312,6 +312,7 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
         data_marker=param_dict["marker"],
         data_linestyle=param_dict["linestyle"],
         data_color=param_dict["color"],
+        add_legend=False,
     )
     scatter_plot(
         ax[0, 1],
@@ -323,6 +324,7 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
         data_marker=param_dict["marker"],
         data_linestyle=param_dict["linestyle"],
         data_color=param_dict["color"],
+        add_legend=False,
     )
     scatter_plot(
         ax[1, 0],
@@ -334,6 +336,7 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
         data_marker=param_dict["marker"],
         data_linestyle=param_dict["linestyle"],
         data_color=param_dict["color"],
+        add_legend=False,
     )
     scatter_plot(
         ax[1, 1],
@@ -345,6 +348,7 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
         data_marker=param_dict["marker"],
         data_linestyle=param_dict["linestyle"],
         data_color=param_dict["color"],
+        add_legend=False,
     )
     plotfile = (
         f'{param_dict["destination"]}/holog_directional_cosines_{param_dict["this_map"]}_'
@@ -394,6 +398,7 @@ def plot_correlation(visi, weights, correlation, pol_axis, time, lm, param_dict)
                 data_marker=param_dict["marker"],
                 data_linestyle=param_dict["linestyle"],
                 data_color=param_dict["color"],
+                add_legend=False,
             )
             scatter_plot(
                 ax[isplit, 1],
@@ -405,6 +410,7 @@ def plot_correlation(visi, weights, correlation, pol_axis, time, lm, param_dict)
                 data_marker=param_dict["marker"],
                 data_linestyle=param_dict["linestyle"],
                 data_color=param_dict["color"],
+                add_legend=False,
             )
             scatter_plot(
                 ax[isplit, 2],
@@ -416,6 +422,7 @@ def plot_correlation(visi, weights, correlation, pol_axis, time, lm, param_dict)
                 data_marker=param_dict["marker"],
                 data_linestyle=param_dict["linestyle"],
                 data_color=param_dict["color"],
+                add_legend=False,
             )
 
         plotfile = (
@@ -493,9 +500,17 @@ def plot_sky_coverage_chunk(parm_dict):
         "Time vs Elevation",
         ylim=elelim,
         hlines=elelines,
+        add_legend=False,
     )
     scatter_plot(
-        axes[0, 1], time, timelabel, ha, halabel, "Time vs Hour angle", ylim=halim
+        axes[0, 1],
+        time,
+        timelabel,
+        ha,
+        halabel,
+        "Time vs Hour angle",
+        ylim=halim,
+        add_legend=False,
     )
     scatter_plot(
         axes[1, 0],
@@ -506,6 +521,7 @@ def plot_sky_coverage_chunk(parm_dict):
         "Time vs Declination",
         ylim=declim,
         hlines=declines,
+        add_legend=False,
     )
     scatter_plot(
         axes[1, 1],
@@ -517,6 +533,7 @@ def plot_sky_coverage_chunk(parm_dict):
         ylim=declim,
         xlim=halim,
         hlines=declines,
+        add_legend=False,
     )
 
     close_figure(fig, suptitle, export_name, dpi, display)

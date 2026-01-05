@@ -31,8 +31,8 @@ from astrohack.core.extract_holog import process_extract_holog_chunk
 from astrohack.utils.tools import get_valid_state_ids
 from astrohack.utils.text import get_default_file_name
 from astrohack.utils.text import NumpyEncoder
-from astrohack.mds import AstrohackHologFile
-from astrohack.mds import AstrohackPointFile
+from astrohack.io.mds import AstrohackHologFile
+from astrohack.io.mds import AstrohackPointFile
 from astrohack.extract_pointing import extract_pointing
 
 from typing import Union, List, NewType, Dict, Any, Tuple
@@ -78,10 +78,10 @@ class HologObsDict(dict):
 
     def print(self, style: str = "static"):
         if style == "dynamic":
-            return astrohack.dio.inspect_holog_obs_dict(self, style="dynamic")
+            return astrohack.io.dio.inspect_holog_obs_dict(self, style="dynamic")
 
         else:
-            return astrohack.dio.inspect_holog_obs_dict(self, style="static")
+            return astrohack.io.dio.inspect_holog_obs_dict(self, style="static")
 
     def select(
         self, key: str, value: any, inplace: bool = False, **kwargs: KWARGS

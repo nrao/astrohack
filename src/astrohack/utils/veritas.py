@@ -10,10 +10,10 @@ from astrohack.extract_pointing import extract_pointing
 from astrohack.extract_holog import extract_holog
 from astrohack.holog import holog
 from astrohack.panel import panel
-from astrohack.dio import open_panel, open_holog
+from astrohack.io.dio import open_panel, open_holog
 
 from dropbox.exceptions import AuthError
-from astrohack.dio import open_image
+from astrohack.io.dio import open_image
 from toolviper.utils import logger
 
 
@@ -47,7 +47,7 @@ def get_grid_parameters(file, antenna, mapping, ddi):
 def generate_verification_json(
     antenna, ddi, path="./data", write=True, generate_files=True
 ):
-    from astrohack.dio import open_panel
+    from astrohack.io.dio import open_panel
 
     if generate_files:
         generate_verification_files()

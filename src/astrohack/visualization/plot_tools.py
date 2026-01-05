@@ -248,6 +248,8 @@ def scatter_plot(
     add_regression=False,
     regression_linestyle="-",
     regression_color="black",
+    add_legend=True,
+    legend_location="best",
 ):
     """
     Do scatter simple scatter plots of data to a plotting axis
@@ -282,6 +284,8 @@ def scatter_plot(
         add_regression: Add a linear regression between X and y data
         regression_linestyle: Line style for the regression plot
         regression_color: Color for the regression plot
+        add_legend: add legend to the plot
+        legend_location: Location of the legend in the plot
     """
     ax.plot(
         xdata,
@@ -329,7 +333,6 @@ def scatter_plot(
             label=regression_label,
             lw=2,
         )
-        ax.legend()
 
     if model is not None:
         ax.plot(
@@ -340,7 +343,6 @@ def scatter_plot(
             color=model_color,
             label=model_label,
         )
-        ax.legend()
         if plot_residuals:
             divider = make_axes_locatable(ax)
             ax_res = divider.append_axes("bottom", size="20%", pad=0)
@@ -366,9 +368,13 @@ def scatter_plot(
 
             ax_res.axhline(0, color=hv_color, ls=hv_linestyle)
             ax_res.set_ylabel("Residuals")
+            ax_res.set_xlabel(xlabel)
 
     if title is not None:
         ax.set_title(title)
+
+    if add_legend:
+        ax.legend(loc=legend_location)
 
     return
 
@@ -427,3 +433,10 @@ def simple_imshow_map_plot(
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     return im
+
+
+def set_y_axis_lims_from_default(ax, user_y_scale, prog_defaults):
+    if user_y_scale is None:
+        ax.set_ylim(prog_defaults)
+    else:
+        ax.set_ylim(user_y_scale)

@@ -12,7 +12,7 @@ from astrohack.core.locit import (
     locit_difference_chunk,
 )
 from astrohack.utils.text import get_default_file_name
-from astrohack.mds import AstrohackLocitFile, AstrohackPositionFile
+from astrohack.io.mds import AstrohackLocitFile, AstrohackPositionFile
 
 from typing import Union, List
 

@@ -39,42 +39,42 @@ class TestAstrohack:
 
     def test_import_dio_open_holog(self):
         try:
-            from astrohack.dio import open_holog
+            from astrohack.io.dio import open_holog
         except ImportError:
             assert False
 
     def test_import_dio_open_image(self):
         try:
-            from astrohack.dio import open_image
+            from astrohack.io.dio import open_image
         except ImportError:
             assert False
 
     def test_import_dio_open_panel(self):
         try:
-            from astrohack.dio import open_panel
+            from astrohack.io.dio import open_panel
         except ImportError:
             assert False
 
     def test_import_dio_open_pointing(self):
         try:
-            from astrohack.dio import open_pointing
+            from astrohack.io.dio import open_pointing
         except ImportError:
             assert False
 
     def test_import_dio_fix_pointing_table(self):
         try:
-            from astrohack.dio import fix_pointing_table
+            from astrohack.io.dio import fix_pointing_table
         except ImportError:
             assert False
 
     def test_import_dio_print_json(self):
         try:
-            from astrohack.dio import print_json
+            from astrohack.io.dio import print_json
         except ImportError:
             assert False
 
     def test_import_dio_inspect_holog_obs_dict(self):
         try:
-            from astrohack.dio import inspect_holog_obs_dict
+            from astrohack.io.dio import inspect_holog_obs_dict
         except ImportError:
             assert False

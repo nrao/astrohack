@@ -60,11 +60,8 @@ still happening on a regular basis, so proceed with caution.
    :hidden:
    :maxdepth: 4
 
-   astrohack_installation
-   api
-   tutorial_vla
-   visualization_tutorial
-   locit_tutorial
-   cassegrain_ray_tracing_tutorial
-   AstroHACK_under_a_venv_for_locit
-   AstroHACK-for-NF-ALMA
+   online_pages/astrohack_installation
+   online_pages/tutorials
+   online_pages/api
+   online_pages/AstroHACK_under_a_venv_for_locit
+   online_pages/AstroHACK-for-NF-ALMA

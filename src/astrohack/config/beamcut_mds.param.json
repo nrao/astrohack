@@ -1,0 +1,339 @@
+{
+    "AstrohackBeamcutFile.observation_summary":{
+                "summary_file": {
+            "nullable": false,
+            "required": true,
+            "type": [
+                "string"
+            ]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "int"
+            ],
+            "minlength": 1,
+            "type": [
+                "int",
+                "list",
+                "string"
+            ]
+        },
+        "az_el_key": {
+            "nullable": false,
+            "required": true,
+            "type": ["string"],
+            "allowed": ["mean", "median", "center"]
+        },
+        "phase_center_unit": {
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.radec"
+        },
+        "az_el_unit": {
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "time_format":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"]
+        },
+        "tab_size": {
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 0
+        },
+        "print_summary": {
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "parallel": {
+            "nullable": false,
+            "required": false,
+            "type": [
+                "boolean"
+            ]
+        }
+    },
+    "AstrohackBeamcutFile.plot_beamcut_in_amplitude":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "int"
+            ],
+            "minlength": 1,
+            "type": [
+                "int",
+                "list",
+                "string"
+            ]
+        },
+        "lm_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "dpi":{
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "y_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": [
+                "float",
+                "int"
+            ],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": [
+                "list",
+                "tuple",
+                "ndarray"
+            ]
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    },
+    "AstrohackBeamcutFile.plot_beamcut_in_attenuation":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "int"
+            ],
+            "minlength": 1,
+            "type": [
+                "int",
+                "list",
+                "string"
+            ]
+        },
+        "lm_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "dpi":{
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "y_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": [
+                "float",
+                "int"
+            ],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": [
+                "list",
+                "tuple",
+                "ndarray"
+            ]
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    },
+    "AstrohackBeamcutFile.plot_beam_cuts_over_sky":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "int"
+            ],
+            "minlength": 1,
+            "type": [
+                "int",
+                "list",
+                "string"
+            ]
+        },
+        "lm_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "dpi":{
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    },
+    "AstrohackBeamcutFile.create_beam_fit_report":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "int"
+            ],
+            "minlength": 1,
+            "type": [
+                "int",
+                "list",
+                "string"
+            ]
+        },
+        "lm_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    }
+    }

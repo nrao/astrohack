@@ -12,7 +12,7 @@ from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
 from astrohack.utils.graph import compute_graph
 
-from astrohack.mds import AstrohackPanelFile, AstrohackImageFile
+from astrohack.io.mds import AstrohackPanelFile, AstrohackImageFile
 
 from typing import Union, List
 

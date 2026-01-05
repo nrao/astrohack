@@ -109,6 +109,8 @@ def process_extract_holog_chunk(extract_holog_params):
         weight_map_dict,
         flagged_mapping_antennas,
         used_samples_dict,
+        scan_time_ranges,
+        unq_scans,
     ) = _extract_holog_chunk_jit(
         vis_data,
         weight,
@@ -123,7 +125,7 @@ def process_extract_holog_chunk(extract_holog_params):
         scan_list,
     )
 
-    del vis_data, weight, ant1, ant2, time_vis_row, flag, flag_row, field_ids
+    del vis_data, weight, ant1, ant2, time_vis_row, flag, flag_row, field_ids, scan_list
 
     map_ant_name_list = list(map(str, map_ant_name_tuple))
 
@@ -172,6 +174,8 @@ def process_extract_holog_chunk(extract_holog_params):
         time_interval,
         gen_info,
         map_ref_dict,
+        scan_time_ranges,
+        unq_scans,
     )
 
     logger.info(
@@ -215,7 +219,7 @@ def _get_time_intervals(time_vis_row, scan_list, time_interval):
                 filtered_time_samples.append(time_sample)
                 break
     time_samples = np.array(filtered_time_samples)
-    return time_samples
+    return time_samples, scan_time_ranges, unq_scans
 
 
 @njit(cache=False, nogil=True)
@@ -252,7 +256,9 @@ def _extract_holog_chunk_jit(
         polarization)
     """
 
-    time_samples = _get_time_intervals(time_vis_row, scan_list, time_interval)
+    time_samples, scan_time_ranges, unq_scans = _get_time_intervals(
+        time_vis_row, scan_list, time_interval
+    )
     n_time = len(time_samples)
 
     n_row, n_chan, n_pol = vis_data.shape
@@ -356,6 +362,8 @@ def _extract_holog_chunk_jit(
         sum_weight_map_dict,
         flagged_mapping_antennas,
         used_samples_dict,
+        scan_time_ranges,
+        unq_scans,
     )
 
 
@@ -396,6 +404,8 @@ def _create_holog_file(
     time_interval,
     gen_info,
     map_ref_dict,
+    scan_time_ranges,
+    unq_scans,
 ):
     """Create holog-structured, formatted output file and save to zarr.
 
@@ -471,6 +481,8 @@ def _create_holog_file(
             xds.attrs["ddi"] = ddi
             xds.attrs["parallactic_samples"] = parallactic_samples
             xds.attrs["time_smoothing_interval"] = time_interval
+            xds.attrs["scan_time_ranges"] = scan_time_ranges
+            xds.attrs["scan_list"] = unq_scans
 
             xds.attrs["summary"] = _crate_observation_summary(
                 ant_names[map_ant_index],

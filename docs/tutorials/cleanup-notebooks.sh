@@ -14,4 +14,6 @@ rm -r vla-rt-data
 rm ant_pos_cor_24-10-14.PAR
 rm *_out.ipynb
 rm -r .ipynb_checkpoints
+rm -r beamcut_exports
+rm elastic.model
 

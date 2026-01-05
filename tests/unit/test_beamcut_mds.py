@@ -34,6 +34,7 @@ class TestBeamcut:
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
         data.download(file=cls.remote_beamcut_name, folder=cls.data_folder)
+        data.download(file="ref_beamcut_products", folder=cls.data_folder)
 
         # Add datafolder to names for execution
         for varname, varvalue in cls.__dict__.items():
@@ -45,8 +46,8 @@ class TestBeamcut:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_folder, ignore_errors=True)
-        # shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        shutil.rmtree(cls.data_folder, ignore_errors=True)
+        shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_init_and_open_beamcut(self):

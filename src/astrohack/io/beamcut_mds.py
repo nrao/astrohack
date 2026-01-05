@@ -11,6 +11,7 @@ from astrohack.core.beamcut import (
     plot_beamcut_in_amplitude_chunk,
     plot_beamcut_in_attenuation_chunk,
     create_report_chunk,
+    plot_cuts_in_lm_chunk,
 )
 from astrohack.utils import print_method_list_xdt
 from astrohack.utils.text import (
@@ -322,6 +323,61 @@ class AstrohackBeamcutFile:
         compute_graph(
             self,
             plot_beamcut_in_attenuation_chunk,
+            param_dict,
+            ["ant", "ddi"],
+            parallel=parallel,
+        )
+        return
+
+    @validate(custom_checker=custom_plots_checker)
+    def plot_beam_cuts_over_sky(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[int, List[int]] = "all",
+        lm_unit: str = "amin",
+        azel_unit: str = "deg",
+        display: bool = False,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """
+        Plot beamcuts contained in the beamcut_mds over the sky
+
+        :param destination: Directory into which to save plots.
+        :type destination: str
+
+        :param ant: Antenna ID to use in subselection, e.g. ea25, defaults to "all".
+        :type ant: list or str, optional
+
+        :param ddi: Data description ID to use in subselection, e.g. 0, defaults to "all".
+        :type ddi: list or int, optional
+
+        :param lm_unit: Unit for L/M offsets, default is "amin".
+        :type lm_unit: str, optional
+
+        :param azel_unit: Unit for Az/El information, default is "deg".
+        :type azel_unit: str, optional
+
+        :param display: Display plots during execution, default is False.
+        :type display: bool, optional
+
+        :param dpi: Pixel resolution for plots, default is 300.
+        :type dpi: int, optional
+
+        :param parallel: Run in parallel, defaults to False.
+        :type parallel: bool, optional
+
+        :return: None
+        :rtype: NoneType
+        """
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self,
+            plot_cuts_in_lm_chunk,
             param_dict,
             ["ant", "ddi"],
             parallel=parallel,

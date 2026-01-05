@@ -63,6 +63,7 @@ def process_beamcut_chunk(beamcut_chunk_params):
         logger.info(f"Producing plots for {datalabel}")
         plot_beamcut_in_amplitude_chunk(beamcut_chunk_params, cut_xdtree)
         plot_beamcut_in_attenuation_chunk(beamcut_chunk_params, cut_xdtree)
+        plot_cuts_in_lm_chunk(beamcut_chunk_params, cut_xdtree)
         create_report_chunk(beamcut_chunk_params, cut_xdtree)
         logger.info(f"Completed plots for {datalabel}")
 
@@ -125,6 +126,24 @@ def plot_beamcut_in_attenuation_chunk(par_dict, cut_xdtree=None):
 
     filename = _file_name_factory("attenuation", par_dict)
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
+
+
+def plot_cuts_in_lm_chunk(par_dict, cut_xdtree=None):
+    """
+    Produce plot of LM offsets in all cuts for antenna and ddi xd tree.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :return: None
+    :rtype: NoneType
+    """
+    if cut_xdtree is None:
+        cut_xdtree = par_dict["xdt_data"]
+    _plot_cuts_in_lm_sub(cut_xdtree, par_dict)
 
 
 def create_report_chunk(
@@ -215,7 +234,7 @@ def _file_name_factory(file_type, par_dict):
     destination = par_dict["destination"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
-    if file_type in ["attenuation", "amplitude"]:
+    if file_type in ["attenuation", "amplitude", "lm_offsets"]:
         ext = "png"
     elif file_type == "report":
         ext = "txt"
@@ -1024,6 +1043,48 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         attenuation_plot=True,
     )
     return
+
+
+def _plot_cuts_in_lm_sub(cut_xdtree, par_dict):
+    """
+    Produce plot of LM offsets in all cuts for antenna and ddi xd tree.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :return: None
+    :rtype: NoneType
+    """
+    colors = ["blue", "red", "green", "black", "orange", "grey"]
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+
+    fig, ax = create_figure_and_axes(None, [1, 1])
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        lm_offsets = lm_fac * cut_xds["lm_offsets"].values
+        ax.plot(
+            lm_offsets[:, 0],
+            lm_offsets[:, 1],
+            label=f'cut {icut}, {cut_xds.attrs["direction"]}',
+            marker=".",
+            ls="",
+            color=colors[icut],
+        )
+
+    ax.legend(loc="best")
+    ax.set_xlabel(f"L offset [{lm_unit}]")
+    ax.set_ylabel(f"M offset [{lm_unit}]")
+    ax.set_aspect("equal", adjustable="datalim")
+
+    # Header creation
+    summary = cut_xdtree.attrs["summary"]
+    title = _create_beamcut_header(summary, par_dict)
+
+    filename = _file_name_factory("lm_offsets", par_dict)
+    close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
 ###########################################################

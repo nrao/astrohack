@@ -109,7 +109,7 @@ class TestBeamcut:
 
         n_pngs = len(glob.glob(f"{self.destination_folder}/*.png"))
         assert (
-            n_pngs == 8
+            n_pngs == 12
         ), f"When a destination is given beamcut should prepare 8 pngs, {n_pngs} have been found"
 
         n_txts = len(glob.glob(f"{self.destination_folder}/*.txt"))

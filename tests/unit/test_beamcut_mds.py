@@ -4,8 +4,8 @@ import os
 import io
 import contextlib
 import xarray
-import hashlib
 
+from PIL import Image, ImageChops
 from collections.abc import KeysView
 
 from toolviper.utils import data
@@ -13,12 +13,39 @@ from toolviper.utils import data
 from astrohack import open_beamcut, AstrohackBeamcutFile
 
 
-def are_binary_files_equal(file_a, file_b):
-    with open(file_a, "rb") as bin_file_a:
-        hash_a = hashlib.md5(bin_file_a.read()).hexdigest()
-    with open(file_b, "rb") as bin_file_b:
-        hash_b = hashlib.md5(bin_file_b.read()).hexdigest()
-    return hash_a == hash_b
+def are_png_files_equal(img_path1, img_path2):
+    # with open(file_a, "rb") as bin_file_a:
+    #     hash_a = hashlib.md5(bin_file_a.read()).hexdigest()
+    # with open(file_b, "rb") as bin_file_b:
+    #     hash_b = hashlib.md5(bin_file_b.read()).hexdigest()
+    # return hash_a == hash_b
+    try:
+        # Open images (Pillow handles various modes and removes metadata concerns for pixel data)
+        with Image.open(img_path1) as img1, Image.open(img_path2) as img2:
+            # Ensure both images are in the same mode for a reliable comparison (e.g., 'RGBA')
+            img1 = img1.convert("RGBA")
+            img2 = img2.convert("RGBA")
+
+            # Check if dimensions are the same
+            if img1.size != img2.size:
+                return False
+
+            # Calculate the difference between the images
+            # This results in a new image where differing pixels are non-zero
+            diff = ImageChops.difference(img1, img2)
+
+            # Split channels and check if the bounding box of non-zero pixels in any channel is None
+            # If getbbox() returns None, the channel is all black (no differences)
+            channels = diff.split()
+            for channel in channels:
+                if channel.getbbox() is not None:
+                    return False
+
+            return True
+
+    except IOError as e:
+        print(f"Error opening images: {e}")
+        return False
 
 
 class TestBeamcut:
@@ -151,7 +178,7 @@ class TestBeamcut:
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
         beamcut_mds.plot_beamcut_in_amplitude(self.destination_folder, ant=ant, ddi=ddi)
-        assert are_binary_files_equal(
+        assert are_png_files_equal(
             f"{self.destination_folder}/{amp_plot_name}",
             f"{self.ref_products_folder}/{amp_plot_name}",
         ), "Amplitude plot hash is different from the expected hash"
@@ -159,13 +186,13 @@ class TestBeamcut:
         beamcut_mds.plot_beamcut_in_attenuation(
             self.destination_folder, ant=ant, ddi=ddi
         )
-        assert are_binary_files_equal(
+        assert are_png_files_equal(
             f"{self.destination_folder}/{att_plot_name}",
             f"{self.ref_products_folder}/{att_plot_name}",
         ), "Attenuation plot hash is different from the expected hash"
 
         beamcut_mds.plot_beam_cuts_over_sky(self.destination_folder, ant=ant, ddi=ddi)
-        assert are_binary_files_equal(
+        assert are_png_files_equal(
             f"{self.destination_folder}/{lm_plot_name}",
             f"{self.ref_products_folder}/{lm_plot_name}",
         ), "lm plot hash is different from the expected hash"

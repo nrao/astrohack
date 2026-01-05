@@ -62,9 +62,6 @@ still happening on a regular basis, so proceed with caution.
 
    astrohack_installation
    api
-   tutorial_vla
-   visualization_tutorial
-   locit_tutorial
-   cassegrain_ray_tracing_tutorial
+   tutorials
    AstroHACK_under_a_venv_for_locit
    AstroHACK-for-NF-ALMA

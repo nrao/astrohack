@@ -2,6 +2,7 @@ import toml
 import argparse
 import os
 import fileinput
+import glob
 
 parser = argparse.ArgumentParser(
     description="Bumps the current version, reintalls with pip, "
@@ -26,12 +27,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 toml_file_name = "pyproject.toml"
-notebooks = [
-    "tutorial_vla.ipynb",
-    "visualization_tutorial.ipynb",
-    "locit_tutorial.ipynb",
-    "cassegrain_ray_tracing_tutorial.ipynb",
-]
+notebooks = glob.glob("docs/tutorials/*.ipynb")
 
 
 def print_section_header(header):
@@ -74,7 +70,7 @@ def run_notebooks(notebook_list):
     for notebook in notebook_list:
         exestr += " " + notebook
     exestr += " -o"
-    os.chdir("./docs")
+    os.chdir("./docs/tutorials")
     os.system(exestr)
     os.system("bash < cleanup-notebooks.sh")
     os.chdir("../")
@@ -98,7 +94,7 @@ def run_git(bumped_version, push):
 def updated_colab_link(notebook_list, version):
     print_section_header("Updating Colab links...")
     for notebook in notebook_list:
-        for line in fileinput.input("docs/" + notebook, inplace=1):
+        for line in fileinput.input(notebook, inplace=True):
             if "![Open In Colab]" in line:
                 wrds = line.split("/")
                 iblob = wrds.index("blob")

@@ -67,20 +67,21 @@ def pip_reinstall():
 def run_notebooks(notebook_list):
     print_section_header("Running notebooks...")
     exestr = "python run-notebooks.py"
-    for notebook in notebook_list:
+    for notebook_path in notebook_list:
+        notebook = notebook_path.split("/")[-1]
         exestr += " " + notebook
     exestr += " -o"
     os.chdir("./docs/tutorials")
     os.system(exestr)
     os.system("bash < cleanup-notebooks.sh")
-    os.chdir("../")
+    os.chdir("../../")
 
 
 def run_git(bumped_version, push):
     print_section_header("Running git...")
     os.system("git add " + toml_file_name)
     for notebook in notebooks:
-        os.system("git add ./docs/" + notebook)
+        os.system("git add ./" + notebook)
     os.system(f'git commit -m "Bumped version to v{bumped_version}"')
     os.system(f'git tag -a v{bumped_version} -m "v{bumped_version}"')
     if push:

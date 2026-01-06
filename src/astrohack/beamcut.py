@@ -113,7 +113,7 @@ def beamcut(
         )
     """
 
-    check_if_file_can_be_opened(holog_name, "0.9.4")
+    check_if_file_can_be_opened(holog_name, "0.9.5")
 
     if beamcut_name is None:
         beamcut_name = get_default_file_name(

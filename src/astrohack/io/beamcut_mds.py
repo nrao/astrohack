@@ -28,6 +28,10 @@ from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
 class AstrohackBeamcutFile:
+    """Data class for beam cut data.
+
+    Data within an object of this class can be selected for further inspection, plotted or produce a report
+    """
 
     def __init__(self, file: str):
         """Initialize an AstrohackBeamcutFile object.

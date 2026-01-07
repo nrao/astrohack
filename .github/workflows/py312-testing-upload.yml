@@ -2,7 +2,7 @@
 name: Local Linux 3.12 tests only
 
 on:
-  test-py312:
+  test-py312-upload:
     uses: test-linux-py312
     paths-ignore:
       - '**.md'
@@ -15,7 +15,7 @@ on:
       - '**.rst'
 
 jobs:
-  test-linux-py312:
+  test-linux-py312-upload:
     uses: ./.github/workflows/python-testing-linux-template-vsm-version.yml
     with:
       cov_project: "astrohack"

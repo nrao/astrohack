@@ -554,7 +554,7 @@ def _get_ds_metadata(ds):
     elif isinstance(ds, xr.Dataset) or isinstance(ds, xr.DataTree):
         metadata = getattr(ds, "attrs")
     else:
-        metadata = ds.xdt.attrs
+        metadata = ds.root.attrs
     return metadata
 
 

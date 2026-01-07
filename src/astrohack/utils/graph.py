@@ -123,9 +123,9 @@ def compute_graph(
     """
 
     delayed_list = []
-    if hasattr(looping_dict, "xdt"):
+    if hasattr(looping_dict, "root"):
         _construct_xdtree_graph_recursively(
-            xr_datatree=looping_dict.xdt,
+            xr_datatree=looping_dict.root,
             chunk_function=chunk_function,
             param_dict=param_dict,
             delayed_list=delayed_list,

@@ -148,25 +148,21 @@ def beamcut(
 
     if executed_graph:
         logger.info("Finished processing")
-        output_attr_file = "{name}/{ext}".format(
-            name=beamcut_params["beamcut_name"], ext=".beamcut_input"
+        add_caller_and_version_to_dict(beamcut_params, direct_call=True)
+        beamcut_mds = AstrohackBeamcutFile.create_from_input_parameters(
+            beamcut_params["beamcut_name"], beamcut_params
         )
-        root = xr.DataTree(name="root")
-        root.attrs.update(beamcut_params)
-        add_caller_and_version_to_dict(root.attrs, direct_call=True)
 
         for xdtree in graph_results:
             ant, ddi = xdtree.name.split("-")
-            if ant in root.keys():
-                ant = root.children[ant].update({ddi: xdtree})
+            if ant in beamcut_mds.keys():
+                ant = beamcut_mds[ant].update({ddi: xdtree})
             else:
                 ant_tree = xr.DataTree(name=ant, children={ddi: xdtree})
-                root = root.assign({ant: ant_tree})
+                beamcut_mds[ant] = ant_tree
 
-        root.to_zarr(beamcut_params["beamcut_name"], mode="w", consolidated=True)
+        beamcut_mds.write()
 
-        beamcut_mds = AstrohackBeamcutFile(beamcut_params["beamcut_name"])
-        beamcut_mds.open()
         return beamcut_mds
     else:
         logger.warning("No data to process")

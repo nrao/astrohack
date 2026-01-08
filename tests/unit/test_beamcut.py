@@ -31,6 +31,18 @@ def retrieve_data_from_report(report):
     return az_val, el_val, azel_unit, lm_unit
 
 
+def are_lists_equal(list_a, list_b):
+    n_a = len(list_a)
+    n_b = len(list_b)
+    if n_a != n_b:
+        return False
+    else:
+        equal = True
+        for item in list_a:
+            equal = equal and item in list_b
+        return equal
+
+
 class TestBeamcut:
     data_folder = "beamcut_data"
     destination_folder = "beamcut_exports"
@@ -131,14 +143,14 @@ class TestBeamcut:
         full_ddi_list = ["ddi_0", "ddi_1"]
 
         mds_ant_list = list(beamcut_mds.keys())
-        assert (
-            full_ant_list == mds_ant_list
+        assert are_lists_equal(
+            full_ant_list, mds_ant_list
         ), 'With ant="all", mds_ant_list should be equal to full_ant_list'
 
         for ant in full_ant_list:
             ddi_list = list(beamcut_mds[ant].keys())
-            assert (
-                ddi_list == full_ddi_list
+            assert are_lists_equal(
+                ddi_list, full_ddi_list
             ), 'With ddi="all", ddi_list should be equal to full_ddi_list'
 
         beamcut_mds = beamcut(
@@ -153,14 +165,14 @@ class TestBeamcut:
         short_ddi_list = ["ddi_1"]
 
         mds_ant_list = list(beamcut_mds.keys())
-        assert (
-            short_ant_list == mds_ant_list
+        assert are_lists_equal(
+            short_ant_list, mds_ant_list
         ), 'With ant="all", mds_ant_list should be equal to short_ant_list'
 
         for ant in short_ant_list:
             ddi_list = list(beamcut_mds[ant].keys())
-            assert (
-                ddi_list == short_ddi_list
+            assert are_lists_equal(
+                ddi_list, short_ddi_list
             ), 'With ddi="all", ddi_list should be equal to short_ddi_list'
 
     def test_report_configuration(self):

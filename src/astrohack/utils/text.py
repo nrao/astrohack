@@ -241,7 +241,9 @@ def get_default_file_name(input_file: str, output_type: str) -> str:
 def _get_tree_field_names(data_tree, field_names=None):
     key_labels = {"ant": "Antenna", "ddi": "DDI", "map": "Mapping", "cut": "Cut"}
 
-    if isinstance(data_tree, xarray.DataTree):
+    if data_tree.is_leaf:
+        return field_names
+    else:
         this_level_keys = list(data_tree.keys())
         f_key = this_level_keys[0]
         key_label = key_labels[f_key.split("_")[0]]
@@ -250,8 +252,6 @@ def _get_tree_field_names(data_tree, field_names=None):
         else:
             field_names.append(key_label)
         return _get_tree_field_names(data_tree[f_key], field_names)
-    else:
-        return field_names
 
 
 def get_data_content_string(data_object, alignment="l", field_names=None):
@@ -264,31 +264,29 @@ def get_data_content_string(data_object, alignment="l", field_names=None):
     """
 
     field_names = _get_tree_field_names(data_object, field_names)
-    outstr = ""
-    outstr = str(field_names)
 
-    # table = create_pretty_table(field_names, alignment)
-    # depth = len(field_names)
-    # if depth == 3:
-    #     for item_l1 in data_object.keys():
-    #         for item_l2 in data_object[item_l1].keys():
-    #             table.add_row(
-    #                 [item_l1, item_l2, list(data_object[item_l1][item_l2].keys())]
-    #             )
-    # elif depth == 2:
-    #     for item_l1 in data_object.keys():
-    #         if "info" in item_l1:
-    #             pass
-    #         else:
-    #             table.add_row([item_l1, list(data_object[item_l1].keys())])
-    # elif depth == 1:
-    #     for item_l1 in data_object.keys():
-    #         table.add_row([item_l1])
-    # else:
-    #     raise Exception(f"Unhandled case len(field_names) == {depth}")
-    #
-    # print("\nContents:")
-    # print(table)
+    table = create_pretty_table(field_names, alignment)
+    depth = len(field_names)
+    if depth == 3:
+        for item_l1 in data_object.keys():
+            for item_l2 in data_object[item_l1].keys():
+                table.add_row(
+                    [item_l1, item_l2, list(data_object[item_l1][item_l2].keys())]
+                )
+    elif depth == 2:
+        for item_l1 in data_object.keys():
+            if "info" in item_l1:
+                pass
+            else:
+                table.add_row([item_l1, list(data_object[item_l1].keys())])
+    elif depth == 1:
+        for item_l1 in data_object.keys():
+            table.add_row([item_l1])
+    else:
+        raise Exception(f"Unhandled case len(field_names) == {depth}")
+
+    outstr = f"{lnbr}Data Contents:{lnbr}"
+    outstr += table.get_string()
     return outstr
 
 
@@ -534,7 +532,7 @@ def print_method_list(method_list, alignment="l", print_len=100):
     print()
 
 
-def get_method_list_string(astrohack_obj, alignment="l", print_len=100):
+def get_method_list_string(astrohack_obj, alignment="l", print_len=80):
     """Print the method list of a mds object"""
     method_list = inspect.getmembers(astrohack_obj, predicate=inspect.ismethod)
 

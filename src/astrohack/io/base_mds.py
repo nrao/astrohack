@@ -132,8 +132,7 @@ class AstrohackBaseFile:
         outstr = get_summary_header(self.file)
         outstr += get_property_string(self.root.attrs)
         outstr += get_method_list_string(self)
-        outstr += get_data_content_string(self)
-        # print_data_contents(self, ["Antenna", "DDI", "Cut"])
+        outstr += get_data_content_string(self.root)
         print(outstr)
 
     @classmethod

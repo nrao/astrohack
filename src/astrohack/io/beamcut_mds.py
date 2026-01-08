@@ -1,9 +1,6 @@
-import xarray as xr
 import pathlib
 
 from typing import List, Union
-
-import toolviper.utils.logger as logger
 
 from toolviper.utils.parameter import validate
 
@@ -14,13 +11,6 @@ from astrohack.core.beamcut import (
     plot_beamcut_in_attenuation_chunk,
     create_report_chunk,
     plot_cuts_in_lm_chunk,
-)
-from astrohack.utils import get_method_list_string
-from astrohack.utils.text import (
-    print_summary_header,
-    print_dict_table,
-    print_method_list,
-    print_data_contents,
 )
 from astrohack.visualization.textual_data import (
     generate_observation_summary_for_beamcut,

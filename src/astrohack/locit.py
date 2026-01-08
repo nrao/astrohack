@@ -27,7 +27,7 @@ def locit(
     fit_kterm: bool = False,
     fit_delay_rate: bool = True,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[int]] = "all",
+    ddi: Union[str, int, List[int]] = "all",
     combine_ddis: str = "simple",
     parallel: bool = False,
     overwrite: bool = False,

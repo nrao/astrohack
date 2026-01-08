@@ -148,7 +148,7 @@ class AstrohackBaseFile:
     #     self,
     #     summary_file: str,
     #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[int, List[int]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
     #     az_el_key: str = "center",
     #     phase_center_unit: str = "radec",
     #     az_el_unit: str = "deg",

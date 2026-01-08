@@ -20,7 +20,7 @@ def extract_locit(
     cal_table: str,
     locit_name: str = None,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[int]] = "all",
+    ddi: Union[str, int, List[int]] = "all",
     overwrite: bool = False,
 ):
     """

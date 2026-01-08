@@ -3,11 +3,14 @@ import inspect
 import textwrap
 
 import numpy as np
+import xarray
 from astropy.time import Time
 from prettytable import PrettyTable
 from toolviper.utils import logger as logger
 
 from astrohack.utils.conversion import convert_unit
+
+lnbr = "\n"
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -235,6 +238,60 @@ def get_default_file_name(input_file: str, output_type: str) -> str:
     return output_file
 
 
+def _get_tree_field_names(data_tree, field_names=None):
+    key_labels = {"ant": "Antenna", "ddi": "DDI", "map": "Mapping", "cut": "Cut"}
+
+    if isinstance(data_tree, xarray.DataTree):
+        this_level_keys = list(data_tree.keys())
+        f_key = this_level_keys[0]
+        key_label = key_labels[f_key.split("_")[0]]
+        if field_names is None:
+            field_names = [key_label]
+        else:
+            field_names.append(key_label)
+        return _get_tree_field_names(data_tree[f_key], field_names)
+    else:
+        return field_names
+
+
+def get_data_content_string(data_object, alignment="l", field_names=None):
+    """
+    Factorized printing of the prettytable with the data contents
+    Args:
+        data_object: Dictionary with data to be displayed
+        field_names: Field names in the table
+        alignment: Contents of the table to be aligned Left or Right
+    """
+
+    field_names = _get_tree_field_names(data_object, field_names)
+    outstr = ""
+    outstr = str(field_names)
+
+    # table = create_pretty_table(field_names, alignment)
+    # depth = len(field_names)
+    # if depth == 3:
+    #     for item_l1 in data_object.keys():
+    #         for item_l2 in data_object[item_l1].keys():
+    #             table.add_row(
+    #                 [item_l1, item_l2, list(data_object[item_l1][item_l2].keys())]
+    #             )
+    # elif depth == 2:
+    #     for item_l1 in data_object.keys():
+    #         if "info" in item_l1:
+    #             pass
+    #         else:
+    #             table.add_row([item_l1, list(data_object[item_l1].keys())])
+    # elif depth == 1:
+    #     for item_l1 in data_object.keys():
+    #         table.add_row([item_l1])
+    # else:
+    #     raise Exception(f"Unhandled case len(field_names) == {depth}")
+    #
+    # print("\nContents:")
+    # print(table)
+    return outstr
+
+
 def print_data_contents(data_dict, field_names, alignment="l"):
     """
     Factorized printing of the prettytable with the data contents
@@ -293,6 +350,28 @@ def print_dict_table(
         else:
             table.add_row([key, item])
     print(table)
+
+
+def get_property_string(
+    root_attrs, split_key=None, alignment="l", heading="Input Parameters"
+):
+    outstr = f"{lnbr}Data origin:{lnbr}"
+    for key, value in root_attrs["origin_info"].items():
+        outstr += f"{f'{key}:':17s} {value}{lnbr}"
+
+    outstr += f"{lnbr}{heading}:{lnbr}"
+    input_parameters = root_attrs["input_parameters"]
+    table = create_pretty_table(["Parameter", "Value"], alignment)
+    for key, item in input_parameters.items():
+        if key == split_key:
+            n_side = int(np.sqrt(input_parameters[key]))
+            table.add_row([key, f"{n_side:d} x {n_side:d}"])
+        if isinstance(item, dict):
+            table.add_row([key, _dict_to_key_list(item)])
+        else:
+            table.add_row([key, item])
+    outstr += table.get_string()
+    return outstr
 
 
 def _dict_to_key_list(attr_dict):
@@ -361,8 +440,8 @@ def print_summary_header(filename, print_len=100, frame_char="#", frame_width=3)
         title, print_len=print_len, frame_width=frame_width
     )
     print(print_len * frame_char)
-    _print_centralized(title, title_nlead, title_ntrail, frame_width, frame_char)
-    _print_centralized(filename, file_nlead, file_ntrail, frame_width, frame_char)
+    _centralized_string(title, title_nlead, title_ntrail, frame_width, frame_char)
+    _centralized_string(filename, file_nlead, file_ntrail, frame_width, frame_char)
     print(print_len * frame_char)
 
     stack = inspect.stack()
@@ -373,6 +452,42 @@ def print_summary_header(filename, print_len=100, frame_char="#", frame_width=3)
         f"astrohack.mds.{class_name}"
     )
     print(doc_string)
+
+
+def get_summary_header(filename, print_len=80, frame_char="#", frame_width=3):
+    """
+    Print a summary header dynamically adjusted to the filename
+    Args:
+        filename: filename
+        print_len: Length of the print on screen
+        frame_char: Character to frame header
+        frame_width: Width of the frame
+
+    Returns:
+        header string
+
+    """
+    title = "Summary for:"
+    filename_str, file_nlead, file_ntrail, print_len = _compute_spacing(
+        filename, print_len=print_len, frame_width=frame_width
+    )
+    title, title_nlead, title_ntrail, _ = _compute_spacing(
+        title, print_len=print_len, frame_width=frame_width
+    )
+    bar = print_len * frame_char + lnbr
+    outstr = bar
+    outstr += (
+        _centralized_string(title, title_nlead, title_ntrail, frame_width, frame_char)
+        + lnbr
+    )
+    outstr += (
+        _centralized_string(
+            filename_str, file_nlead, file_ntrail, frame_width, frame_char
+        )
+        + lnbr
+    )
+    outstr += bar
+    return outstr
 
 
 def _compute_spacing(string, print_len=100, frame_width=3):
@@ -392,11 +507,9 @@ def _compute_spacing(string, print_len=100, frame_width=3):
     return string, nlead, ntrail, print_len
 
 
-def _print_centralized(string, nlead, ntrail, frame_width, frame_char):
+def _centralized_string(string, nlead, ntrail, frame_width, frame_char):
     spc = " "
-    print(
-        f"{frame_width * frame_char}{nlead * spc}{string}{ntrail * spc}{frame_width * frame_char}"
-    )
+    return f"{frame_width * frame_char}{nlead * spc}{string}{ntrail * spc}{frame_width * frame_char}"
 
 
 def print_method_list(method_list, alignment="l", print_len=100):
@@ -421,24 +534,28 @@ def print_method_list(method_list, alignment="l", print_len=100):
     print()
 
 
-def print_method_list_xdt(astrohack_obj, alignment="l", print_len=100):
+def get_method_list_string(astrohack_obj, alignment="l", print_len=100):
     """Print the method list of a mds object"""
     method_list = inspect.getmembers(astrohack_obj, predicate=inspect.ismethod)
 
     name_len = 0
     for name, method in method_list:
+        if name[0:2] == "__":
+            continue
         meth_len = len(name)
         if meth_len > name_len:
             name_len = meth_len
     desc_len = print_len - name_len - 3 - 4  # Separators and padding
 
-    print("\nAvailable methods:")
+    outstr = f"{2*lnbr}Available methods:{lnbr}"
     table = create_pretty_table(["Methods", "Description"], alignment)
     for name, method in method_list:
         # ignore dunder methods
         if name[0:2] == "__":
             continue
         docstring = inspect.getdoc(method)
+        if docstring is None:
+            continue
         lines = docstring.splitlines()
         method_summary = "Failed to get method summary..."
         for line in lines:
@@ -452,8 +569,8 @@ def print_method_list_xdt(astrohack_obj, alignment="l", print_len=100):
                 textwrap.fill(method_summary, width=desc_len),
             ]
         )
-    print(table)
-    print()
+    outstr += table.get_string() + lnbr
+    return outstr
 
 
 def format_frequency(freq_value, unit="Hz", decimal_places=4):

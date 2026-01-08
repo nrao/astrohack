@@ -2,11 +2,16 @@ import xarray as xr
 
 import toolviper.utils.logger as logger
 
-from astrohack.utils import add_caller_and_version_to_dict_2
+from astrohack.utils import (
+    add_caller_and_version_to_dict_2,
+    get_summary_header,
+    get_property_string,
+    get_data_content_string,
+)
 from astrohack.utils.text import (
     print_summary_header,
     print_dict_table,
-    print_method_list_xdt,
+    get_method_list_string,
     print_data_contents,
 )
 
@@ -112,6 +117,9 @@ class AstrohackBaseFile:
         return self._file_is_open
 
     def write(self):
+        """
+        Write mds to disk by saving the data tree to a file
+        """
         self.root.to_zarr(self.file, mode="w", consolidated=True)
 
     def summary(self) -> None:
@@ -121,10 +129,12 @@ class AstrohackBaseFile:
         :return: None
         :rtype: NoneType
         """
-        print_summary_header(self.file)
-        print_dict_table(self.root.attrs["input_parameters"])
-        print_data_contents(self, ["Antenna", "DDI", "Cut"])
-        # print_method_list_xdt(self)
+        outstr = get_summary_header(self.file)
+        outstr += get_property_string(self.root.attrs)
+        outstr += get_method_list_string(self)
+        outstr += get_data_content_string(self)
+        # print_data_contents(self, ["Antenna", "DDI", "Cut"])
+        print(outstr)
 
     @classmethod
     def create_from_input_parameters(cls, file_name: str, input_parameters: dict):

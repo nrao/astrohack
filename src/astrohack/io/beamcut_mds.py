@@ -15,7 +15,7 @@ from astrohack.core.beamcut import (
     create_report_chunk,
     plot_cuts_in_lm_chunk,
 )
-from astrohack.utils import print_method_list_xdt
+from astrohack.utils import get_method_list_string
 from astrohack.utils.text import (
     print_summary_header,
     print_dict_table,

@@ -23,13 +23,13 @@ class AstrohackBaseFile:
     """
 
     def __init__(self, file: str):
-        """Initialize an AstrohackBeamcutFile object.
+        """Initialize an AstrohackBaseFile object.
 
         :param file: File to be linked to this object
         :type file: str
 
-        :return: AstrohackBeamcutFile object
-        :rtype: AstrohackBeamcutFile
+        :return: AstrohackBaseFile object
+        :rtype: AstrohackBaseFile
         """
         self.file = file
         self._file_is_open = False
@@ -90,7 +90,7 @@ class AstrohackBaseFile:
 
     def open(self, file: str = None) -> bool:
         """
-        Open beamcut file.
+        Open Base file.
 
         :param file: File to be opened, if None defaults to the previously defined file
         :type file: str, optional
@@ -124,7 +124,7 @@ class AstrohackBaseFile:
 
     def summary(self) -> None:
         """
-        Prints summary of the AstrohackBeamcutFile object, with available data, attributes and available methods
+        Prints summary of the AstrohackBaseFile object, with available data, attributes and available methods
 
         :return: None
         :rtype: NoneType
@@ -137,6 +137,18 @@ class AstrohackBaseFile:
 
     @classmethod
     def create_from_input_parameters(cls, file_name: str, input_parameters: dict):
+        """
+        Create an AstrohackBaseFile object from a filename and initializes xdtree root attributes.
+
+        :param file_name: Name of the file in disk to be created
+        :type file_name: str
+
+        :param input_parameters: Input parameters for the calling function to be stored in root attributes.
+        :type input_parameters: dict
+
+        :return: Initiallized AstrohackBaseFile object
+        :rtype: AstrohackBaseFile
+        """
         data_obj = cls(file_name)
         data_obj.root = xr.DataTree(name="root")
         add_caller_and_version_to_dict_2(data_obj.root.attrs, direct_call=False)

@@ -240,7 +240,7 @@ class TestBeamcut:
         ), f"Report's lm offsets unit should be {exp_lm_unit}, got {rep_lm_unit}"
 
     def test_naming(self):
-        shutil.rmtree(self.remote_beamcut_name)
+        shutil.rmtree(self.remote_beamcut_name, ignore_errors=True)
 
         # has to be run last!
         beamcut(

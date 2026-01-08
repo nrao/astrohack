@@ -1,5 +1,5 @@
 import dask
-import xarray
+import xarray as xr
 import toolviper.utils.logger as logger
 import copy
 
@@ -60,7 +60,7 @@ def _construct_general_graph_recursively(
     oneup=None,
 ):
     if len(key_order) == 0:
-        if isinstance(looping_dict, xarray.Dataset):
+        if isinstance(looping_dict, xr.Dataset):
             param_dict["xds_data"] = looping_dict
 
         elif isinstance(looping_dict, dict):
@@ -98,6 +98,61 @@ def _construct_general_graph_recursively(
                     logger.warning(f"{item} is not present in looping dict")
                 else:
                     logger.warning(f"{item} is not present for {oneup}")
+
+
+def compute_graph_to_mds_tree(
+    looping_dict,
+    chunk_function,
+    param_dict,
+    key_order,
+    output_mds,
+    parallel=False,
+):
+    delayed_list = []
+    if hasattr(looping_dict, "root"):
+        _construct_xdtree_graph_recursively(
+            xr_datatree=looping_dict.root,
+            chunk_function=chunk_function,
+            param_dict=param_dict,
+            delayed_list=delayed_list,
+            key_order=key_order,
+            parallel=parallel,
+        )
+    else:
+        _construct_general_graph_recursively(
+            looping_dict=looping_dict,
+            chunk_function=chunk_function,
+            param_dict=param_dict,
+            delayed_list=delayed_list,
+            key_order=key_order,
+            parallel=parallel,
+        )
+
+    if len(delayed_list) == 0:
+        logger.warning(f"List of delayed processing jobs is empty: No data to process")
+
+        return False
+
+    else:
+        if parallel:
+            return_list = dask.compute(delayed_list)[0]
+        else:
+            return_list = []
+            for pair in delayed_list:
+                return_list.append(pair[0](pair[1]))
+
+        for xdtree in return_list:
+            lvls = xdtree.name.split("-")
+            n_lvls = len(lvls)
+            if n_lvls == 2:
+                lvl_0, lvl_1 = lvls
+                if lvl_0 in output_mds.keys():
+                    output_mds[lvl_0].update({lvl_1: xdtree})
+                else:
+                    output_mds[lvl_0] = xr.DataTree(
+                        name=lvl_0, children={lvl_1: xdtree}
+                    )
+        return True
 
 
 def compute_graph(

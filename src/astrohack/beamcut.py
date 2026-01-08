@@ -148,7 +148,6 @@ def beamcut(
 
     if executed_graph:
         logger.info("Finished processing")
-        add_caller_and_version_to_dict(beamcut_params, direct_call=True)
         beamcut_mds = AstrohackBeamcutFile.create_from_input_parameters(
             beamcut_params["beamcut_name"], beamcut_params
         )

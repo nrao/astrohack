@@ -43,13 +43,11 @@ def add_caller_and_version_to_dict_2(in_dict, direct_call=False):
         ipos = 1
     else:
         ipos = 2
-    in_dict.update(
-        {
-            "version": astrohack.__version__,
-            "creator_function": inspect.stack()[ipos].function,
-            "origin": "astrohack",
-        }
-    )
+    in_dict["origin_info"] = {
+        "version": astrohack.__version__,
+        "creator_function": inspect.stack()[ipos].function,
+        "origin": "astrohack",
+    }
 
 
 def write_meta_data(file_name, input_dict):

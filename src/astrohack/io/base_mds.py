@@ -2,6 +2,7 @@ import xarray as xr
 
 import toolviper.utils.logger as logger
 
+from astrohack.utils import add_caller_and_version_to_dict_2
 from astrohack.utils.text import (
     print_summary_header,
     print_dict_table,
@@ -129,8 +130,8 @@ class AstrohackBaseFile:
     def create_from_input_parameters(cls, file_name: str, input_parameters: dict):
         data_obj = cls(file_name)
         data_obj.root = xr.DataTree(name="root")
+        add_caller_and_version_to_dict_2(data_obj.root.attrs, direct_call=False)
         data_obj.root.attrs["input_parameters"] = input_parameters
-
         return data_obj
 
     #

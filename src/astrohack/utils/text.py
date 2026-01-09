@@ -350,6 +350,16 @@ def print_dict_table(
     print(table)
 
 
+def print_dict_types(le_dict, ident=0):
+    spc = " "
+    for key, value in le_dict.items():
+        if isinstance(value, dict):
+            print(f"{key}:")
+            print_dict_types(value, ident=ident + 4)
+        else:
+            print(f"{ident*spc}{key}: {type(value)}")
+
+
 def get_property_string(
     root_attrs, split_key=None, alignment="l", heading="Input Parameters"
 ):

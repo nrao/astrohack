@@ -15,16 +15,6 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.io.locit_mds import AstrohackLocitFile
 
 
-def print_dict_types(le_dict, ident=0):
-    spc = " "
-    for key, value in le_dict.items():
-        if isinstance(value, dict):
-            print(f"{key}:")
-            print_dict_types(value, ident=ident + 4)
-        else:
-            print(f"{ident*spc}{key}: {type(value)}")
-
-
 # @toolviper.utils.parameter.validate()
 def extract_locit(
     cal_table: str,

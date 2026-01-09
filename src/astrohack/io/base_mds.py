@@ -103,6 +103,21 @@ class AstrohackBaseFile:
         """
         return self.root.children.items(*args, **kwargs)
 
+    def values(self, *args, **kwargs):
+        """
+        Get children values
+
+        :param args: args to deliver to dict.values() method
+        :type args: list
+
+        :param kwargs: Dict of keyword args to deliver to dict.values() method
+        :type kwargs: dict
+
+        :return: dict values iterable
+        :rtype: dict_values
+        """
+        return self.root.children.values(*args, **kwargs)
+
     def open(self, file: str = None) -> bool:
         """
         Open Base file.

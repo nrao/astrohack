@@ -5,14 +5,24 @@ import toolviper.utils.logger as logger
 from typing import Union, List
 
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.data import write_meta_data
-from astrohack.core.extract_locit_2 import extract_antenna_data, extract_spectral_info
 from astrohack.core.extract_locit_2 import (
+    extract_antenna_data,
+    extract_spectral_info,
     extract_source_and_telescope,
     extract_antenna_phase_gains,
 )
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.locit_mds import AstrohackLocitFile2
+
+
+def print_dict_types(le_dict, ident=0):
+    spc = " "
+    for key, value in le_dict.items():
+        if isinstance(value, dict):
+            print(f"{key}:")
+            print_dict_types(value, ident=ident + 4)
+        else:
+            print(f"{ident*spc}{key}: {type(value)}")
 
 
 # @toolviper.utils.parameter.validate()
@@ -104,5 +114,6 @@ def extract_locit(
     extract_source_and_telescope(extract_locit_params, locit_mds)
 
     extract_antenna_phase_gains(extract_locit_params, ddi_dict, locit_mds)
+
     locit_mds.write()
     return locit_mds

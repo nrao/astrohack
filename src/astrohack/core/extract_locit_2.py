@@ -11,7 +11,6 @@ from astropy.time import Time
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
 from astrohack.utils.constants import figsize, twopi
-from astrohack.utils.data import write_meta_data
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.algorithms import compute_antenna_relative_off
 from astrohack.visualization.plot_tools import (
@@ -84,12 +83,14 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
                     "id": i_ant,
                     "name": this_name,
                     "station": ant_sta[i_ant],
-                    "geocentric_position": ant_pos[i_ant],
-                    "longitude": ant_lon[i_ant],
-                    "latitude": ant_lat[i_ant],
-                    "radius": ant_rad[i_ant],
-                    "offset": ant_off[i_ant],
+                    "geocentric_position": ant_pos[i_ant].tolist(),
+                    "longitude": float(ant_lon[i_ant]),
+                    "latitude": float(ant_lat[i_ant]),
+                    "radius": float(ant_rad[i_ant]),
+                    "offset": ant_off[i_ant].tolist(),
                 }
+                # for key, item in ant_info.items():
+                #     print(f"{key}: {type(item)}")
                 ant_xdtree.attrs["antenna_info"] = ant_info
                 locit_mds[ant_key] = ant_xdtree
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
@@ -226,7 +227,6 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     """
 
     cal_table = extract_locit_parms["cal_table"]
-    basename = extract_locit_parms["locit_name"]
 
     telescope_name = locit_mds.root.attrs["telescope_name"]
 
@@ -329,19 +329,18 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
                 )
                 used_sources.extend(ddi_field[ddi_not_flagged[:, 0, i_pol]])
 
-            this_ddi_xds.attrs["frequency"] = ddi["frequency"]
-            this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"]
+            this_ddi_xds.attrs["frequency"] = float(ddi["frequency"])
+            this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"].tolist()
             this_ddi_xds.attrs["polarization_scheme"] = polarization_scheme
-            this_ddi_xds = this_ddi_xds.assign_coords(coords)
 
             ddi_key = f"ddi_{ddi_id}"
             ddi_xdtree = xr.DataTree(
                 dataset=this_ddi_xds.assign_coords(coords), name=ddi_key
             )
             ant_xdtree[ddi_key] = ddi_xdtree
-    locit_mds.root.attrs["source_dict"]["used_sources"] = np.unique(
-        np.array(used_sources)
-    )
+
+    used_sources = np.unique(np.array(used_sources)).tolist()
+    locit_mds.root.attrs["used_sources"] = used_sources
     return
 
 

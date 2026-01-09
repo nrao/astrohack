@@ -23,7 +23,7 @@ from astrohack.visualization.plot_tools import (
 from astrohack.visualization.diagnostics import plot_antenna_position
 
 
-def extract_antenna_data(extract_locit_parms):
+def extract_antenna_data(extract_locit_parms, locit_mds):
     """
     Extract antenna information from the ANTENNA sub table of the cal table
     Args:
@@ -31,7 +31,6 @@ def extract_antenna_data(extract_locit_parms):
     Returns:
     Antenna dictionary
     """
-
     cal_table = extract_locit_parms["cal_table"]
     ant_table = ctables.table(
         cal_table + "::ANTENNA",
@@ -62,7 +61,6 @@ def extract_antenna_data(extract_locit_parms):
     else:
         ant_list = extract_locit_parms["ant"]
 
-    ant_dict = {}
     error = False
     for i_ant in range(n_ant_orig):
         this_name = ant_nam[i_ant]
@@ -80,7 +78,9 @@ def extract_antenna_data(extract_locit_parms):
             if error:
                 pass
             else:
-                antenna = {
+                ant_key = f"ant_{this_name}"
+                ant_xdtree = xr.DataTree(name=ant_key)
+                ant_info = {
                     "id": i_ant,
                     "name": this_name,
                     "station": ant_sta[i_ant],
@@ -90,13 +90,14 @@ def extract_antenna_data(extract_locit_parms):
                     "radius": ant_rad[i_ant],
                     "offset": ant_off[i_ant],
                 }
-                ant_dict[i_ant] = antenna
-
+                ant_xdtree.attrs["antenna_info"] = ant_info
+                locit_mds[ant_key] = ant_xdtree
+    locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
         msg = f"Unsupported antenna characteristics"
         logger.error(msg)
         raise Exception(msg)
-    return ant_dict, ant_nam
+    return
 
 
 def extract_spectral_info(extract_locit_parms):
@@ -150,7 +151,7 @@ def extract_spectral_info(extract_locit_parms):
     return ddi_dict
 
 
-def extract_source_and_telescope(extract_locit_parms):
+def extract_source_and_telescope(extract_locit_parms, locit_mds):
     """
     Extract source and telescope  information from the FIELD and OBSERVATION sub tables of the cal table
     Args:
@@ -209,16 +210,12 @@ def extract_source_and_telescope(extract_locit_parms):
             "precessed": phase_center_precessed[i_src].tolist(),
         }
 
-    obs_dict = {
-        "src_dict": src_dict,
-        "time_range": time_range.tolist(),
-        "telescope_name": telescope_name,
-    }
-
-    return obs_dict
+    locit_mds.root.attrs["source_dict"] = src_dict
+    locit_mds.root.attrs["time_range"] = time_range.tolist()
+    locit_mds.root.attrs["telescope_name"] = telescope_name
 
 
-def extract_antenna_phase_gains(extract_locit_parms):
+def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     """
     Extract antenna based phase gains from the cal table
     Args:
@@ -231,15 +228,7 @@ def extract_antenna_phase_gains(extract_locit_parms):
     cal_table = extract_locit_parms["cal_table"]
     basename = extract_locit_parms["locit_name"]
 
-    obs_table = ctables.table(
-        cal_table + "::OBSERVATION",
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    telescope_name = obs_table.getcol("TELESCOPE_NAME")[0]
-    obs_table.close()
+    telescope_name = locit_mds.root.attrs["telescope_name"]
 
     main_table = ctables.table(
         cal_table, readonly=True, lockoptions={"option": "usernoread"}, ack=False
@@ -256,6 +245,7 @@ def extract_antenna_phase_gains(extract_locit_parms):
     main_table.close()
     n_gains = len(gains)
 
+    # Ref ant determination and data exclusion based on best refant
     ref_antennas, counts = np.unique(antenna2, return_counts=True)
     n_refant = len(ref_antennas)
     if n_refant > 1:
@@ -301,12 +291,13 @@ def extract_antenna_phase_gains(extract_locit_parms):
         f"Calibration table has {n_pol} polarizations, which is not supported"
     )
 
+    locit_mds.root.attrs["reference_antenna"] = locit_mds.root.attrs[
+        "full_antenna_list"
+    ][ref_antenna]
     used_sources = []
-    extract_locit_parms["reference_antenna"] = extract_locit_parms["full_antenna_list"][
-        ref_antenna
-    ]
     phase_gains = np.angle(gains)
-    for ant_id, antenna in extract_locit_parms["ant_dict"].items():
+    for ant_key, ant_xdtree in locit_mds.items():
+        ant_id = ant_xdtree.attrs["antenna_info"]["id"]
         ant_sel = antenna1 == ant_id
         ant_time = gain_time[ant_sel]
         ant_field = fields[ant_sel]
@@ -314,11 +305,11 @@ def extract_antenna_phase_gains(extract_locit_parms):
         ant_spw_id = spw_id[ant_sel]
         ant_flagged = flagged[ant_sel]
         if ant_id == ref_antenna:
-            antenna["reference"] = True
+            ant_xdtree.attrs["antenna_info"]["reference"] = True
         else:
-            antenna["reference"] = False
+            ant_xdtree.attrs["antenna_info"]["reference"] = False
 
-        for ddi_id, ddi in extract_locit_parms["ddi_dict"].items():
+        for ddi_id, ddi in ddi_dict.items():
             this_ddi_xds = xr.Dataset()
             ddi_sel = ant_spw_id == ddi_id
             ddi_gains = ant_phase_gains[ddi_sel]
@@ -341,15 +332,16 @@ def extract_antenna_phase_gains(extract_locit_parms):
             this_ddi_xds.attrs["frequency"] = ddi["frequency"]
             this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"]
             this_ddi_xds.attrs["polarization_scheme"] = polarization_scheme
-            out_name = "/".join(
-                [basename, "ant_" + antenna["name"], f'ddi_{ddi["id"]}']
-            )
             this_ddi_xds = this_ddi_xds.assign_coords(coords)
-            this_ddi_xds.to_zarr(out_name, mode="w", compute=True, consolidated=True)
-        write_meta_data(
-            "/".join([basename, "ant_" + antenna["name"], ".antenna_info"]), antenna
-        )
-    extract_locit_parms["used_sources"] = np.unique(np.array(used_sources))
+
+            ddi_key = f"ddi_{ddi_id}"
+            ddi_xdtree = xr.DataTree(
+                dataset=this_ddi_xds.assign_coords(coords), name=ddi_key
+            )
+            ant_xdtree[ddi_key] = ddi_xdtree
+    locit_mds.root.attrs["source_dict"]["used_sources"] = np.unique(
+        np.array(used_sources)
+    )
     return
 
 

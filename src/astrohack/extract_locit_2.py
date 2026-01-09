@@ -95,27 +95,14 @@ def extract_locit(
         extract_locit_params["locit_name"], extract_locit_params["overwrite"]
     )
 
-    ant_dict, ant_names = extract_antenna_data(extract_locit_params)
     ddi_dict = extract_spectral_info(extract_locit_params)
-    obs_dict = extract_source_and_telescope(extract_locit_params)
 
     locit_mds = AstrohackLocitFile2.create_from_input_parameters(
         extract_locit_params["locit_name"], extract_locit_params
     )
-    locit_mds.root.attrs["ant_dict"] = ant_dict
-    locit_mds.root.attrs["ddi_dict"] = ddi_dict
-    locit_mds.root.attrs["obs_dict"] = obs_dict
-    # extract_antenna_phase_gains(extract_locit_params)
-    #
-    #
-    # attributes = {
-    #     "telescope_name": telescope_name,
-    #     "n_sources": n_sources,
-    #     "refence_antenna": extract_locit_params["refence_antenna"],
-    #     "n_antennas": len(extract_locit_params["ant_dict"]),
-    # }
+    extract_antenna_data(extract_locit_params, locit_mds)
+    extract_source_and_telescope(extract_locit_params, locit_mds)
 
-    # logger.info(f"Finished processing")
-    # locit_mds = AstrohackLocitFile(extract_locit_params["locit_name"])
-    # locit_mds.open()
+    extract_antenna_phase_gains(extract_locit_params, ddi_dict, locit_mds)
+    locit_mds.write()
     return locit_mds

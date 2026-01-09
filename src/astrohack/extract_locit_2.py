@@ -12,7 +12,7 @@ from astrohack.core.extract_locit_2 import (
     extract_antenna_phase_gains,
 )
 from astrohack.utils.text import get_default_file_name
-from astrohack.io.locit_mds import AstrohackLocitFile2
+from astrohack.io.locit_mds import AstrohackLocitFile
 
 
 def print_dict_types(le_dict, ident=0):
@@ -107,7 +107,7 @@ def extract_locit(
 
     ddi_dict = extract_spectral_info(extract_locit_params)
 
-    locit_mds = AstrohackLocitFile2.create_from_input_parameters(
+    locit_mds = AstrohackLocitFile.create_from_input_parameters(
         extract_locit_params["locit_name"], extract_locit_params
     )
     extract_antenna_data(extract_locit_params, locit_mds)

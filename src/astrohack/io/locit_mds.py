@@ -3,7 +3,7 @@ import pathlib
 
 from typing import Union, Tuple, List
 
-from astrohack import get_proper_telescope
+from astrohack.antenna import get_proper_telescope
 from astrohack.core.extract_locit_2 import plot_source_table, plot_array_configuration
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
@@ -16,7 +16,7 @@ from astrohack.utils import (
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 
 
-class AstrohackLocitFile2(AstrohackBaseFile):
+class AstrohackLocitFile(AstrohackBaseFile):
     """Data class for locit data.
 
     Data within an object of this class can be selected for further inspection, plotted or produce a report

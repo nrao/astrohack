@@ -8,12 +8,12 @@ from casacore import tables
 from rich.console import Console
 
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.file import check_if_file_can_be_opened
 from astrohack.io.mds import AstrohackImageFile
 from astrohack.io.mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
 from astrohack.io.mds import AstrohackPointFile
-from astrohack.io.mds import AstrohackLocitFile
 from astrohack.io.mds import AstrohackPositionFile
 
 from astrohack.utils.text import print_array
@@ -212,13 +212,10 @@ def open_locit(file: str) -> Union[AstrohackLocitFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.3.0")
-
     _data_file = AstrohackLocitFile(file=file)
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 

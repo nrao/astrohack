@@ -89,8 +89,6 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
                     "radius": float(ant_rad[i_ant]),
                     "offset": ant_off[i_ant].tolist(),
                 }
-                # for key, item in ant_info.items():
-                #     print(f"{key}: {type(item)}")
                 ant_xdtree.attrs["antenna_info"] = ant_info
                 locit_mds[ant_key] = ant_xdtree
     locit_mds.root.attrs["full_antenna_list"] = ant_nam

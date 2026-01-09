@@ -27,8 +27,7 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
     Extract antenna information from the ANTENNA sub table of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-    Returns:
-    Antenna dictionary
+        locit_mds: Locit data file object
     """
     cal_table = extract_locit_parms["cal_table"]
     ant_table = ctables.table(
@@ -155,9 +154,7 @@ def extract_source_and_telescope(extract_locit_parms, locit_mds):
     Extract source and telescope  information from the FIELD and OBSERVATION sub tables of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-
-    Returns:
-    Writes dict to a json file
+        locit_mds: Locit data file object
     """
     cal_table = extract_locit_parms["cal_table"]
     src_table = ctables.table(
@@ -219,9 +216,8 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     Extract antenna based phase gains from the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-
-    Returns:
-    Reference antenna
+        ddi_dict: Dictionary with DDI meta information
+        locit_mds: Locit data file object
     """
 
     cal_table = extract_locit_parms["cal_table"]

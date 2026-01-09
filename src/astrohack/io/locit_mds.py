@@ -1,4 +1,10 @@
+import numpy as np
+import pathlib
+
+from typing import Union, Tuple, List
+
 from astrohack import get_proper_telescope
+from astrohack.core.extract_locit_2 import plot_source_table, plot_array_configuration
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
     create_pretty_table,
@@ -123,4 +129,119 @@ class AstrohackLocitFile2(AstrohackBaseFile):
             table.add_row(row)
 
         print(table)
+        return
+
+    # @toolviper.utils.parameter.validate()
+    def plot_source_positions(
+        self,
+        destination: str,
+        labels: bool = True,
+        precessed: bool = False,
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+    ) -> None:
+        """Plot source positions in either FK5 or precessed right ascension and declination.
+
+        :param destination: Name of the destination folder to contain plot
+        :type destination: str
+
+        :param labels: Add source labels to the plot, defaults to False
+        :type labels: bool, optional
+
+        :param precessed: Plot in precessed coordinates? defaults to False (FK5)
+        :type precessed: bool, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        .. _Description:
+
+        Plot the sources on the source list to a full 24 hours 180 degrees flat 2D representation of the full sky.
+        If precessed is set to True the coordinates precessd to the midpoint of the observations is plotted, otherwise
+        the FK5 coordinates are plotted.
+        The source names can be plotted next to their positions if label is True, however plots may become too crowded
+        if that is the case.
+
+        """
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
+        if precessed:
+            filename = str(
+                pathlib.Path(destination).joinpath("locit_source_table_precessed.png")
+            )
+            time_range = self.root.attrs["time_range"]
+            obs_midpoint = (time_range[1] + time_range[0]) / 2.0
+
+        else:
+            filename = str(
+                pathlib.Path(destination).joinpath("locit_source_table_fk5.png")
+            )
+            obs_midpoint = None
+
+        plot_source_table(
+            filename,
+            self.root.attrs["source_dict"],
+            precessed=precessed,
+            obs_midpoint=obs_midpoint,
+            display=display,
+            figure_size=figure_size,
+            dpi=dpi,
+            label=labels,
+        )
+
+        return
+
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    def plot_array_configuration(
+        self,
+        destination: str,
+        stations: bool = True,
+        zoff: bool = False,
+        unit: str = "m",
+        box_size: Union[int, float] = 5000,
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+    ) -> None:
+        """Plot antenna positions.
+
+        :param destination: Name of the destination folder to contain plot
+        :type destination: str
+
+        :param stations: Add station names to the plot, defaults to True
+        :type stations: bool, optional
+
+        :param zoff: Add Elevation offsets to the plots, defaults to False
+        :type zoff: bool, optional
+
+        :param unit: Unit for the plot, valid values are length units, default is km
+        :type unit: str, optional
+
+        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
+        :type box_size: int, float, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        .. _Description:
+
+
+        """
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        plot_array_configuration(param_dict, self.root)
         return

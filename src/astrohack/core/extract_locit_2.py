@@ -411,15 +411,14 @@ def plot_source_table(
     return
 
 
-def plot_array_configuration(ant_dict, telescope_name, parm_dict):
+def plot_array_configuration(parm_dict, root_tree):
     """backend for plotting array configuration
 
     Args:
-        ant_dict: Dictionary containing antenna information
-        telescope_name: Name of the telescope used in observations
         parm_dict: Parameter dictionary crafted by the calling function
+        root_tree: Root of the Xarray DataTree in the locit_mds
     """
-
+    telescope_name = root_tree.attrs["telescope_name"]
     telescope = get_proper_telescope(telescope_name)
     stations = parm_dict["stations"]
     display = parm_dict["display"]
@@ -439,13 +438,14 @@ def plot_array_configuration(ant_dict, telescope_name, parm_dict):
 
     tel_lon, tel_lat, tel_rad = get_telescope_lat_lon_rad(telescope)
 
-    for antenna in ant_dict.values():
+    for ant_xdtree in root_tree.values():
+        ant_info = ant_xdtree.attrs["antenna_info"]
         ew_off, ns_off, el_off, _ = compute_antenna_relative_off(
-            antenna, tel_lon, tel_lat, tel_rad, len_fac
+            ant_info, tel_lon, tel_lat, tel_rad, len_fac
         )
-        text = f'  {antenna["name"]}'
+        text = f'  {ant_info["name"]}'
         if stations:
-            text += f'@{antenna["station"]}'
+            text += f'@{ant_info["station"]}'
         if plot_zoff:
             text += f" {el_off:.1f} {length_unit}"
         plot_antenna_position(outer_ax, inner_ax, ew_off, ns_off, text, box_size)
@@ -458,6 +458,6 @@ def plot_array_configuration(ant_dict, telescope_name, parm_dict):
         outer_ax, inner_ax, xlabel, ylabel, box_size, "Outer array", "Inner array"
     )
 
-    title = f"{len(ant_dict.keys())} antennas during observation"
+    title = f"{len(root_tree.keys())} antennas during observation"
     close_figure(fig, title, filename, dpi, display)
     return

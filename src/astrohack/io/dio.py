@@ -9,7 +9,10 @@ from rich.console import Console
 
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
-from astrohack.utils.file import check_if_file_can_be_opened
+from astrohack.utils.file import (
+    check_if_file_can_be_opened,
+    check_if_file_can_be_opened_2,
+)
 from astrohack.io.mds import AstrohackImageFile
 from astrohack.io.mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
@@ -55,6 +58,7 @@ def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
                 ant_n: …
             }
     """
+    check_if_file_can_be_opened_2(file, "beamcut", "0.10.1")
     _data_file = AstrohackBeamcutFile(file=file)
 
     if _data_file.open():
@@ -212,6 +216,7 @@ def open_locit(file: str) -> Union[AstrohackLocitFile, None]:
             }
 
     """
+    check_if_file_can_be_opened_2(file, "extract_locit", "0.10.1")
     _data_file = AstrohackLocitFile(file=file)
 
     if _data_file.open():
@@ -249,6 +254,7 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
+    check_if_file_can_be_opened_2(file, "locit", "0.10.1")
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():

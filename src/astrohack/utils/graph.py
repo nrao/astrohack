@@ -142,9 +142,15 @@ def compute_graph_to_mds_tree(
                 return_list.append(pair[0](pair[1]))
 
         for xdtree in return_list:
+            if xdtree is None:
+                print("Missing result!")
+                continue
             lvls = xdtree.name.split("-")
             n_lvls = len(lvls)
-            if n_lvls == 2:
+            if n_lvls == 1:
+                lvl_0 = lvls[0]
+                output_mds.root.update({lvl_0: xdtree})
+            elif n_lvls == 2:
                 lvl_0, lvl_1 = lvls
                 if lvl_0 in output_mds.keys():
                     output_mds[lvl_0].update({lvl_1: xdtree})

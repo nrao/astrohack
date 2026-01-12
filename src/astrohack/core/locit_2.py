@@ -541,6 +541,15 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
 
 
 def _has_valid_data(field_id, time, delays, antenna, ddi=None):
+    """
+    Determine if locit xds has valid data for locit purposes
+    :param field_id: Array of field ids in time.
+    :param time: Time axis.
+    :param delays: Array of delays  in time
+    :param antenna: Antenna key
+    :param ddi: DDI key
+    :return:
+    """
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
@@ -553,6 +562,13 @@ def _has_valid_data(field_id, time, delays, antenna, ddi=None):
 
 
 def _elevation_ok(nin, antenna, ddi=None):
+    """
+    Determine if elevation limit takes out all the data.
+    :param nin: Number of filtered points
+    :param antenna: antenna key
+    :param ddi: ddi key
+    :return: True or False
+    """
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
@@ -668,7 +684,7 @@ def _create_output_xds(
         elevation_limit: the elevation cutoff
 
     Returns:
-    The xds on zarr format on disk
+    The xdt to be plugged to root.
     """
     fit_kterm = locit_parms["fit_kterm"]
     fit_rate = locit_parms["fit_delay_rate"]
@@ -803,7 +819,6 @@ def _build_filtered_arrays(
     coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the \
     elevation_limit
     """
-    """ Build the coordinate arrays (ha, dec, elevation, angle) for use in the fitting"""
     elevation_limit = locit_parms["elevation_limit"] * convert_unit(
         "deg", "rad", "trigonometric"
     )
@@ -1176,6 +1191,13 @@ def export_position_xds_to_table_row(
 
 
 def export_position_xds_to_parminator(attributes, threshold, kterm_present):
+    """
+    Export a position xds attributes to a string ingestible by VLA's parminator
+    :param attributes: xds attributes
+    :param threshold: threshold of valid corrections in meters
+    :param kterm_present: include K term in the parminator output
+    :return: string Formated for parminator output
+    """
     axes = ["X", "Y", "Z"]
     delays, _ = rotate_to_gmt(
         np.copy(attributes["position_fit"]),
@@ -1302,7 +1324,7 @@ def add_antenna_position_corrections_to_plot(
     outerax, innerax, xpos, ypos, xcorr, ycorr, box_size, color="red", linewidth=0.5
 ):
     """
-    Plot an antenna position corrections as a vector to the antenna position
+    Plot an antenna position corrections as a vector from the antenna position
     Args:
         outerax: Plotting axis for the outer array box
         innerax: Plotting axis for the inner array box

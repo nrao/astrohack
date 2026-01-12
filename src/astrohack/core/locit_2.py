@@ -15,6 +15,7 @@ from astrohack.utils import (
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
+from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 
 
 def locit_separated_chunk(locit_parms):
@@ -211,6 +212,102 @@ def locit_difference_chunk(locit_parms):
             return None
     else:
         return None
+
+
+def plot_sky_coverage_chunk(parm_dict):
+    """
+    Plot the sky coverage for a XDS
+    Args:
+        parm_dict: Parameter dictionary from the caller function enriched with the XDS data
+
+    Returns:
+    PNG file with the sky coverage
+    """
+
+    ant_xdt = parm_dict["xdt_data"]
+    combined = parm_dict["combined"]
+    antenna = parm_dict["this_ant"]
+    destination = parm_dict["destination"]
+
+    if combined:
+        export_name = f"{destination}/position_sky_coverage_{antenna}.png"
+        suptitle = f'Sky coverage for antenna {antenna.split("_")[1]}'
+    else:
+        ddi = parm_dict["this_ddi"]
+        export_name = f"{destination}/position_sky_coverage_{antenna}_{ddi}.png"
+        suptitle = (
+            f'Sky coverage for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
+        )
+
+    figuresize = parm_dict["figure_size"]
+    angle_unit = parm_dict["angle_unit"]
+    time_unit = parm_dict["time_unit"]
+    display = parm_dict["display"]
+    dpi = parm_dict["dpi"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+
+    time = ant_xdt.time.values * convert_unit("day", time_unit, "time")
+    angle_fact = convert_unit("rad", angle_unit, "trigonometric")
+    ha = ant_xdt["HOUR_ANGLE"] * angle_fact
+    dec = ant_xdt["DECLINATION"] * angle_fact
+    ele = ant_xdt["ELEVATION"] * angle_fact
+
+    fig, axes = create_figure_and_axes(figuresize, [2, 2])
+
+    elelim, elelines, declim, declines, halim = _compute_plot_borders(
+        angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
+    )
+    timelabel = f"Time from observation start [{time_unit}]"
+    halabel = f"Hour Angle [{angle_unit}]"
+    declabel = f"Declination [{angle_unit}]"
+    scatter_plot(
+        axes[0, 0],
+        time,
+        timelabel,
+        ele,
+        f"Elevation [{angle_unit}]",
+        "Time vs Elevation",
+        ylim=elelim,
+        hlines=elelines,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[0, 1],
+        time,
+        timelabel,
+        ha,
+        halabel,
+        "Time vs Hour angle",
+        ylim=halim,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[1, 0],
+        time,
+        timelabel,
+        dec,
+        declabel,
+        "Time vs Declination",
+        ylim=declim,
+        hlines=declines,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[1, 1],
+        ha,
+        halabel,
+        dec,
+        declabel,
+        "Hour angle vs Declination",
+        ylim=declim,
+        xlim=halim,
+        hlines=declines,
+        add_legend=False,
+    )
+
+    print("cheguei no final?")
+    close_figure(fig, suptitle, export_name, dpi, display)
+    return
 
 
 def _delays_from_phase_differences(ddi_0, ddi_1):
@@ -986,3 +1083,28 @@ def export_position_xds_to_parminator(attributes, threshold, kterm_present):
         if np.abs(correction) > threshold:
             outstr += f"{station}, ,K,${correction: .4f}\n"
     return outstr
+
+
+def _compute_plot_borders(angle_fact, latitude, elevation_limit):
+    """
+    Compute plot limits and position of lines to be added to the plots
+    Args:
+        angle_fact: Angle scaling unit factor
+        latitude: Antenna latitude
+        elevation_limit: The elevation limit in the data set
+
+    Returns:
+    Elevation limits, elevation lines, declination limits, declination lines and hour angle limits
+    """
+    latitude *= angle_fact
+    elevation_limit *= angle_fact
+    right_angle = pi / 2 * angle_fact
+    border = 0.05 * right_angle
+    elelim = [-border, right_angle + border]
+    border *= 2
+    declim = [-border - right_angle + latitude, right_angle + border]
+    border *= 2
+    halim = [-border, 4 * right_angle + border]
+    elelines = [0, elevation_limit]  # lines at zero and elevation limit
+    declines = [latitude - right_angle, latitude + right_angle]
+    return elelim, elelines, declim, declines, halim

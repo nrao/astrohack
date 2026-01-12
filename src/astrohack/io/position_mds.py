@@ -1,6 +1,7 @@
 import pathlib
+import numpy as np
 
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import toolviper.utils.logger as logger
 
@@ -9,6 +10,7 @@ from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.core.locit_2 import (
     export_position_xds_to_table_row,
     export_position_xds_to_parminator,
+    plot_sky_coverage_chunk,
 )
 from astrohack.utils import (
     convert_unit,
@@ -19,6 +21,7 @@ from astrohack.utils import (
     add_prefix,
     string_to_ascii_file,
 )
+from astrohack.utils.graph import compute_graph
 
 
 class AstrohackPositionFile(AstrohackBaseFile):
@@ -237,3 +240,74 @@ class AstrohackPositionFile(AstrohackBaseFile):
                     )
 
         string_to_ascii_file(parmstr, filename)
+
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    def plot_sky_coverage(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        time_unit: str = "hour",
+        angle_unit: str = "deg",
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """Plot the sky coverage of the data used for antenna position fitting
+
+        :param destination: Name of the destination folder to contain the plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param angle_unit: Unit for angle in plots, defaults to 'deg'
+        :type angle_unit: str, optional
+
+        :param time_unit: Unit for time in plots, defaults to 'hour'
+        :type time_unit: str, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot size in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: plot resolution in pixels per inch, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        This method produces 4 plots for each selected antenna and DDI. These plots are:
+        1) Time vs Elevation
+        2) Time vs Hour Angle
+        3) Time vs Declination
+        4) Hour Angle vs Declination
+
+        These plots are intended to display the coverage of the sky of the fitted data
+
+        """
+
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        param_dict["combined"] = self.root.attrs["combined"]
+
+        if self.root.attrs["combined"]:
+            compute_graph(
+                self, plot_sky_coverage_chunk, param_dict, ["ant"], parallel=parallel
+            )
+        else:
+            compute_graph(
+                self,
+                plot_sky_coverage_chunk,
+                param_dict,
+                ["ant", "ddi"],
+                parallel=parallel,
+            )

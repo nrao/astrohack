@@ -310,6 +310,110 @@ def plot_sky_coverage_chunk(parm_dict):
     return
 
 
+def plot_delays_chunk(parm_dict):
+    """
+    Plot the delays and optionally the delay model for a XDS
+    Args:
+        parm_dict: Parameter dictionary from the caller function enriched with the XDS data
+
+    Returns:
+    PNG file with the delay plots
+    """
+    combined = parm_dict["combined"]
+    plot_model = parm_dict["plot_model"]
+    antenna = parm_dict["this_ant"]
+    destination = parm_dict["destination"]
+    if combined:
+        export_name = f'{destination}/position_delays_{antenna}_combined_{parm_dict["comb_type"]}.png'
+        suptitle = f'Delays for antenna {antenna.split("_")[1]}'
+    else:
+        ddi = parm_dict["this_ddi"]
+        export_name = f"{destination}/position_delays_{antenna}_separated_{ddi}.png"
+        suptitle = (
+            f'Delays for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
+        )
+
+    ant_xdt = parm_dict["xdt_data"]
+    figuresize = parm_dict["figure_size"]
+    angle_unit = parm_dict["angle_unit"]
+    time_unit = parm_dict["time_unit"]
+    delay_unit = parm_dict["delay_unit"]
+    display = parm_dict["display"]
+    dpi = parm_dict["dpi"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+
+    time = ant_xdt.time.values * convert_unit("day", time_unit, "time")
+    angle_fact = convert_unit("rad", angle_unit, "trigonometric")
+    delay_fact = convert_unit("sec", delay_unit, kind="time")
+    ha = ant_xdt["HOUR_ANGLE"] * angle_fact
+    dec = ant_xdt["DECLINATION"] * angle_fact
+    ele = ant_xdt["ELEVATION"] * angle_fact
+    delays = ant_xdt["DELAYS"].values * delay_fact
+
+    elelim, elelines, declim, declines, halim = _compute_plot_borders(
+        angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
+    )
+    delay_minmax = [np.min(delays), np.max(delays)]
+    delay_border = 0.05 * (delay_minmax[1] - delay_minmax[0])
+    delaylim = [delay_minmax[0] - delay_border, delay_minmax[1] + delay_border]
+
+    fig, axes = create_figure_and_axes(figuresize, [2, 2])
+
+    ylabel = f"Delays [{delay_unit}]"
+    if plot_model:
+        model = ant_xdt["MODEL"].values * delay_fact
+    else:
+        model = None
+    scatter_plot(
+        axes[0, 0],
+        time,
+        f"Time from observation start [{time_unit}]",
+        delays,
+        ylabel,
+        "Time vs Delays",
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[0, 1],
+        ele,
+        f"Elevation [{angle_unit}]",
+        delays,
+        ylabel,
+        "Elevation vs Delays",
+        xlim=elelim,
+        vlines=elelines,
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[1, 0],
+        ha,
+        f"Hour Angle [{angle_unit}]",
+        delays,
+        ylabel,
+        "Hour Angle vs Delays",
+        xlim=halim,
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[1, 1],
+        dec,
+        f"Declination [{angle_unit}]",
+        delays,
+        ylabel,
+        "Declination vs Delays",
+        xlim=declim,
+        vlines=declines,
+        ylim=delaylim,
+        model=model,
+    )
+
+    close_figure(fig, suptitle, export_name, dpi, display)
+    return
+
+
 def _delays_from_phase_differences(ddi_0, ddi_1):
     """
     Compute delays from the difference in phase between two DDIs of different frequencies

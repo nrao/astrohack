@@ -11,6 +11,7 @@ from astrohack.core.locit_2 import (
     export_position_xds_to_table_row,
     export_position_xds_to_parminator,
     plot_sky_coverage_chunk,
+    plot_delays_chunk,
 )
 from astrohack.utils import (
     convert_unit,
@@ -310,4 +311,81 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 param_dict,
                 ["ant", "ddi"],
                 parallel=parallel,
+            )
+
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    def plot_delays(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        time_unit: str = "hour",
+        angle_unit: str = "deg",
+        delay_unit: str = "nsec",
+        plot_model: bool = True,
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """Plot the delays used for antenna position fitting and optionally the resulting fit.
+
+        :param destination: Name of the destination folder to contain the plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param angle_unit: Unit for angle in plots, defaults to 'deg'
+        :type angle_unit: str, optional
+
+        :param time_unit: Unit for time in plots, defaults to 'hour'
+        :type time_unit: str, optional
+
+        :param delay_unit: Unit for delay in plots, defaults to 'nsec'
+        :type delay_unit: str, optional
+
+        :param plot_model: Plot the fitted model results alongside the data.
+        :type plot_model: bool, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot size in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: plot resolution in pixels per inch, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        This method produces 4 plots for each selected antenna and DDI. These plots are:
+        1) Time vs Delays
+        2) Elevation vs Delays
+        3) Hour Angle vs Delays
+        4) Declination vs Delays
+
+        These plots are intended to display the gain variation with the 4 relevant parameters for the fitting and also
+        asses the quality of the position fit.
+
+        """
+
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
+        param_dict["combined"] = self.root.attrs["combined"]
+        param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
+        if self.root.attrs["combined"]:
+            compute_graph(
+                self, plot_delays_chunk, param_dict, ["ant"], parallel=parallel
+            )
+        else:
+            compute_graph(
+                self, plot_delays_chunk, param_dict, ["ant", "ddi"], parallel=parallel
             )

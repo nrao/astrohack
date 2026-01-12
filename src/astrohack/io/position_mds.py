@@ -4,6 +4,7 @@ import numpy as np
 from typing import List, Union, Tuple
 
 import toolviper.utils.logger as logger
+import toolviper.utils.parameter
 
 from astrohack.antenna import get_proper_telescope
 from astrohack.io.base_mds import AstrohackBaseFile
@@ -24,6 +25,7 @@ from astrohack.utils import (
     string_to_ascii_file,
 )
 from astrohack.utils.graph import compute_graph
+from astrohack.utils.validation import custom_unit_checker
 
 
 class AstrohackPositionFile(AstrohackBaseFile):
@@ -39,7 +41,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def export_locit_fit_results(
         self,
         destination: str,
@@ -184,7 +186,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
             f"{destination}/position_{specifier}_fit_results.txt",
         )
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def export_results_to_parminator(
         self,
         filename: str,
@@ -243,7 +245,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
 
         string_to_ascii_file(parmstr, filename)
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_sky_coverage(
         self,
         destination: str,
@@ -314,7 +316,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 parallel=parallel,
             )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_delays(
         self,
         destination: str,
@@ -391,7 +393,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 self, plot_delays_chunk, param_dict, ["ant", "ddi"], parallel=parallel
             )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_position_corrections(
         self,
         destination: str,

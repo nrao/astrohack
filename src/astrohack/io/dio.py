@@ -14,7 +14,7 @@ from astrohack.io.mds import AstrohackImageFile
 from astrohack.io.mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
 from astrohack.io.mds import AstrohackPointFile
-from astrohack.io.mds import AstrohackPositionFile
+from astrohack.io.position_mds import AstrohackPositionFile
 
 from astrohack.utils.text import print_array
 
@@ -249,7 +249,6 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.3.0")
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():

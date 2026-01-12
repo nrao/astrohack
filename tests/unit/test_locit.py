@@ -5,8 +5,8 @@ import toolviper
 
 import numpy as np
 
-from astrohack.locit import locit
-from astrohack.extract_locit import extract_locit
+from astrohack.locit_2 import locit
+from astrohack.extract_locit_2 import extract_locit
 
 
 def relative_difference(result, expected):

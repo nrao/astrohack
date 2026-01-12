@@ -1,3 +1,5 @@
+from PIL import Image, ImageChops
+
 from astrohack.antenna.antenna_surface import SUPPORTED_POL_STATES
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
 from astrohack.utils import trigo_units, length_units, time_units, freq_units
@@ -50,3 +52,45 @@ def custom_panel_checker(check_type):
         return SUPPORTED_POL_STATES
     else:
         return "Not found"
+
+
+def are_lists_equal(list_a, list_b):
+    n_a = len(list_a)
+    n_b = len(list_b)
+    if n_a != n_b:
+        return False
+    else:
+        equal = True
+        for item in list_a:
+            equal = equal and item in list_b
+        return equal
+
+
+def are_png_files_equal(img_path1, img_path2):
+    try:
+        # Open images (Pillow handles various modes and removes metadata concerns for pixel data)
+        with Image.open(img_path1) as img1, Image.open(img_path2) as img2:
+            # Ensure both images are in the same mode for a reliable comparison (e.g., 'RGBA')
+            img1 = img1.convert("RGBA")
+            img2 = img2.convert("RGBA")
+
+            # Check if dimensions are the same
+            if img1.size != img2.size:
+                return False
+
+            # Calculate the difference between the images
+            # This results in a new image where differing pixels are non-zero
+            diff = ImageChops.difference(img1, img2)
+
+            # Split channels and check if the bounding box of non-zero pixels in any channel is None
+            # If getbbox() returns None, the channel is all black (no differences)
+            channels = diff.split()
+            for channel in channels:
+                if channel.getbbox() is not None:
+                    return False
+
+            return True
+
+    except IOError as e:
+        print(f"Error opening images: {e}")
+        return False

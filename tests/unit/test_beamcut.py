@@ -1,6 +1,5 @@
 import pathlib
 import numpy as np
-import pytest
 import shutil
 import glob
 
@@ -8,6 +7,7 @@ from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
 from astrohack.utils.file import mds_equality_test
+from astrohack.utils.validation import are_lists_equal
 
 
 def retrieve_data_from_report(report):
@@ -29,18 +29,6 @@ def retrieve_data_from_report(report):
                 lm_unit = center_header.split()[1][1:-1]
                 break
     return az_val, el_val, azel_unit, lm_unit
-
-
-def are_lists_equal(list_a, list_b):
-    n_a = len(list_a)
-    n_b = len(list_b)
-    if n_a != n_b:
-        return False
-    else:
-        equal = True
-        for item in list_a:
-            equal = equal and item in list_b
-        return equal
 
 
 class TestBeamcut:

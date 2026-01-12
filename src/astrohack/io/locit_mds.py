@@ -3,6 +3,8 @@ import pathlib
 
 from typing import Union, Tuple, List
 
+import toolviper.utils.parameter
+
 from astrohack.antenna import get_proper_telescope
 from astrohack.core.extract_locit import plot_source_table, plot_array_configuration
 from astrohack.io.base_mds import AstrohackBaseFile
@@ -14,6 +16,7 @@ from astrohack.utils import (
     notavail,
 )
 from astrohack.utils.tools import get_telescope_lat_lon_rad
+from astrohack.utils.validation import custom_unit_checker
 
 
 class AstrohackLocitFile(AstrohackBaseFile):
@@ -60,7 +63,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
             )
         print(table)
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def print_array_configuration(self, relative: bool = True) -> None:
         """Prints a table containing the array configuration
 
@@ -131,7 +134,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         print(table)
         return
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def plot_source_positions(
         self,
         destination: str,
@@ -199,7 +202,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
 
         return
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_array_configuration(
         self,
         destination: str,

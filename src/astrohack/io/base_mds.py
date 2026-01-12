@@ -7,12 +7,7 @@ from astrohack.utils import (
     get_summary_header,
     get_property_string,
     get_data_content_string,
-)
-from astrohack.utils.text import (
-    print_summary_header,
-    print_dict_table,
     get_method_list_string,
-    print_data_contents,
 )
 
 

@@ -6,7 +6,12 @@ import toolviper.utils.logger as logger
 import astropy.units as units
 import xarray as xr
 
-from astrohack.utils import get_data_name, create_dataset_label
+from astrohack.utils import (
+    get_data_name,
+    create_dataset_label,
+    fixed_format_error,
+    rotate_to_gmt,
+)
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
@@ -881,3 +886,81 @@ def _delay_model_kterm_rate(coordinates, fixed_delay, xoff, yoff, zoff, koff, ra
     sterm = _rate_coeff(coordinates) * rate
     kterm = _kterm_coeff(coordinates) * koff
     return xterm + yterm + zterm + fixed_delay + kterm + sterm
+
+
+def export_position_xds_to_table_row(
+    row,
+    attributes,
+    del_fact,
+    pha_fact,
+    pos_fact,
+    slo_fact,
+    pos_unit,
+    del_unit,
+    kterm_present,
+    rate_present,
+):
+    """
+    Export the data from a single X array DataSet attributes to a table row (a list)
+    Args:
+        row: row onto which the data results are to be added
+        attributes: The XDS attributes dictionary
+        del_fact: Delay unit scaling factor
+        pos_fact: Position unit scaling factor
+        slo_fact: Delay rate unit scaling factor
+        kterm_present: Is the elevation axis offset term present?
+        rate_present: Is the delay rate term present?
+        pha_fact: phase unit scaling factor
+        pos_unit: Position unit
+        del_unit: Delay unit
+
+    Returns:
+    The filled table row
+    """
+
+    delay_rms = np.sqrt(attributes["chi_squared"])
+    mean_freq = np.nanmean(attributes["frequency"])
+    phase_rms = twopi * mean_freq * delay_rms
+    row.append(f"{delay_rms*del_fact:4.2e}")
+    row.append(f"{phase_rms*pha_fact:5.1f}")
+
+    sig_scale_pos = convert_unit("mm", pos_unit, "length")
+    sig_scale_del = 1e-3 * convert_unit("nsec", del_unit, "time")
+
+    row.append(
+        fixed_format_error(
+            attributes["fixed_delay_fit"],
+            attributes["fixed_delay_error"],
+            del_fact,
+            sig_scale_del,
+        )
+    )
+    position, poserr = rotate_to_gmt(
+        np.copy(attributes["position_fit"]),
+        attributes["position_error"],
+        attributes["antenna_info"]["longitude"],
+    )
+
+    for i_pos in range(3):
+        row.append(
+            fixed_format_error(position[i_pos], poserr[i_pos], pos_fact, sig_scale_pos)
+        )
+    if kterm_present:
+        row.append(
+            fixed_format_error(
+                attributes["koff_fit"],
+                attributes["koff_error"],
+                pos_fact,
+                sig_scale_pos,
+            )
+        )
+    if rate_present:
+        row.append(
+            fixed_format_error(
+                attributes["rate_fit"],
+                attributes["rate_error"],
+                slo_fact,
+                sig_scale_del,
+            )
+        )
+    return row

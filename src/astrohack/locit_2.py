@@ -168,14 +168,22 @@ def locit(
     if combine_ddis == "simple":
         function = locit_combined_chunk
         key_order = ["ant"]
+        combined = True
 
     elif combine_ddis == "difference":
         function = locit_difference_chunk
         key_order = ["ant"]
+        combined = True
 
-    else:
+    elif combine_ddis == "no":
         function = locit_separated_chunk
         key_order = ["ant", "ddi"]
+        combined = False
+
+    else:
+        raise Exception(
+            "This part of the code should be unreacheable when parameter validation is online."
+        )
 
     position_mds = AstrohackPositionFile.create_from_input_parameters(
         locit_params["position_name"], locit_params
@@ -191,6 +199,13 @@ def locit(
     )
 
     if executed_graph:
+        position_mds.root.attrs.update(
+            {
+                "combined": combined,
+                "telescope_name": locit_mds.root.attrs["telescope_name"],
+                "reference_antenna": locit_mds.root.attrs["reference_antenna"],
+            }
+        )
         position_mds.write()
         return position_mds
     else:

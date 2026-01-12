@@ -143,7 +143,7 @@ def compute_graph_to_mds_tree(
 
         for xdtree in return_list:
             if xdtree is None:
-                print("Missing result!")
+                # This if deals with the case that the calling routine did not produce output (e.g. locit)
                 continue
             lvls = xdtree.name.split("-")
             n_lvls = len(lvls)

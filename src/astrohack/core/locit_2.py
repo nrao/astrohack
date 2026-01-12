@@ -76,16 +76,19 @@ def locit_combined_chunk(locit_parms):
     Returns:
     xds save to disk in the .zarr format
     """
-    data = locit_parms["data_dict"]
+    ant_xdt = locit_parms["xdt_data"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+    source_dict = ant_xdt.parent.attrs["source_dict"]
+    ant_key = locit_parms["this_ant"]
 
     delay_list = []
     time_list = []
     field_list = []
     freq_list = []
 
-    for ddi, xds_data in data.items():
+    for ddi, xdt_data in ant_xdt.items():
         this_field_id, this_time, this_delays, freq = _get_data_from_locit_xds(
-            xds_data, locit_parms["polarization"]
+            xdt_data, locit_parms["polarization"]
         )
         freq_list.append(freq)
         field_list.append(this_field_id)
@@ -98,7 +101,7 @@ def locit_combined_chunk(locit_parms):
 
     if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
         coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms
+            field_id, time, delays, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -110,7 +113,7 @@ def locit_combined_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                _create_output_xds(
+                return _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -121,7 +124,15 @@ def locit_combined_chunk(locit_parms):
                     locit_parms,
                     freq_list,
                     elevation_limit,
+                    antenna_info,
+                    ant_key,
                 )
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
 
 
 def locit_difference_chunk(locit_parms):

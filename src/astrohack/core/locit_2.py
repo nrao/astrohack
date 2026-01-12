@@ -6,7 +6,7 @@ import toolviper.utils.logger as logger
 import astropy.units as units
 import xarray as xr
 
-from astrohack.utils import get_data_name, create_dataset_label, print_dict_types
+from astrohack.utils import get_data_name, create_dataset_label
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
@@ -145,26 +145,36 @@ def locit_difference_chunk(locit_parms):
     Returns:
     xds save to disk in the .zarr format
     """
-    data = locit_parms["data_dict"]
-    ddi_list = list(data.keys())
+    ant_xdt = locit_parms["xdt_data"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+    source_dict = ant_xdt.parent.attrs["source_dict"]
+    ant_key = locit_parms["this_ant"]
+
+    ddi_list = list(ant_xdt.keys())
     nddis = len(ddi_list)
 
     if nddis != 2:
-        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided."
+        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {ant_key.split('_')[1]}."
         logger.error(msg)
-        return
+        return None
 
     ddi_0 = _get_data_from_locit_xds(
-        data[ddi_list[0]], locit_parms["polarization"], get_phases=True, split_pols=True
+        ant_xdt[ddi_list[0]],
+        locit_parms["polarization"],
+        get_phases=True,
+        split_pols=True,
     )
     ddi_1 = _get_data_from_locit_xds(
-        data[ddi_list[1]], locit_parms["polarization"], get_phases=True, split_pols=True
+        ant_xdt[ddi_list[1]],
+        locit_parms["polarization"],
+        get_phases=True,
+        split_pols=True,
     )
 
     time, field_id, delays, freq = _delays_from_phase_differences(ddi_0, ddi_1)
     if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
         coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms
+            field_id, time, delays, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -176,7 +186,7 @@ def locit_difference_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                _create_output_xds(
+                return _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -187,7 +197,15 @@ def locit_difference_chunk(locit_parms):
                     locit_parms,
                     freq,
                     elevation_limit,
+                    antenna_info,
+                    ant_key,
                 )
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
 
 
 def _delays_from_phase_differences(ddi_0, ddi_1):
@@ -558,7 +576,8 @@ def _compute_chi_squared(delays, fit, coordinates, fit_kterm, fit_rate):
 def _build_filtered_arrays(
     field_id, time, delays, locit_parms, antenna_info, source_dict
 ):
-    """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the elevation limit
+    """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the \
+    elevation limit
 
     Args:
         field_id: Array with the observed field per delay
@@ -567,7 +586,8 @@ def _build_filtered_arrays(
         locit_parms: Locit main function parameters
 
     Returns:
-    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the elevation_limit
+    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the \
+    elevation_limit
     """
     """ Build the coordinate arrays (ha, dec, elevation, angle) for use in the fitting"""
     elevation_limit = locit_parms["elevation_limit"] * convert_unit(

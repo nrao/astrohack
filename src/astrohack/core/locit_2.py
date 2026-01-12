@@ -11,11 +11,20 @@ from astrohack.utils import (
     create_dataset_label,
     fixed_format_error,
     rotate_to_gmt,
+    compute_antenna_relative_off,
 )
+
+from astrohack.core.extract_locit_2 import plot_antenna_position
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
-from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
+from astrohack.utils.tools import get_telescope_lat_lon_rad
+from astrohack.visualization import (
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
+    plot_boxes_limits_and_labels,
+)
 
 
 def locit_separated_chunk(locit_parms):
@@ -305,7 +314,6 @@ def plot_sky_coverage_chunk(parm_dict):
         add_legend=False,
     )
 
-    print("cheguei no final?")
     close_figure(fig, suptitle, export_name, dpi, display)
     return
 
@@ -1212,3 +1220,128 @@ def _compute_plot_borders(angle_fact, latitude, elevation_limit):
     elelines = [0, elevation_limit]  # lines at zero and elevation limit
     declines = [latitude - right_angle, latitude + right_angle]
     return elelim, elelines, declim, declines, halim
+
+
+def plot_antenna_position_corrections_worker(
+    attributes_list, filename, telescope, ref_ant, parm_dict
+):
+    """
+    Does the actual individual position correction plots
+    Args:
+        attributes_list: List of XDS attributes
+        filename: Name of the PNG file to be created
+        telescope: Telescope object used in observations
+        ref_ant: Reference antenna in the data set
+        parm_dict: Parameter dictionary of the caller's caller
+
+    Returns:
+    PNG file with the position corrections plot
+    """
+    tel_lon, tel_lat, tel_rad = get_telescope_lat_lon_rad(telescope)
+    length_unit = parm_dict["unit"]
+    scaling = parm_dict["scaling"]
+    len_fac = convert_unit("m", length_unit, "length")
+    corr_fac = clight * scaling
+    figure_size = parm_dict["figure_size"]
+    box_size = parm_dict["box_size"]
+    dpi = parm_dict["dpi"]
+    display = parm_dict["display"]
+
+    xlabel = f"East [{length_unit}]"
+    ylabel = f"North [{length_unit}]"
+
+    fig, axes = create_figure_and_axes(figure_size, [2, 2], default_figsize=[8, 8])
+    xy_whole = axes[0, 0]
+    xy_inner = axes[0, 1]
+    z_whole = axes[1, 0]
+    z_inner = axes[1, 1]
+
+    for attributes in attributes_list:
+        antenna = attributes["antenna_info"]
+        ew_off, ns_off, _, _ = compute_antenna_relative_off(
+            antenna, tel_lon, tel_lat, tel_rad, len_fac
+        )
+        corrections, _ = rotate_to_gmt(
+            np.copy(attributes["position_fit"]),
+            attributes["position_error"],
+            antenna["longitude"],
+        )
+        corrections = np.array(corrections) * corr_fac
+        text = "  " + antenna["name"]
+        if antenna["name"] == ref_ant:
+            text += "*"
+        plot_antenna_position(
+            xy_whole, xy_inner, ew_off, ns_off, text, box_size, marker="+"
+        )
+        add_antenna_position_corrections_to_plot(
+            xy_whole, xy_inner, ew_off, ns_off, corrections[0], corrections[1], box_size
+        )
+        plot_antenna_position(
+            z_whole, z_inner, ew_off, ns_off, text, box_size, marker="+"
+        )
+        add_antenna_position_corrections_to_plot(
+            z_whole, z_inner, ew_off, ns_off, 0, corrections[2], box_size
+        )
+
+    plot_boxes_limits_and_labels(
+        xy_whole,
+        xy_inner,
+        xlabel,
+        ylabel,
+        box_size,
+        "X & Y, outer array",
+        "X & Y, inner array",
+    )
+    plot_boxes_limits_and_labels(
+        z_whole, z_inner, xlabel, ylabel, box_size, "Z, outer array", "Z, inner array"
+    )
+    close_figure(fig, "Position corrections", filename, dpi, display)
+
+
+def add_antenna_position_corrections_to_plot(
+    outerax, innerax, xpos, ypos, xcorr, ycorr, box_size, color="red", linewidth=0.5
+):
+    """
+    Plot an antenna position corrections as a vector to the antenna position
+    Args:
+        outerax: Plotting axis for the outer array box
+        innerax: Plotting axis for the inner array box
+        xpos: X antenna position (east-west)
+        ypos: Y antenna position (north-south)
+        xcorr: X axis correction (horizontal on plot)
+        ycorr: Y axis correction (vectical on plot)
+        box_size: inner array box size
+        color: vector color
+        linewidth: vector line width
+    """
+    half_box = box_size / 2
+    head_size = np.sqrt(xcorr**2 + ycorr**2) / 4
+    if abs(xpos) > half_box or abs(ypos) > half_box:
+        outerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )
+    else:
+        outerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )
+        innerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )

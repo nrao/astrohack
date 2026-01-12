@@ -12,6 +12,7 @@ from astrohack.core.locit_2 import (
     export_position_xds_to_parminator,
     plot_sky_coverage_chunk,
     plot_delays_chunk,
+    plot_antenna_position_corrections_worker,
 )
 from astrohack.utils import (
     convert_unit,
@@ -389,3 +390,97 @@ class AstrohackPositionFile(AstrohackBaseFile):
             compute_graph(
                 self, plot_delays_chunk, param_dict, ["ant", "ddi"], parallel=parallel
             )
+
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    def plot_position_corrections(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        unit: str = "km",
+        box_size: Union[int, float] = 5,
+        scaling: Union[int, float] = 250,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        display: bool = False,
+        dpi: int = 300,
+    ) -> None:
+        """Plot Antenna position corrections on an array configuration plot
+
+        :param destination: Name of the destination folder to contain plot
+        :type destination: str
+
+        :param ant: Select which antennas are to be plotted, defaults to all when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param unit: Unit for the plot, valid values are length units, default is km
+        :type unit: str, optional
+
+        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
+        :type box_size: int, float, optional
+
+        :param scaling: scaling factor to plotting the corrections, default is 250
+        :type scaling: int, float, optional
+
+        :param display: Display plots inline or suppress, defaults to False
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        .. _Description:
+
+        Plot the position corrections computed by locit on top of an array configuration plot.
+        The corrections are too small to be visualized on the array plot since they are of the order of mm and the array
+        is usually spread over km, or at least hundreds of meters.
+        The scaling factor is used to bring the corrections to a scale discernible on the plot, this plot should not be
+        used to estimate correction values, for that purpose use export_locit_fit_results instead.
+
+        """
+
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
+        combined = self.root.attrs["combined"]
+        telescope = get_proper_telescope(
+            self.root.attrs["telescope_name"], param_dict["ant"]
+        )
+        ref_ant = self.root.attrs["reference_antenna"]
+
+        ant_list = param_to_list(ant, self, "ant")
+        if combined:
+            filename = (
+                f"{destination}/position_corrections_combined_"
+                + f'{self.root.attrs["input_parameters"]["combine_ddis"]}.png'
+            )
+            attribute_list = []
+            for ant in ant_list:
+                attribute_list.append(self[ant].attrs)
+            plot_antenna_position_corrections_worker(
+                attribute_list, filename, telescope, ref_ant, param_dict
+            )
+
+        else:
+            ddi_list = []
+            if ddi == "all":
+                for ant in ant_list:
+                    ddi_list.extend(self[ant].keys())
+                ddi_list = np.unique(ddi_list)
+            else:
+                ddi_list = ddi
+                for i_ddi in range(len(ddi_list)):
+                    ddi_list[i_ddi] = "ddi_" + ddi_list[i_ddi]
+            for ddi in ddi_list:
+                filename = f"{destination}/position_corrections_separated_{ddi}.png"
+                attribute_list = []
+                for ant in ant_list:
+                    if ddi in self[ant].keys():
+                        attribute_list.append(self[ant][ddi].attrs)
+                plot_antenna_position_corrections_worker(
+                    attribute_list, filename, telescope, ref_ant, param_dict
+                )

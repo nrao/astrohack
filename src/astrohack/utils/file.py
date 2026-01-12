@@ -57,6 +57,42 @@ def check_if_file_can_be_opened(filename, minimal_version):
         )
 
 
+def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
+    if os.path.exists(filename):
+        pass
+    else:
+        raise FileNotFoundError(f"{filename} cannot be found.")
+
+    try:
+        with open(f"{filename}/.zattrs", "r") as root_attrs_file:
+            file_metadata = json.load(root_attrs_file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"{filename} is not a proper astrohack file")
+    except json.JSONDecodeError:
+        raise ValueError(f"{filename} metadata is not properly formatted")
+
+    try:
+        origin_info = file_metadata["origin_info"]
+    except KeyError:
+        raise ValueError(f"{filename} metadata is missing origin information")
+
+    if origin_info["origin"] != "astrohack":
+        raise ValueError(f"{filename} was not created by astrohack")
+
+    if origin_info["creator_function"] != file_creator:
+        raise ValueError(
+            f'{filename} was created by {origin_info["creator_function"]} but {file_creator} was expected'
+        )
+
+    file_version = origin_info["version"]
+
+    if data_from_version_needs_patch(file_version, minimal_version):
+        raise ValueError(
+            f"{filename} was created by astrohack version {file_version} which has a deprecated file"
+            f" format, please rerun astrohack on this dataset from scratch to access the data in it."
+        )
+
+
 def load_panel_file(file=None, panel_dict=None, dask_load=True):
     """Open panel file.
 

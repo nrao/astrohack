@@ -10,7 +10,7 @@ from astropy.time import Time
 
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
-from astrohack.utils.constants import figsize, twopi
+from astrohack.utils.constants import figsize, twopi, fontsize
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.algorithms import compute_antenna_relative_off
 from astrohack.visualization.plot_tools import (
@@ -19,7 +19,6 @@ from astrohack.visualization.plot_tools import (
     plot_boxes_limits_and_labels,
     scatter_plot,
 )
-from astrohack.visualization.diagnostics import plot_antenna_position
 
 
 def extract_antenna_data(extract_locit_parms, locit_mds):
@@ -457,3 +456,28 @@ def plot_array_configuration(parm_dict, root_tree):
     title = f"{len(root_tree.keys())} antennas during observation"
     close_figure(fig, title, filename, dpi, display)
     return
+
+
+def plot_antenna_position(
+    outerax, innerax, xpos, ypos, text, box_size, marker="+", color="black"
+):
+    """
+    Plot an antenna to either the inner or outer array boxes
+    Args:
+        outerax: Plotting axis for the outer array box
+        innerax: Plotting axis for the inner array box
+        xpos: X antenna position (east-west)
+        ypos: Y antenna position (north-south)
+        text: Antenna label
+        box_size: Size of the inner array box
+        marker: Antenna position marker
+        color: Color for the antenna position marker
+    """
+    half_box = box_size / 2
+    if abs(xpos) > half_box or abs(ypos) > half_box:
+        outerax.plot(xpos, ypos, marker=marker, color=color)
+        outerax.text(xpos, ypos, text, fontsize=fontsize, ha="left", va="center")
+    else:
+        outerax.plot(xpos, ypos, marker=marker, color=color)
+        innerax.plot(xpos, ypos, marker=marker, color=color)
+        innerax.text(xpos, ypos, text, fontsize=fontsize, ha="left", va="center")

@@ -964,3 +964,25 @@ def export_position_xds_to_table_row(
             )
         )
     return row
+
+
+def export_position_xds_to_parminator(attributes, threshold, kterm_present):
+    axes = ["X", "Y", "Z"]
+    delays, _ = rotate_to_gmt(
+        np.copy(attributes["position_fit"]),
+        attributes["position_error"],
+        attributes["antenna_info"]["longitude"],
+    )
+    station = attributes["antenna_info"]["station"]
+
+    outstr = ""
+    for iaxis, delay in enumerate(delays):
+        correction = delay * clight
+        if np.abs(correction) > threshold:
+            outstr += f"{station}, ,{axes[iaxis]},${correction: .4f}\n"
+
+    if kterm_present:
+        correction = attributes["koff_fit"] * clight
+        if np.abs(correction) > threshold:
+            outstr += f"{station}, ,K,${correction: .4f}\n"
+    return outstr

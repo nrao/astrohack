@@ -2,9 +2,14 @@ import pathlib
 
 from typing import List, Union
 
+import toolviper.utils.logger as logger
+
 from astrohack.antenna import get_proper_telescope
 from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.core.locit_2 import export_position_xds_to_table_row
+from astrohack.core.locit_2 import (
+    export_position_xds_to_table_row,
+    export_position_xds_to_parminator,
+)
 from astrohack.utils import (
     convert_unit,
     clight,
@@ -173,3 +178,62 @@ class AstrohackPositionFile(AstrohackBaseFile):
             table.get_string(),
             f"{destination}/position_{specifier}_fit_results.txt",
         )
+
+    # @toolviper.utils.parameter.validate()
+    def export_results_to_parminator(
+        self,
+        filename: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: int = None,
+        correction_threshold: float = 0.01,
+    ) -> None:
+        """Export antenna position fit results to a VLA parminator file.
+
+        :param filename: Name of the parminator file to be created
+        :type filename: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param correction_threshold: Correction threshold in meters to include an antenna position correction in output.
+        :type correction_threshold: float, optional
+
+        .. _Description:
+
+        Produce a VLA parminator compatible text file with the fit results from astrohack.locit.
+        """
+        param_dict = locals()
+        combined = self.root.attrs["combined"]
+        input_pars = self.root.attrs["input_parameters"]
+
+        if (not combined) and (not isinstance(ddi, int)):
+            msg = "If position file contains multiple DDIs one must be specified."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        kterm_present = input_pars["fit_kterm"]
+
+        telescope = get_proper_telescope(self.root.attrs["telescope_name"])
+        full_antenna_list = telescope.antenna_list
+        selected_antenna_list = param_to_list(ant, self, "ant")
+        threshold = correction_threshold
+
+        parmstr = ""
+        for ant_name in full_antenna_list:
+            ant_key = add_prefix(ant_name, "ant")
+
+            if ant_key in selected_antenna_list:
+                if ant_key in self.keys():
+                    if combined:
+                        position_xds = self[ant_key]
+                    else:
+                        position_xds = self[ant_key][f"ddi_{ddi}"]
+
+                    parmstr += export_position_xds_to_parminator(
+                        position_xds.attrs, threshold, kterm_present
+                    )
+
+        string_to_ascii_file(parmstr, filename)

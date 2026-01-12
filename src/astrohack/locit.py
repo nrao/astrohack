@@ -197,6 +197,9 @@ def locit(
         position_mds,
         parallel=parallel,
     )
+    if len(position_mds.keys()) == 0:
+        logger.warning("Processing did not yield any data")
+        executed_graph = False
 
     if executed_graph:
         position_mds.root.attrs.update(

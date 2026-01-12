@@ -17,7 +17,7 @@ from astrohack.io.position_mds import AstrohackPositionFile
 from typing import Union, List
 
 
-# @toolviper.utils.parameter.validate()
+@toolviper.utils.parameter.validate()
 def locit(
     locit_name: str,
     position_name: str = None,

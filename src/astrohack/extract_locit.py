@@ -15,7 +15,7 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.io.locit_mds import AstrohackLocitFile
 
 
-# @toolviper.utils.parameter.validate()
+@toolviper.utils.parameter.validate()
 def extract_locit(
     cal_table: str,
     locit_name: str = None,

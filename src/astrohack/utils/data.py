@@ -44,9 +44,9 @@ def add_caller_and_version_to_dict_2(in_dict, direct_call=False):
     else:
         ipos = 2
     in_dict["origin_info"] = {
+        "origin": "astrohack",
         "version": astrohack.__version__,
         "creator_function": inspect.stack()[ipos].function,
-        "origin": "astrohack",
     }
 
 

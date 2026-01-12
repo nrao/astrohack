@@ -5,7 +5,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils.graph import compute_graph_to_mds_tree
 from astrohack.utils.file import overwrite_file
-from astrohack.core.locit_2 import (
+from astrohack.core.locit import (
     locit_separated_chunk,
     locit_combined_chunk,
     locit_difference_chunk,

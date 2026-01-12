@@ -14,7 +14,7 @@ from astrohack.utils import (
     compute_antenna_relative_off,
 )
 
-from astrohack.core.extract_locit_2 import plot_antenna_position
+from astrohack.core.extract_locit import plot_antenna_position
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *

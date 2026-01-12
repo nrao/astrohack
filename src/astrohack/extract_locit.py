@@ -5,7 +5,7 @@ import toolviper.utils.logger as logger
 from typing import Union, List
 
 from astrohack.utils.file import overwrite_file
-from astrohack.core.extract_locit_2 import (
+from astrohack.core.extract_locit import (
     extract_antenna_data,
     extract_spectral_info,
     extract_source_and_telescope,

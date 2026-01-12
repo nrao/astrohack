@@ -2,7 +2,7 @@ import os
 import shutil
 
 import toolviper
-from astrohack.extract_locit_2 import extract_locit
+from astrohack.extract_locit import extract_locit
 
 
 class TestExtractLocit:

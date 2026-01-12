@@ -7,7 +7,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.antenna import get_proper_telescope
 from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.core.locit_2 import (
+from astrohack.core.locit import (
     export_position_xds_to_table_row,
     export_position_xds_to_parminator,
     plot_sky_coverage_chunk,

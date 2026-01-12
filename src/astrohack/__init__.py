@@ -34,8 +34,8 @@ from astrohack.io.mds import (
     AstrohackImageFile,
     AstrohackPanelFile,
 )
-from .locit_2 import locit
-from .extract_locit_2 import extract_locit
+from .locit import locit
+from .extract_locit import extract_locit
 from .cassegrain_ray_tracing import (
     cassegrain_ray_tracing_pipeline,
     create_ray_tracing_telescope_parameter_dict,

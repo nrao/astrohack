@@ -4,7 +4,7 @@ import pathlib
 from typing import Union, Tuple, List
 
 from astrohack.antenna import get_proper_telescope
-from astrohack.core.extract_locit_2 import plot_source_table, plot_array_configuration
+from astrohack.core.extract_locit import plot_source_table, plot_array_configuration
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
     create_pretty_table,

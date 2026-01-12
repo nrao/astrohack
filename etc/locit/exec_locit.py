@@ -1,5 +1,5 @@
-from astrohack.extract_locit_2 import extract_locit
-from astrohack.locit_2 import locit
+from astrohack.extract_locit import extract_locit
+from astrohack.locit import locit
 import argparse
 
 desc = "Execute locit with a phase cal table produced by CASA\n\n"

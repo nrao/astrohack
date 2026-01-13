@@ -92,7 +92,7 @@ class TestBeamcutMDS:
         assert are_png_files_equal(
             f"{self.destination_folder}/{amp_plot_name}",
             f"{self.ref_products_folder}/{amp_plot_name}",
-        ), "Amplitude plot hash is different from the expected hash"
+        ), "Amplitude plot png file is different from the expected png file"
 
         beamcut_mds.plot_beamcut_in_attenuation(
             self.destination_folder, ant=ant, ddi=ddi
@@ -100,13 +100,13 @@ class TestBeamcutMDS:
         assert are_png_files_equal(
             f"{self.destination_folder}/{att_plot_name}",
             f"{self.ref_products_folder}/{att_plot_name}",
-        ), "Attenuation plot hash is different from the expected hash"
+        ), "Attenuation plot png file is different from the expected png file"
 
         beamcut_mds.plot_beam_cuts_over_sky(self.destination_folder, ant=ant, ddi=ddi)
         assert are_png_files_equal(
             f"{self.destination_folder}/{lm_plot_name}",
             f"{self.ref_products_folder}/{lm_plot_name}",
-        ), "lm plot hash is different from the expected hash"
+        ), "lm plot png file is different from the expected png file"
 
         return
 

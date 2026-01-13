@@ -1,6 +1,14 @@
+import os
 import shutil
 
 from toolviper.utils import data
+
+from astrohack import AstrohackLocitFile, extract_locit, open_locit
+from astrohack.utils.validation import (
+    capture_prints_from_function,
+    are_png_files_equal,
+    are_lists_equal,
+)
 
 
 class TestLocitMDS:
@@ -8,14 +16,14 @@ class TestLocitMDS:
     destination_folder = "locit_exports"
     ref_products_folder = f"{data_folder}/ref_locit_products"
 
-    silly_name = "Anything"
-    remote_locit_name = "kband_locit_small.locit.zarr"
+    phase_cal_table_name = "locit-input-pha.cal"
+    locit_name = "ant-pos.locit.zarr"
 
     @classmethod
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        data.download(file=cls.remote_locit_name, folder=cls.data_folder)
+        data.download(file=cls.phase_cal_table_name, folder=cls.data_folder)
         data.download(file="ref_locit_products", folder=cls.data_folder)
 
         # Add datafolder to names for execution
@@ -24,6 +32,8 @@ class TestLocitMDS:
                 if varname.split("_")[-1] == "name":
                     setattr(cls, varname, f"{cls.data_folder}/{varvalue}")
 
+        extract_locit(cls.phase_cal_table_name, cls.locit_name, overwrite=True)
+
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
@@ -31,3 +41,96 @@ class TestLocitMDS:
         shutil.rmtree(cls.data_folder, ignore_errors=True)
         shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
+
+    def test_locit_mds_init(self):
+        locit_mds = AstrohackLocitFile(self.locit_name)
+        assert isinstance(locit_mds, AstrohackLocitFile)
+
+    def test_locit_mds_summary(self):
+        locit_mds = open_locit(self.locit_name)
+        summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
+
+        captured_output = capture_prints_from_function(locit_mds.summary)
+
+        with open(summary_reference_name, "r") as ref_file:
+            ref_content = ref_file.read()
+
+        assert (
+            captured_output == ref_content
+        ), "Summary should be exactly equal to reference summary"
+
+    def test_locit_mds_text_exports(self):
+        locit_mds = open_locit(self.locit_name)
+        src_tab_reference_name = f"{self.ref_products_folder}/src_tab_reference.txt"
+        array_cfg_reference_name = f"{self.ref_products_folder}/array_cfg_reference.txt"
+
+        current_src_tab = capture_prints_from_function(locit_mds.print_source_table)
+        with open(src_tab_reference_name, "r") as ref_src_tab_file:
+            ref_src_tab_content = ref_src_tab_file.read()
+        assert (
+            current_src_tab == ref_src_tab_content
+        ), "Source table should be exactly equal to reference source table"
+
+        current_array_cfg = capture_prints_from_function(locit_mds.print_source_table)
+        with open(array_cfg_reference_name, "r") as ref_array_cfg_file:
+            ref_array_cfg_content = ref_array_cfg_file.read()
+        assert (
+            current_array_cfg == ref_array_cfg_content
+        ), "Array configuration should be exactly equal to reference array confguration"
+
+    def test_locit_mds_plot_exports(self):
+        locit_mds = open_locit(self.locit_name)
+
+        src_fk5_plot_name = "locit_source_table_fk5.png"
+        locit_mds.plot_source_positions(self.destination_folder, precessed=False)
+        assert are_png_files_equal(
+            f"{self.destination_folder}/{src_fk5_plot_name}",
+            f"{self.ref_products_folder}/{src_fk5_plot_name}",
+        ), "FK5 source position plot should be exactly equal to reference FK5 source position plot"
+
+        src_prece_plot_name = "locit_source_table_precessed.png"
+        locit_mds.plot_source_positions(self.destination_folder, precessed=True)
+        assert are_png_files_equal(
+            f"{self.destination_folder}/{src_prece_plot_name}",
+            f"{self.ref_products_folder}/{src_prece_plot_name}",
+        ), "Precessed source position plot should be exactly equal to reference precessed source position plot"
+
+        array_cfg_plot_name = "locit_antenna_positions.png"
+        locit_mds.plot_array_configuration(self.destination_folder)
+        assert are_png_files_equal(
+            f"{self.destination_folder}/{array_cfg_plot_name}",
+            f"{self.ref_products_folder}/{array_cfg_plot_name}",
+        ), "Array configuration plot should be exactly equal to reference array configuration plot"
+
+    def test_locit_mds_metadata_style(self):
+        locit_mds = open_locit(self.locit_name)
+
+        assert "source_dict" in list(
+            locit_mds.root.attrs.keys()
+        ), "Root attributes should contain 'source_dict'"
+
+        expected_src_keys = ["fk5", "id", "name", "precessed"]
+        src_table = locit_mds.root.attrs["source_dict"]
+        for key, value in src_table.items():
+            assert key.isdigit(), "Source key should be a digit referencing field Ids"
+            assert are_lists_equal(
+                list(value.keys()), expected_src_keys
+            ), "Source position keys should be the same as expected keys"
+
+        expected_ant_keys = [
+            "geocentric_position",
+            "id",
+            "latitude",
+            "longitude",
+            "name",
+            "offset",
+            "radius",
+            "reference",
+            "station",
+        ]
+        for ant_xdtree in locit_mds.values():
+            assert "antenna_info" in list(
+                ant_xdtree.attrs.keys()
+            ), "Each antenna xarray DataTree needs to contain antenna info"
+            antenna_info = ant_xdtree.attrs["antenna_info"]
+            assert are_lists_equal(list(antenna_info.keys()), expected_ant_keys)

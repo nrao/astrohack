@@ -3,7 +3,7 @@ import shutil
 from toolviper.utils import data
 
 
-class Testlocit:
+class TestLocitMDS:
     data_folder = "locit_data"
     destination_folder = "locit_exports"
     ref_products_folder = f"{data_folder}/ref_locit_products"

@@ -12,7 +12,7 @@ from astrohack import open_beamcut, AstrohackBeamcutFile
 from astrohack.utils.validation import are_png_files_equal
 
 
-class TestBeamcut:
+class TestBeamcutMDS:
     data_folder = "beamcut_data"
     destination_folder = "beamcut_exports"
     ref_products_folder = f"{data_folder}/ref_beamcut_products"

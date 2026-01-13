@@ -1,13 +1,11 @@
 import pytest
 import shutil
 import os
-import io
-import contextlib
 
 from toolviper.utils import data
 
 from astrohack import open_beamcut, AstrohackBeamcutFile
-from astrohack.utils.validation import are_png_files_equal
+from astrohack.utils.validation import are_png_files_equal, capture_prints_from_function
 
 
 class TestBeamcutMDS:
@@ -47,14 +45,8 @@ class TestBeamcutMDS:
     def test_beamcut_mds_summary(self):
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
         summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
-        output_capture = io.StringIO()
 
-        # Use redirect_stdout to capture the function's output
-        with contextlib.redirect_stdout(output_capture):
-            beamcut_mds.summary()
-
-        # Get the captured output as a string
-        captured_output = output_capture.getvalue()
+        captured_output = capture_prints_from_function(beamcut_mds.summary)
 
         with open(summary_reference_name, "r") as ref_file:
             ref_content = ref_file.read()

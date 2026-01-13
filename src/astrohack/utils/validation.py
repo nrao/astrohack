@@ -1,4 +1,5 @@
 from PIL import Image, ImageChops
+import contextlib, io
 
 from astrohack.antenna.antenna_surface import SUPPORTED_POL_STATES
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
@@ -94,3 +95,16 @@ def are_png_files_equal(img_path1, img_path2):
     except IOError as e:
         print(f"Error opening images: {e}")
         return False
+
+
+def capture_prints_from_function(function, args=None):
+    # Use redirect_stdout to capture the function's output
+    output_capture = io.StringIO()
+    with contextlib.redirect_stdout(output_capture):
+        if args is None:
+            function()
+        else:
+            function(*args)
+
+    # Get the captured output as a string
+    return output_capture.getvalue()

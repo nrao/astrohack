@@ -473,10 +473,12 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 for ant in ant_list:
                     ddi_list.extend(self[ant].keys())
                 ddi_list = np.unique(ddi_list)
-            else:
+            elif isinstance(ddi, list):
                 ddi_list = ddi
                 for i_ddi in range(len(ddi_list)):
                     ddi_list[i_ddi] = "ddi_" + ddi_list[i_ddi]
+            else:
+                ddi_list = [f"ddi_{ddi}"]
             for ddi in ddi_list:
                 filename = f"{destination}/position_corrections_separated_{ddi}.png"
                 attribute_list = []

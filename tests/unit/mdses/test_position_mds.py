@@ -119,8 +119,33 @@ class TestPositionMDS:
         return
 
     def test_position_mds_plot_exports(self):
-        #     position_mds = open_position(self.position_name)
-        #
+        ddi = 0
+        ant = "ea16"
+        ant_pos_name_dict = {
+            "no": "position_corrections_separated_ddi_0.png",
+            "simple": "position_corrections_combined_simple.png",
+            "difference": "position_corrections_combined_difference.png",
+        }
+        delay_name_dict = {
+            "no": "position_delays_ant_ea16_separated_ddi_0.png",
+            "simple": "position_delays_ant_ea16_combined_simple.png",
+            "difference": "position_delays_ant_ea16_combined_difference.png",
+        }
+        sky_coverage_name_dict = {
+            "no": "position_sky_coverage_ant_ea16_ddi_0.png",
+            "simple": "position_sky_coverage_ant_ea16.png",
+            "difference": "position_sky_coverage_ant_ea16.png",
+        }
+
+        for label, filename in self.position_files.items():
+            position_mds = open_position(filename)
+
+            position_mds.plot_sky_coverage(self.destination_folder, ant=ant, ddi=ddi)
+
+            position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
+
+            position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
+
         #     src_fk5_plot_name = "position_source_table_fk5.png"
         #     position_mds.plot_source_positions(self.destination_folder, precessed=False)
         #     assert are_png_files_equal(

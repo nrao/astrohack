@@ -5,7 +5,12 @@ import os
 from toolviper.utils import data
 
 from astrohack import open_beamcut, AstrohackBeamcutFile
-from astrohack.utils.validation import are_png_files_equal, capture_prints_from_function
+from astrohack.utils.validation import (
+    are_png_files_equal,
+    capture_prints_from_function,
+    are_txt_files_equal,
+    is_captured_output_equal_to_txt_reference,
+)
 
 
 class TestBeamcutMDS:
@@ -46,13 +51,8 @@ class TestBeamcutMDS:
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
         summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
 
-        captured_output = capture_prints_from_function(beamcut_mds.summary)
-
-        with open(summary_reference_name, "r") as ref_file:
-            ref_content = ref_file.read()
-
-        assert (
-            captured_output == ref_content
+        assert is_captured_output_equal_to_txt_reference(
+            beamcut_mds.summary, summary_reference_name
         ), "Summary should be exactly equal to reference summary"
 
         return
@@ -68,14 +68,8 @@ class TestBeamcutMDS:
         os.makedirs(self.destination_folder, exist_ok=True)
         beamcut_mds.observation_summary(local_obs_summary)
 
-        with open(local_obs_summary, "r") as sum_file:
-            local_obs_sum = sum_file.read()
-
-        with open(obs_summary_reference_name, "r") as ref_file:
-            ref_content = ref_file.read()
-
-        assert (
-            local_obs_sum == ref_content
+        assert are_txt_files_equal(
+            local_obs_summary, obs_summary_reference_name
         ), "Observation summary should be exactly equal to reference observation summary"
         return
 

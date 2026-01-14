@@ -8,6 +8,7 @@ from astrohack.utils.validation import (
     capture_prints_from_function,
     are_png_files_equal,
     are_lists_equal,
+    is_captured_output_equal_to_txt_reference,
 )
 
 
@@ -50,13 +51,8 @@ class TestLocitMDS:
         locit_mds = open_locit(self.locit_name)
         summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
 
-        captured_output = capture_prints_from_function(locit_mds.summary)
-
-        with open(summary_reference_name, "r") as ref_file:
-            ref_content = ref_file.read()
-
-        assert (
-            captured_output == ref_content
+        assert is_captured_output_equal_to_txt_reference(
+            locit_mds.summary, summary_reference_name
         ), "Summary should be exactly equal to reference summary"
 
     def test_locit_mds_text_exports(self):
@@ -64,19 +60,13 @@ class TestLocitMDS:
         src_tab_reference_name = f"{self.ref_products_folder}/src_tab_reference.txt"
         array_cfg_reference_name = f"{self.ref_products_folder}/array_cfg_reference.txt"
 
-        current_src_tab = capture_prints_from_function(locit_mds.print_source_table)
-        with open(src_tab_reference_name, "r") as ref_src_tab_file:
-            ref_src_tab_content = ref_src_tab_file.read()
-        assert (
-            current_src_tab == ref_src_tab_content
+        assert is_captured_output_equal_to_txt_reference(
+            locit_mds.print_source_table, src_tab_reference_name
         ), "Source table should be exactly equal to reference source table"
 
-        current_array_cfg = capture_prints_from_function(locit_mds.print_source_table)
-        with open(array_cfg_reference_name, "r") as ref_array_cfg_file:
-            ref_array_cfg_content = ref_array_cfg_file.read()
-        assert (
-            current_array_cfg == ref_array_cfg_content
-        ), "Array configuration should be exactly equal to reference array confguration"
+        assert is_captured_output_equal_to_txt_reference(
+            locit_mds.print_array_configuration, array_cfg_reference_name
+        ), "Array configuration should be exactly equal to reference array configuration"
 
     def test_locit_mds_plot_exports(self):
         locit_mds = open_locit(self.locit_name)

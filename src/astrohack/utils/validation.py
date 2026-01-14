@@ -110,6 +110,12 @@ def capture_prints_from_function(function, args=None):
     return output_capture.getvalue()
 
 
+def dump_captured_output_to_file(function, dump_file, args=None):
+    output_captured = capture_prints_from_function(function, args)
+    with open(dump_file, "w") as dump_file_obj:
+        dump_file_obj.write(output_captured)
+
+
 def are_txt_files_equal(txt_path1, txt_path2):
     with open(txt_path1, "r") as txt_file1:
         txt1_content = txt_file1.read()

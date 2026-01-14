@@ -108,3 +108,18 @@ def capture_prints_from_function(function, args=None):
 
     # Get the captured output as a string
     return output_capture.getvalue()
+
+
+def are_txt_files_equal(txt_path1, txt_path2):
+    with open(txt_path1, "r") as txt_file1:
+        txt1_content = txt_file1.read()
+        with open(txt_path2, "r") as txt_file2:
+            txt2_content = txt_file2.read()
+            return txt1_content == txt2_content
+
+
+def is_captured_output_equal_to_txt_reference(function, txt_ref, args=None):
+    captured_output = capture_prints_from_function(function, args)
+    with open(txt_ref, "r") as ref_file:
+        ref_content = ref_file.read()
+    return ref_content == captured_output

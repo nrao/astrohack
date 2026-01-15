@@ -1,14 +1,10 @@
-import os
 import shutil
 
 from toolviper.utils import data
 
 from astrohack import AstrohackPositionFile, extract_locit, locit, open_position
-from astrohack.utils.ray_tracing_general import return_line
 from astrohack.utils.validation import (
-    capture_prints_from_function,
     are_png_files_equal,
-    are_lists_equal,
     are_txt_files_equal,
     is_captured_output_equal_to_txt_reference,
 )
@@ -133,7 +129,8 @@ class TestPositionMDS:
         }
         sky_coverage_name_dict = {
             "no": "position_sky_coverage_ant_ea16_ddi_0.png",
-            "simple": "position_sky_coverage_ant_ea16.png",
+            "simple": None,  # Simple and difference files are in thesis equal, but may differ in metadata, since they
+            # have the same exact name, simple is set to None in order to avoid unreasonable test failures
             "difference": "position_sky_coverage_ant_ea16.png",
         }
 
@@ -141,63 +138,42 @@ class TestPositionMDS:
             position_mds = open_position(filename)
 
             position_mds.plot_sky_coverage(self.destination_folder, ant=ant, ddi=ddi)
+            if sky_coverage_name_dict[label] is not None:
+                assert are_png_files_equal(
+                    f"{self.destination_folder}/{sky_coverage_name_dict[label]}",
+                    f"{self.ref_products_folder}/{sky_coverage_name_dict[label]}",
+                ), f"{sky_coverage_name_dict[label]} differs from reference file."
 
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
+            assert are_png_files_equal(
+                f"{self.destination_folder}/{delay_name_dict[label]}",
+                f"{self.ref_products_folder}/{delay_name_dict[label]}",
+            ), f"{delay_name_dict[label]} differs from reference file."
 
             position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
+            assert are_png_files_equal(
+                f"{self.destination_folder}/{ant_pos_name_dict[label]}",
+                f"{self.ref_products_folder}/{ant_pos_name_dict[label]}",
+            ), f"{ant_pos_name_dict[label]} differs from reference file."
 
-        #     src_fk5_plot_name = "position_source_table_fk5.png"
-        #     position_mds.plot_source_positions(self.destination_folder, precessed=False)
-        #     assert are_png_files_equal(
-        #         f"{self.destination_folder}/{src_fk5_plot_name}",
-        #         f"{self.ref_products_folder}/{src_fk5_plot_name}",
-        #     ), "FK5 source position plot should be exactly equal to reference FK5 source position plot"
-        #
-        #     src_prece_plot_name = "position_source_table_precessed.png"
-        #     position_mds.plot_source_positions(self.destination_folder, precessed=True)
-        #     assert are_png_files_equal(
-        #         f"{self.destination_folder}/{src_prece_plot_name}",
-        #         f"{self.ref_products_folder}/{src_prece_plot_name}",
-        #     ), "Precessed source position plot should be exactly equal to reference precessed source position plot"
-        #
-        #     array_cfg_plot_name = "position_antenna_positions.png"
-        #     position_mds.plot_array_configuration(self.destination_folder)
-        #     assert are_png_files_equal(
-        #         f"{self.destination_folder}/{array_cfg_plot_name}",
-        #         f"{self.ref_products_folder}/{array_cfg_plot_name}",
-        #     ), "Array configuration plot should be exactly equal to reference array configuration plot"
         return
 
-    def test_position_mds_metadata_style(self):
-        # position_mds = open_position(self.position_name)
-        #
-        # assert "source_dict" in list(
-        #     position_mds.root.attrs.keys()
-        # ), "Root attributes should contain 'source_dict'"
-        #
-        # expected_src_keys = ["fk5", "id", "name", "precessed"]
-        # src_table = position_mds.root.attrs["source_dict"]
-        # for key, value in src_table.items():
-        #     assert key.isdigit(), "Source key should be a digit referencing field Ids"
-        #     assert are_lists_equal(
-        #         list(value.keys()), expected_src_keys
-        #     ), "Source position keys should be the same as expected keys"
-        #
-        # expected_ant_keys = [
-        #     "geocentric_position",
-        #     "id",
-        #     "latitude",
-        #     "longitude",
-        #     "name",
-        #     "offset",
-        #     "radius",
-        #     "reference",
-        #     "station",
-        # ]
-        # for ant_xdtree in position_mds.values():
-        #     assert "antenna_info" in list(
-        #         ant_xdtree.attrs.keys()
-        #     ), "Each antenna xarray DataTree needs to contain antenna info"
-        #     antenna_info = ant_xdtree.attrs["antenna_info"]
-        #     assert are_lists_equal(list(antenna_info.keys()), expected_ant_keys)
-        return
+    def test_position_mds_structure(self):
+        depth_dict = {
+            "no": 2,
+            "simple": 1,
+            "difference": 1,
+        }
+
+        for label, filename in self.position_files.items():
+            position_mds = open_position(filename)
+            expected_depth = depth_dict[label]
+            assert (
+                position_mds.root.depth == expected_depth
+            ), f"{label.capitalize()} combination mds must have a depth of {expected_depth}."
+            assert (
+                "reference_antenna" in position_mds.root.attrs
+            ), f"{label.capitalize()} combination mds must have a root attribute for reference antenna."
+            assert (
+                "telescope_name" in position_mds.root.attrs
+            ), f"{label.capitalize()} combination mds must have a root attribute for telescopa name."

@@ -1317,5 +1317,5 @@
             "required": false,
             "type": ["boolean"]
         }
-    },
+    }
 }

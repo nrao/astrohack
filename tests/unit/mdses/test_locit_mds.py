@@ -1,11 +1,9 @@
-import os
 import shutil
 
 from toolviper.utils import data
 
 from astrohack import AstrohackLocitFile, extract_locit, open_locit
 from astrohack.utils.validation import (
-    capture_prints_from_function,
     are_png_files_equal,
     are_lists_equal,
     is_captured_output_equal_to_txt_reference,
@@ -57,15 +55,15 @@ class TestLocitMDS:
 
     def test_locit_mds_text_exports(self):
         locit_mds = open_locit(self.locit_name)
-        src_tab_reference_name = f"{self.ref_products_folder}/src_tab_reference.txt"
-        array_cfg_reference_name = f"{self.ref_products_folder}/array_cfg_reference.txt"
 
         assert is_captured_output_equal_to_txt_reference(
-            locit_mds.print_source_table, src_tab_reference_name
+            locit_mds.print_source_table,
+            f"{self.ref_products_folder}/src_tab_reference.txt",
         ), "Source table should be exactly equal to reference source table"
 
         assert is_captured_output_equal_to_txt_reference(
-            locit_mds.print_array_configuration, array_cfg_reference_name
+            locit_mds.print_array_configuration,
+            f"{self.ref_products_folder}/array_cfg_reference.txt",
         ), "Array configuration should be exactly equal to reference array configuration"
 
     def test_locit_mds_plot_exports(self):

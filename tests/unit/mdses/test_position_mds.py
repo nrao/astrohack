@@ -32,7 +32,7 @@ class TestPositionMDS:
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
         data.download(file=cls.phase_cal_table_name, folder=cls.data_folder)
-        # data.download(file="ref_position_products", folder=cls.data_folder)
+        data.download(file="ref_position_products", folder=cls.data_folder)
 
         # Add datafolder to names for execution
         for varname, varvalue in cls.__dict__.items():
@@ -40,32 +40,23 @@ class TestPositionMDS:
                 if varname.split("_")[-1] == "name":
                     setattr(cls, varname, f"{cls.data_folder}/{varvalue}")
 
+        extract_locit(cls.phase_cal_table_name, cls.locit_name, overwrite=True)
+
         for key in cls.position_files.keys():
             cls.position_files[key] = f"{cls.data_folder}/{cls.position_files[key]}"
-
-        extract_locit(cls.phase_cal_table_name, cls.locit_name, overwrite=True)
-        locit(
-            cls.locit_name, cls.position_no_comb_name, combine_ddis="no", overwrite=True
-        )
-        locit(
-            cls.locit_name,
-            cls.position_simple_comb_name,
-            combine_ddis="simple",
-            overwrite=True,
-        )
-        locit(
-            cls.locit_name,
-            cls.position_diff_comb_name,
-            combine_ddis="difference",
-            overwrite=True,
-        )
+            locit(
+                cls.locit_name,
+                cls.position_files[key],
+                combine_ddis=key,
+                overwrite=True,
+            )
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_folder, ignore_errors=True)
-        # shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        shutil.rmtree(cls.data_folder, ignore_errors=True)
+        shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_position_mds_init(self):
@@ -104,7 +95,7 @@ class TestPositionMDS:
 
             parminator_filename = f"parminator_{label}_combination.par"
             position_mds.export_results_to_parminator(
-                f"{self.destination_folder}/parminator_filename",
+                f"{self.destination_folder}/{parminator_filename}",
                 correction_threshold=0.001,
                 ddi=0,  # DDI specified for the no comb case
             )

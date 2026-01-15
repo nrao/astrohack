@@ -11,7 +11,7 @@ from astrohack.utils.validation import (
 
 
 class TestPositionMDS:
-    data_folder = "locit_data"
+    data_folder = "position_data"
     destination_folder = "position_exports"
     ref_products_folder = f"{data_folder}/ref_position_products"
 
@@ -69,6 +69,7 @@ class TestPositionMDS:
             summary_reference_name = (
                 f"{self.ref_products_folder}/summary_{label}_comb_reference.txt"
             )
+
             assert is_captured_output_equal_to_txt_reference(
                 position_mds.summary, summary_reference_name
             ), (

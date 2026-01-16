@@ -83,24 +83,31 @@ class TestBeamcutMDS:
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
         beamcut_mds.plot_beamcut_in_amplitude(self.destination_folder, ant=ant, ddi=ddi)
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{amp_plot_name}",
             f"{self.ref_products_folder}/{amp_plot_name}",
-        ), "Amplitude plot png file is different from the expected png file"
+        )
+        assert (
+            equal
+        ), f"{msg}: Amplitude plot png file is different from the expected png file"
 
         beamcut_mds.plot_beamcut_in_attenuation(
             self.destination_folder, ant=ant, ddi=ddi
         )
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{att_plot_name}",
             f"{self.ref_products_folder}/{att_plot_name}",
-        ), "Attenuation plot png file is different from the expected png file"
+        )
+        assert (
+            equal
+        ), f"{msg}: Attenuation plot png file is different from the expected png file"
 
         beamcut_mds.plot_beam_cuts_over_sky(self.destination_folder, ant=ant, ddi=ddi)
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{lm_plot_name}",
             f"{self.ref_products_folder}/{lm_plot_name}",
-        ), "lm plot png file is different from the expected png file"
+        )
+        assert equal, f"{msg}: lm plot png file is different from the expected png file"
 
         return
 

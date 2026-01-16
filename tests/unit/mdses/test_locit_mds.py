@@ -71,24 +71,33 @@ class TestLocitMDS:
 
         src_fk5_plot_name = "locit_source_table_fk5.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=False)
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{src_fk5_plot_name}",
             f"{self.ref_products_folder}/{src_fk5_plot_name}",
-        ), "FK5 source position plot should be exactly equal to reference FK5 source position plot"
+        )
+        assert (
+            equal
+        ), f"{msg}: FK5 source position plot should be exactly equal to reference FK5 source position plot"
 
         src_prece_plot_name = "locit_source_table_precessed.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=True)
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{src_prece_plot_name}",
             f"{self.ref_products_folder}/{src_prece_plot_name}",
-        ), "Precessed source position plot should be exactly equal to reference precessed source position plot"
+        )
+        assert (
+            equal
+        ), f"{msg}: Precessed source position plot should be exactly equal to reference precessed source position plot"
 
         array_cfg_plot_name = "locit_antenna_positions.png"
         locit_mds.plot_array_configuration(self.destination_folder)
-        assert are_png_files_equal(
+        equal, msg = are_png_files_equal(
             f"{self.destination_folder}/{array_cfg_plot_name}",
             f"{self.ref_products_folder}/{array_cfg_plot_name}",
-        ), "Array configuration plot should be exactly equal to reference array configuration plot"
+        )
+        assert (
+            equal
+        ), f"{msg}: Array configuration plot should be exactly equal to reference array configuration plot"
 
     def test_locit_mds_metadata_style(self):
         locit_mds = open_locit(self.locit_name)

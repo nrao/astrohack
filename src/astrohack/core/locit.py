@@ -1,3 +1,4 @@
+import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -529,7 +530,7 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
     )
     ntimes = out_times.shape[0]
     out_phase = np.ndarray(ntimes)
-    out_field = np.ndarray(ntimes, dtype=np.integer)
+    out_field = np.ndarray(ntimes, dtype=np.int64)
 
     for i_time in range(ntimes):
         i_pos = np.absolute(pos_time - out_times[i_time]).argmin()

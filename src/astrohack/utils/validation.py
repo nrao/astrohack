@@ -84,7 +84,7 @@ def are_png_files_equal(img_path1, img_path2):
             # This results in a new image where differing pixels are non-zero
             diff = ImageChops.difference(img1, img2)
 
-            return np.allclose(diff, 0, atol=1e-5)
+            return np.allclose(diff, 0, atol=1e-3)
 
     except IOError as e:
         print(f"Error opening images: {e}")

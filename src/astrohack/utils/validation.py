@@ -78,7 +78,7 @@ def are_png_files_equal(img_path1, img_path2):
 
             # Check if dimensions are the same
             if img1.size != img2.size:
-                return False
+                return False, f""
 
             # Calculate the difference between the images
             # This results in a new image where differing pixels are non-zero
@@ -89,6 +89,32 @@ def are_png_files_equal(img_path1, img_path2):
     except IOError as e:
         print(f"Error opening images: {e}")
         return False
+
+
+def are_png_files_equal_macos(img_path1, img_path2):
+    try:
+        # Open images (Pillow handles various modes and removes metadata concerns for pixel data)
+        with Image.open(img_path1) as img1, Image.open(img_path2) as img2:
+            # Ensure both images are in the same mode for a reliable comparison (e.g., 'RGBA')
+            img1 = img1.convert("RGBA")
+            img2 = img2.convert("RGBA")
+
+            # Check if dimensions are the same
+            if img1.size != img2.size:
+                return False, f"Sizes differ"
+
+            # Calculate the difference between the images
+            # This results in a new image where differing pixels are non-zero
+            diff = ImageChops.difference(img1, img2)
+
+            return (
+                np.allclose(diff, 0, atol=1e-3),
+                f"Mean diff: {np.mean(np.absolute(diff))}",
+            )
+
+    except IOError as e:
+        print(f"Error opening images: {e}")
+        return False, f"Failed opening images"
 
 
 def capture_prints_from_function(function, args=None):

@@ -7,6 +7,7 @@ from astrohack.utils.validation import (
     are_png_files_equal,
     are_txt_files_equal,
     is_captured_output_equal_to_txt_reference,
+    are_png_files_equal_macos,
 )
 
 
@@ -131,10 +132,13 @@ class TestPositionMDS:
 
             position_mds.plot_sky_coverage(self.destination_folder, ant=ant, ddi=ddi)
             if sky_coverage_name_dict[label] is not None:
-                assert are_png_files_equal(
+                equal, msg = are_png_files_equal_macos(
                     f"{self.destination_folder}/{sky_coverage_name_dict[label]}",
                     f"{self.ref_products_folder}/{sky_coverage_name_dict[label]}",
-                ), f"{sky_coverage_name_dict[label]} differs from reference file."
+                )
+                assert (
+                    equal
+                ), f"{msg}: {sky_coverage_name_dict[label]} differs from reference file."
 
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
             assert are_png_files_equal(

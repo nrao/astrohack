@@ -1,5 +1,6 @@
 from PIL import Image, ImageChops
 import contextlib, io
+import numpy as np
 
 from astrohack.antenna.antenna_surface import SUPPORTED_POL_STATES
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
@@ -83,14 +84,7 @@ def are_png_files_equal(img_path1, img_path2):
             # This results in a new image where differing pixels are non-zero
             diff = ImageChops.difference(img1, img2)
 
-            # Split channels and check if the bounding box of non-zero pixels in any channel is None
-            # If getbbox() returns None, the channel is all black (no differences)
-            channels = diff.split()
-            for channel in channels:
-                if channel.getbbox() is not None:
-                    return False
-
-            return True
+            return np.allclose(diff, 0, atol=1e-5)
 
     except IOError as e:
         print(f"Error opening images: {e}")

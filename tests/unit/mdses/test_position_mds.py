@@ -141,16 +141,22 @@ class TestPositionMDS:
                 ), f"{msg}: {sky_coverage_name_dict[label]} differs from reference file."
 
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
-            assert are_png_files_equal(
+            equal, msg = are_png_files_equal_macos(
                 f"{self.destination_folder}/{delay_name_dict[label]}",
                 f"{self.ref_products_folder}/{delay_name_dict[label]}",
-            ), f"{delay_name_dict[label]} differs from reference file."
+            )
+            assert (
+                equal
+            ), f"{msg}: {delay_name_dict[label]} differs from reference file."
 
             position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
-            assert are_png_files_equal(
+            equal, msg = are_png_files_equal_macos(
                 f"{self.destination_folder}/{ant_pos_name_dict[label]}",
                 f"{self.ref_products_folder}/{ant_pos_name_dict[label]}",
-            ), f"{ant_pos_name_dict[label]} differs from reference file."
+            )
+            assert (
+                equal
+            ), f"{msg}: {ant_pos_name_dict[label]} differs from reference file."
 
         return
 

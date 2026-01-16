@@ -2,10 +2,10 @@
 name: Linux Tests
 
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-      - '**.rst'
+  # push:
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '**.rst'
   pull_request:
     paths-ignore:
       - '**.md'

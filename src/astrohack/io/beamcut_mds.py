@@ -1,24 +1,16 @@
-import xarray as xr
 import pathlib
 
 from typing import List, Union
 
-import toolviper.utils.logger as logger
-
 from toolviper.utils.parameter import validate
+
+from .base_mds import AstrohackBaseFile
 
 from astrohack.core.beamcut import (
     plot_beamcut_in_amplitude_chunk,
     plot_beamcut_in_attenuation_chunk,
     create_report_chunk,
     plot_cuts_in_lm_chunk,
-)
-from astrohack.utils import print_method_list_xdt
-from astrohack.utils.text import (
-    print_summary_header,
-    print_dict_table,
-    print_method_list,
-    print_data_contents,
 )
 from astrohack.visualization.textual_data import (
     generate_observation_summary_for_beamcut,
@@ -27,7 +19,7 @@ from astrohack.utils.graph import compute_graph
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
-class AstrohackBeamcutFile:
+class AstrohackBeamcutFile(AstrohackBaseFile):
     """Data class for beam cut data.
 
     Data within an object of this class can be selected for further inspection, plotted or produce a report
@@ -42,111 +34,14 @@ class AstrohackBeamcutFile:
         :return: AstrohackBeamcutFile object
         :rtype: AstrohackBeamcutFile
         """
-        self.file = file
-        self._file_is_open = False
-        self._input_pars = None
-        self.xdt = None
-
-    def __getitem__(self, key: str) -> xr.DataTree:
-        """
-        get item implementation that gets the xdtree at key.
-
-        :param key: Key for which to fetch a subtree
-        :type key: str
-
-        :return: corresponding subtree
-        :rtype: xr.DataTree
-        """
-        return self.xdt[key]
-
-    def __setitem__(self, key: str, subtree: xr.DataTree) -> None:
-        """
-        Set item implementation that sets the xdtree at key.
-
-        :param key: Key for which to set a subtree
-        :type key: str
-
-        :param subtree: Subtree to attach at key
-        :type subtree: xr.DataTree
-
-        :return: None
-        :rtype: NoneType
-        """
-        self.xdt[key] = subtree
-        return
-
-    @property
-    def is_open(self) -> bool:
-        """
-        Check whether the object has opened the corresponding hack file.
-
-        :return: True if open, else False.
-        :rtype: bool
-        """
-        return self._file_is_open
-
-    def keys(self, *args, **kwargs):
-        """
-        Get children keys
-
-        :param args: args to deliver to dict.keys() method
-        :type args: list
-
-        :param kwargs: Dict of keyword args to deliver to dict.keys() method
-        :type kwargs: dict
-
-        :return: dict keys iterable
-        :rtype: dict_keys
-        """
-        return self.xdt.children.keys(*args, **kwargs)
-
-    def open(self, file: str = None) -> bool:
-        """
-        Open beamcut file.
-
-        :param file: File to be opened, if None defaults to the previously defined file
-        :type file: str, optional
-
-        :return: True if file is properly opened, else returns False
-        :rtype: bool
-        """
-
-        if file is None:
-            file = self.file
-
-        try:
-            # Chunks='auto' means lazy dask loading with automatic choice of chunk size
-            # chunks=None is direct opening.
-            self.xdt = xr.open_datatree(file, engine="zarr", chunks="auto")
-            self._input_pars = self.xdt.attrs
-
-            self._file_is_open = True
-            self.file = file
-
-        except Exception as error:
-            logger.error(f"There was an exception opening the file: {error}")
-            self._file_is_open = False
-
-        return self._file_is_open
-
-    def summary(self) -> None:
-        """
-        Prints summary of the AstrohackBeamcutFile object, with available data, attributes and available methods
-
-        :return: None
-        :rtype: NoneType
-        """
-        print_summary_header(self.file)
-        print_dict_table(self._input_pars)
-        print_data_contents(self, ["Antenna", "DDI", "Cut"])
-        print_method_list_xdt(self)
+        super().__init__(file=file)
 
     @validate(custom_checker=custom_unit_checker)
     def observation_summary(
         self,
         summary_file: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         az_el_key: str = "center",
         phase_center_unit: str = "radec",
         az_el_unit: str = "deg",
@@ -221,7 +116,7 @@ class AstrohackBeamcutFile:
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         y_scale: list[float] = None,
@@ -280,7 +175,7 @@ class AstrohackBeamcutFile:
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         y_scale: str = None,
@@ -339,7 +234,7 @@ class AstrohackBeamcutFile:
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         display: bool = False,
@@ -394,7 +289,7 @@ class AstrohackBeamcutFile:
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         parallel: bool = False,

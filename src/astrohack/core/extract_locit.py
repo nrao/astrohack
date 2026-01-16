@@ -10,8 +10,7 @@ from astropy.time import Time
 
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
-from astrohack.utils.constants import figsize, twopi
-from astrohack.utils.data import write_meta_data
+from astrohack.utils.constants import figsize, twopi, fontsize
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.algorithms import compute_antenna_relative_off
 from astrohack.visualization.plot_tools import (
@@ -20,18 +19,15 @@ from astrohack.visualization.plot_tools import (
     plot_boxes_limits_and_labels,
     scatter_plot,
 )
-from astrohack.visualization.diagnostics import plot_antenna_position
 
 
-def extract_antenna_data(extract_locit_parms):
+def extract_antenna_data(extract_locit_parms, locit_mds):
     """
     Extract antenna information from the ANTENNA sub table of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-    Returns:
-    Antenna dictionary
+        locit_mds: Locit data file object
     """
-
     cal_table = extract_locit_parms["cal_table"]
     ant_table = ctables.table(
         cal_table + "::ANTENNA",
@@ -62,7 +58,6 @@ def extract_antenna_data(extract_locit_parms):
     else:
         ant_list = extract_locit_parms["ant"]
 
-    ant_dict = {}
     error = False
     for i_ant in range(n_ant_orig):
         this_name = ant_nam[i_ant]
@@ -80,25 +75,26 @@ def extract_antenna_data(extract_locit_parms):
             if error:
                 pass
             else:
-                antenna = {
+                ant_key = f"ant_{this_name}"
+                ant_xdtree = xr.DataTree(name=ant_key)
+                ant_info = {
                     "id": i_ant,
                     "name": this_name,
                     "station": ant_sta[i_ant],
-                    "geocentric_position": ant_pos[i_ant],
-                    "longitude": ant_lon[i_ant],
-                    "latitude": ant_lat[i_ant],
-                    "radius": ant_rad[i_ant],
-                    "offset": ant_off[i_ant],
+                    "geocentric_position": ant_pos[i_ant].tolist(),
+                    "longitude": float(ant_lon[i_ant]),
+                    "latitude": float(ant_lat[i_ant]),
+                    "radius": float(ant_rad[i_ant]),
+                    "offset": ant_off[i_ant].tolist(),
                 }
-                ant_dict[i_ant] = antenna
-
+                ant_xdtree.attrs["antenna_info"] = ant_info
+                locit_mds[ant_key] = ant_xdtree
+    locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
         msg = f"Unsupported antenna characteristics"
         logger.error(msg)
         raise Exception(msg)
-
-    extract_locit_parms["ant_dict"] = ant_dict
-    extract_locit_parms["full_antenna_list"] = ant_nam
+    return
 
 
 def extract_spectral_info(extract_locit_parms):
@@ -149,20 +145,17 @@ def extract_spectral_info(extract_locit_parms):
         msg = f"Unsupported DDI characteristics"
         logger.error(msg)
         raise Exception(msg)
-    extract_locit_parms["ddi_dict"] = ddi_dict
+    return ddi_dict
 
 
-def extract_source_and_telescope(extract_locit_parms):
+def extract_source_and_telescope(extract_locit_parms, locit_mds):
     """
     Extract source and telescope  information from the FIELD and OBSERVATION sub tables of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-
-    Returns:
-    Writes dict to a json file
+        locit_mds: Locit data file object
     """
     cal_table = extract_locit_parms["cal_table"]
-    basename = extract_locit_parms["locit_name"]
     src_table = ctables.table(
         cal_table + "::FIELD",
         readonly=True,
@@ -212,39 +205,23 @@ def extract_source_and_telescope(extract_locit_parms):
             "precessed": phase_center_precessed[i_src].tolist(),
         }
 
-    obs_dict = {
-        "src_dict": src_dict,
-        "time_range": time_range.tolist(),
-        "telescope_name": telescope_name,
-    }
-
-    write_meta_data("/".join([basename, ".observation_info"]), obs_dict)
-    extract_locit_parms["telescope_name"] = telescope_name
-    return telescope_name, n_src
+    locit_mds.root.attrs["source_dict"] = src_dict
+    locit_mds.root.attrs["time_range"] = time_range.tolist()
+    locit_mds.root.attrs["telescope_name"] = telescope_name
 
 
-def extract_antenna_phase_gains(extract_locit_parms):
+def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     """
     Extract antenna based phase gains from the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
-
-    Returns:
-    Reference antenna
+        ddi_dict: Dictionary with DDI meta information
+        locit_mds: Locit data file object
     """
 
     cal_table = extract_locit_parms["cal_table"]
-    basename = extract_locit_parms["locit_name"]
 
-    obs_table = ctables.table(
-        cal_table + "::OBSERVATION",
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    telescope_name = obs_table.getcol("TELESCOPE_NAME")[0]
-    obs_table.close()
+    telescope_name = locit_mds.root.attrs["telescope_name"]
 
     main_table = ctables.table(
         cal_table, readonly=True, lockoptions={"option": "usernoread"}, ack=False
@@ -261,6 +238,7 @@ def extract_antenna_phase_gains(extract_locit_parms):
     main_table.close()
     n_gains = len(gains)
 
+    # Ref ant determination and data exclusion based on best refant
     ref_antennas, counts = np.unique(antenna2, return_counts=True)
     n_refant = len(ref_antennas)
     if n_refant > 1:
@@ -306,12 +284,13 @@ def extract_antenna_phase_gains(extract_locit_parms):
         f"Calibration table has {n_pol} polarizations, which is not supported"
     )
 
+    locit_mds.root.attrs["reference_antenna"] = locit_mds.root.attrs[
+        "full_antenna_list"
+    ][ref_antenna]
     used_sources = []
-    extract_locit_parms["reference_antenna"] = extract_locit_parms["full_antenna_list"][
-        ref_antenna
-    ]
     phase_gains = np.angle(gains)
-    for ant_id, antenna in extract_locit_parms["ant_dict"].items():
+    for ant_key, ant_xdtree in locit_mds.items():
+        ant_id = ant_xdtree.attrs["antenna_info"]["id"]
         ant_sel = antenna1 == ant_id
         ant_time = gain_time[ant_sel]
         ant_field = fields[ant_sel]
@@ -319,11 +298,11 @@ def extract_antenna_phase_gains(extract_locit_parms):
         ant_spw_id = spw_id[ant_sel]
         ant_flagged = flagged[ant_sel]
         if ant_id == ref_antenna:
-            antenna["reference"] = True
+            ant_xdtree.attrs["antenna_info"]["reference"] = True
         else:
-            antenna["reference"] = False
+            ant_xdtree.attrs["antenna_info"]["reference"] = False
 
-        for ddi_id, ddi in extract_locit_parms["ddi_dict"].items():
+        for ddi_id, ddi in ddi_dict.items():
             this_ddi_xds = xr.Dataset()
             ddi_sel = ant_spw_id == ddi_id
             ddi_gains = ant_phase_gains[ddi_sel]
@@ -343,18 +322,18 @@ def extract_antenna_phase_gains(extract_locit_parms):
                 )
                 used_sources.extend(ddi_field[ddi_not_flagged[:, 0, i_pol]])
 
-            this_ddi_xds.attrs["frequency"] = ddi["frequency"]
-            this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"]
+            this_ddi_xds.attrs["frequency"] = float(ddi["frequency"])
+            this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"].tolist()
             this_ddi_xds.attrs["polarization_scheme"] = polarization_scheme
-            out_name = "/".join(
-                [basename, "ant_" + antenna["name"], f'ddi_{ddi["id"]}']
+
+            ddi_key = f"ddi_{ddi_id}"
+            ddi_xdtree = xr.DataTree(
+                dataset=this_ddi_xds.assign_coords(coords), name=ddi_key
             )
-            this_ddi_xds = this_ddi_xds.assign_coords(coords)
-            this_ddi_xds.to_zarr(out_name, mode="w", compute=True, consolidated=True)
-        write_meta_data(
-            "/".join([basename, "ant_" + antenna["name"], ".antenna_info"]), antenna
-        )
-    extract_locit_parms["used_sources"] = np.unique(np.array(used_sources))
+            ant_xdtree[ddi_key] = ddi_xdtree
+
+    used_sources = np.unique(np.array(used_sources)).tolist()
+    locit_mds.root.attrs["used_sources"] = used_sources
     return
 
 
@@ -427,15 +406,14 @@ def plot_source_table(
     return
 
 
-def plot_array_configuration(ant_dict, telescope_name, parm_dict):
+def plot_array_configuration(parm_dict, root_tree):
     """backend for plotting array configuration
 
     Args:
-        ant_dict: Dictionary containing antenna information
-        telescope_name: Name of the telescope used in observations
         parm_dict: Parameter dictionary crafted by the calling function
+        root_tree: Root of the Xarray DataTree in the locit_mds
     """
-
+    telescope_name = root_tree.attrs["telescope_name"]
     telescope = get_proper_telescope(telescope_name)
     stations = parm_dict["stations"]
     display = parm_dict["display"]
@@ -455,13 +433,14 @@ def plot_array_configuration(ant_dict, telescope_name, parm_dict):
 
     tel_lon, tel_lat, tel_rad = get_telescope_lat_lon_rad(telescope)
 
-    for antenna in ant_dict.values():
+    for ant_xdtree in root_tree.values():
+        ant_info = ant_xdtree.attrs["antenna_info"]
         ew_off, ns_off, el_off, _ = compute_antenna_relative_off(
-            antenna, tel_lon, tel_lat, tel_rad, len_fac
+            ant_info, tel_lon, tel_lat, tel_rad, len_fac
         )
-        text = f'  {antenna["name"]}'
+        text = f'  {ant_info["name"]}'
         if stations:
-            text += f'@{antenna["station"]}'
+            text += f'@{ant_info["station"]}'
         if plot_zoff:
             text += f" {el_off:.1f} {length_unit}"
         plot_antenna_position(outer_ax, inner_ax, ew_off, ns_off, text, box_size)
@@ -474,6 +453,31 @@ def plot_array_configuration(ant_dict, telescope_name, parm_dict):
         outer_ax, inner_ax, xlabel, ylabel, box_size, "Outer array", "Inner array"
     )
 
-    title = f"{len(ant_dict.keys())} antennas during observation"
+    title = f"{len(root_tree.keys())} antennas during observation"
     close_figure(fig, title, filename, dpi, display)
     return
+
+
+def plot_antenna_position(
+    outerax, innerax, xpos, ypos, text, box_size, marker="+", color="black"
+):
+    """
+    Plot an antenna to either the inner or outer array boxes
+    Args:
+        outerax: Plotting axis for the outer array box
+        innerax: Plotting axis for the inner array box
+        xpos: X antenna position (east-west)
+        ypos: Y antenna position (north-south)
+        text: Antenna label
+        box_size: Size of the inner array box
+        marker: Antenna position marker
+        color: Color for the antenna position marker
+    """
+    half_box = box_size / 2
+    if abs(xpos) > half_box or abs(ypos) > half_box:
+        outerax.plot(xpos, ypos, marker=marker, color=color)
+        outerax.text(xpos, ypos, text, fontsize=fontsize, ha="left", va="center")
+    else:
+        outerax.plot(xpos, ypos, marker=marker, color=color)
+        innerax.plot(xpos, ypos, marker=marker, color=color)
+        innerax.text(xpos, ypos, text, fontsize=fontsize, ha="left", va="center")

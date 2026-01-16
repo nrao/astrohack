@@ -38,6 +38,18 @@ def add_caller_and_version_to_dict(in_dict, direct_call=False):
     )
 
 
+def add_caller_and_version_to_dict_2(in_dict, direct_call=False):
+    if direct_call:
+        ipos = 1
+    else:
+        ipos = 2
+    in_dict["origin_info"] = {
+        "origin": "astrohack",
+        "version": astrohack.__version__,
+        "creator_function": inspect.stack()[ipos].function,
+    }
+
+
 def write_meta_data(file_name, input_dict):
     """
     Creates a metadata dictionary that is compatible with JSON and writes it to a file

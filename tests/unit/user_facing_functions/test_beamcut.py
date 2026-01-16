@@ -1,6 +1,5 @@
 import pathlib
 import numpy as np
-import pytest
 import shutil
 import glob
 
@@ -8,6 +7,7 @@ from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
 from astrohack.utils.file import mds_equality_test
+from astrohack.utils.validation import are_lists_equal
 
 
 def retrieve_data_from_report(report):
@@ -131,14 +131,14 @@ class TestBeamcut:
         full_ddi_list = ["ddi_0", "ddi_1"]
 
         mds_ant_list = list(beamcut_mds.keys())
-        assert (
-            full_ant_list == mds_ant_list
+        assert are_lists_equal(
+            full_ant_list, mds_ant_list
         ), 'With ant="all", mds_ant_list should be equal to full_ant_list'
 
         for ant in full_ant_list:
             ddi_list = list(beamcut_mds[ant].keys())
-            assert (
-                ddi_list == full_ddi_list
+            assert are_lists_equal(
+                ddi_list, full_ddi_list
             ), 'With ddi="all", ddi_list should be equal to full_ddi_list'
 
         beamcut_mds = beamcut(
@@ -153,14 +153,14 @@ class TestBeamcut:
         short_ddi_list = ["ddi_1"]
 
         mds_ant_list = list(beamcut_mds.keys())
-        assert (
-            short_ant_list == mds_ant_list
+        assert are_lists_equal(
+            short_ant_list, mds_ant_list
         ), 'With ant="all", mds_ant_list should be equal to short_ant_list'
 
         for ant in short_ant_list:
             ddi_list = list(beamcut_mds[ant].keys())
-            assert (
-                ddi_list == short_ddi_list
+            assert are_lists_equal(
+                ddi_list, short_ddi_list
             ), 'With ddi="all", ddi_list should be equal to short_ddi_list'
 
     def test_report_configuration(self):
@@ -228,7 +228,7 @@ class TestBeamcut:
         ), f"Report's lm offsets unit should be {exp_lm_unit}, got {rep_lm_unit}"
 
     def test_naming(self):
-        shutil.rmtree(self.remote_beamcut_name)
+        shutil.rmtree(self.remote_beamcut_name, ignore_errors=True)
 
         # has to be run last!
         beamcut(

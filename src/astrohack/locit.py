@@ -3,16 +3,16 @@ import pathlib
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
-from astrohack.utils.graph import compute_graph
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-from astrohack.utils.data import write_meta_data
+from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.file import overwrite_file
 from astrohack.core.locit import (
     locit_separated_chunk,
     locit_combined_chunk,
     locit_difference_chunk,
 )
 from astrohack.utils.text import get_default_file_name
-from astrohack.io.mds import AstrohackLocitFile, AstrohackPositionFile
+from astrohack.io.locit_mds import AstrohackLocitFile
+from astrohack.io.position_mds import AstrohackPositionFile
 
 from typing import Union, List
 
@@ -27,7 +27,7 @@ def locit(
     fit_kterm: bool = False,
     fit_delay_rate: bool = True,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[int]] = "all",
+    ddi: Union[str, int, List[int]] = "all",
     combine_ddis: str = "simple",
     parallel: bool = False,
     overwrite: bool = False,
@@ -146,8 +146,6 @@ def locit(
        difference delays in "myphase.locit.zarr" for all antennas but only using sources above 30 degrees elevation.
     """
 
-    check_if_file_can_be_opened(locit_name, "0.3.0")
-
     # Doing this here allows it to get captured by locals()
     if position_name is None:
         position_name = get_default_file_name(
@@ -167,45 +165,52 @@ def locit(
     locit_mds = AstrohackLocitFile(locit_params["locit_name"])
     locit_mds.open()
 
-    locit_params["antenna_info"] = locit_mds["antenna_info"]
-    locit_params["observation_info"] = locit_mds["observation_info"]
-
-    attributes["telescope_name"] = locit_mds._meta_data["telescope_name"]
-    attributes["reference_antenna"] = locit_mds._meta_data["reference_antenna"]
-
     if combine_ddis == "simple":
         function = locit_combined_chunk
         key_order = ["ant"]
+        combined = True
 
     elif combine_ddis == "difference":
         function = locit_difference_chunk
         key_order = ["ant"]
+        combined = True
 
-    else:
+    elif combine_ddis == "no":
         function = locit_separated_chunk
         key_order = ["ant", "ddi"]
+        combined = False
 
-    if compute_graph(locit_mds, function, locit_params, key_order, parallel=parallel):
-        if pathlib.Path(locit_params["position_name"]).exists():
-            logger.info("Finished processing")
+    else:
+        raise Exception(
+            "This part of the code should be unreacheable when parameter validation is online."
+        )
 
-            output_attr_file = "{name}/{ext}".format(
-                name=locit_params["position_name"], ext=".position_attr"
-            )
-            write_meta_data(output_attr_file, attributes)
+    position_mds = AstrohackPositionFile.create_from_input_parameters(
+        locit_params["position_name"], locit_params
+    )
 
-            output_attr_file = "{name}/{ext}".format(
-                name=locit_params["position_name"], ext=".position_input"
-            )
-            write_meta_data(output_attr_file, input_params)
+    executed_graph = compute_graph_to_mds_tree(
+        locit_mds,
+        function,
+        locit_params,
+        key_order,
+        position_mds,
+        parallel=parallel,
+    )
+    if len(position_mds.keys()) == 0:
+        logger.warning("Processing did not yield any data")
+        executed_graph = False
 
-            position_mds = AstrohackPositionFile(locit_params["position_name"])
-            position_mds.open()
-            return position_mds
-        else:
-            logger.warning("No data to process")
-            return None
-
+    if executed_graph:
+        position_mds.root.attrs.update(
+            {
+                "combined": combined,
+                "telescope_name": locit_mds.root.attrs["telescope_name"],
+                "reference_antenna": locit_mds.root.attrs["reference_antenna"],
+            }
+        )
+        position_mds.write()
+        return position_mds
     else:
         logger.warning("No data to process")
         return None

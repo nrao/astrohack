@@ -1,3 +1,4 @@
+import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -6,10 +7,25 @@ import toolviper.utils.logger as logger
 import astropy.units as units
 import xarray as xr
 
-from astrohack.utils import get_data_name, create_dataset_label
+from astrohack.utils import (
+    get_data_name,
+    create_dataset_label,
+    fixed_format_error,
+    rotate_to_gmt,
+    compute_antenna_relative_off,
+)
+
+from astrohack.core.extract_locit import plot_antenna_position
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
+from astrohack.utils.tools import get_telescope_lat_lon_rad
+from astrohack.visualization import (
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
+    plot_boxes_limits_and_labels,
+)
 
 
 def locit_separated_chunk(locit_parms):
@@ -21,17 +37,18 @@ def locit_separated_chunk(locit_parms):
     Returns:
     xds save to disk in the .zarr format
     """
-    xds_data = locit_parms["xds_data"]
+    input_xdt = locit_parms["xdt_data"]
     field_id, time, delays, freq = _get_data_from_locit_xds(
-        xds_data, locit_parms["polarization"]
+        input_xdt, locit_parms["polarization"]
     )
-
-    if _has_valid_data(
-        field_id, time, delays, locit_parms["this_ant"], ddi=locit_parms["this_ddi"]
-    ):
+    ant_key = locit_parms["this_ant"]
+    ddi_key = locit_parms["this_ddi"]
+    antenna_info = input_xdt.parent.attrs["antenna_info"]
+    source_dict = input_xdt.parent.parent.attrs["source_dict"]
+    if _has_valid_data(field_id, time, delays, ant_key, ddi=ddi_key):
 
         coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms
+            field_id, time, delays, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -43,7 +60,7 @@ def locit_separated_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                _create_output_xds(
+                return _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -54,7 +71,16 @@ def locit_separated_chunk(locit_parms):
                     locit_parms,
                     freq,
                     elevation_limit,
+                    antenna_info,
+                    ant_key,
+                    ddi_key,
                 )
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
 
 
 def locit_combined_chunk(locit_parms):
@@ -66,16 +92,19 @@ def locit_combined_chunk(locit_parms):
     Returns:
     xds save to disk in the .zarr format
     """
-    data = locit_parms["data_dict"]
+    ant_xdt = locit_parms["xdt_data"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+    source_dict = ant_xdt.parent.attrs["source_dict"]
+    ant_key = locit_parms["this_ant"]
 
     delay_list = []
     time_list = []
     field_list = []
     freq_list = []
 
-    for ddi, xds_data in data.items():
+    for ddi, xdt_data in ant_xdt.items():
         this_field_id, this_time, this_delays, freq = _get_data_from_locit_xds(
-            xds_data, locit_parms["polarization"]
+            xdt_data, locit_parms["polarization"]
         )
         freq_list.append(freq)
         field_list.append(this_field_id)
@@ -88,7 +117,7 @@ def locit_combined_chunk(locit_parms):
 
     if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
         coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms
+            field_id, time, delays, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -100,7 +129,7 @@ def locit_combined_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                _create_output_xds(
+                return _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -111,7 +140,15 @@ def locit_combined_chunk(locit_parms):
                     locit_parms,
                     freq_list,
                     elevation_limit,
+                    antenna_info,
+                    ant_key,
                 )
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
 
 
 def locit_difference_chunk(locit_parms):
@@ -124,26 +161,36 @@ def locit_difference_chunk(locit_parms):
     Returns:
     xds save to disk in the .zarr format
     """
-    data = locit_parms["data_dict"]
-    ddi_list = list(data.keys())
+    ant_xdt = locit_parms["xdt_data"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+    source_dict = ant_xdt.parent.attrs["source_dict"]
+    ant_key = locit_parms["this_ant"]
+
+    ddi_list = list(ant_xdt.keys())
     nddis = len(ddi_list)
 
     if nddis != 2:
-        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided."
+        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {ant_key.split('_')[1]}."
         logger.error(msg)
-        return
+        return None
 
     ddi_0 = _get_data_from_locit_xds(
-        data[ddi_list[0]], locit_parms["polarization"], get_phases=True, split_pols=True
+        ant_xdt[ddi_list[0]],
+        locit_parms["polarization"],
+        get_phases=True,
+        split_pols=True,
     )
     ddi_1 = _get_data_from_locit_xds(
-        data[ddi_list[1]], locit_parms["polarization"], get_phases=True, split_pols=True
+        ant_xdt[ddi_list[1]],
+        locit_parms["polarization"],
+        get_phases=True,
+        split_pols=True,
     )
 
     time, field_id, delays, freq = _delays_from_phase_differences(ddi_0, ddi_1)
     if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
         coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms
+            field_id, time, delays, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -155,7 +202,7 @@ def locit_difference_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                _create_output_xds(
+                return _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -166,7 +213,214 @@ def locit_difference_chunk(locit_parms):
                     locit_parms,
                     freq,
                     elevation_limit,
+                    antenna_info,
+                    ant_key,
                 )
+            else:
+                return None
+        else:
+            return None
+    else:
+        return None
+
+
+def plot_sky_coverage_chunk(parm_dict):
+    """
+    Plot the sky coverage for a XDS
+    Args:
+        parm_dict: Parameter dictionary from the caller function enriched with the XDS data
+
+    Returns:
+    PNG file with the sky coverage
+    """
+
+    ant_xdt = parm_dict["xdt_data"]
+    combined = parm_dict["combined"]
+    antenna = parm_dict["this_ant"]
+    destination = parm_dict["destination"]
+
+    if combined:
+        export_name = f"{destination}/position_sky_coverage_{antenna}.png"
+        suptitle = f'Sky coverage for antenna {antenna.split("_")[1]}'
+    else:
+        ddi = parm_dict["this_ddi"]
+        export_name = f"{destination}/position_sky_coverage_{antenna}_{ddi}.png"
+        suptitle = (
+            f'Sky coverage for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
+        )
+
+    figuresize = parm_dict["figure_size"]
+    angle_unit = parm_dict["angle_unit"]
+    time_unit = parm_dict["time_unit"]
+    display = parm_dict["display"]
+    dpi = parm_dict["dpi"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+
+    time = ant_xdt.time.values * convert_unit("day", time_unit, "time")
+    angle_fact = convert_unit("rad", angle_unit, "trigonometric")
+    ha = ant_xdt["HOUR_ANGLE"] * angle_fact
+    dec = ant_xdt["DECLINATION"] * angle_fact
+    ele = ant_xdt["ELEVATION"] * angle_fact
+
+    fig, axes = create_figure_and_axes(figuresize, [2, 2])
+
+    elelim, elelines, declim, declines, halim = _compute_plot_borders(
+        angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
+    )
+    timelabel = f"Time from observation start [{time_unit}]"
+    halabel = f"Hour Angle [{angle_unit}]"
+    declabel = f"Declination [{angle_unit}]"
+    scatter_plot(
+        axes[0, 0],
+        time,
+        timelabel,
+        ele,
+        f"Elevation [{angle_unit}]",
+        "Time vs Elevation",
+        ylim=elelim,
+        hlines=elelines,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[0, 1],
+        time,
+        timelabel,
+        ha,
+        halabel,
+        "Time vs Hour angle",
+        ylim=halim,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[1, 0],
+        time,
+        timelabel,
+        dec,
+        declabel,
+        "Time vs Declination",
+        ylim=declim,
+        hlines=declines,
+        add_legend=False,
+    )
+    scatter_plot(
+        axes[1, 1],
+        ha,
+        halabel,
+        dec,
+        declabel,
+        "Hour angle vs Declination",
+        ylim=declim,
+        xlim=halim,
+        hlines=declines,
+        add_legend=False,
+    )
+
+    close_figure(fig, suptitle, export_name, dpi, display)
+    return
+
+
+def plot_delays_chunk(parm_dict):
+    """
+    Plot the delays and optionally the delay model for a XDS
+    Args:
+        parm_dict: Parameter dictionary from the caller function enriched with the XDS data
+
+    Returns:
+    PNG file with the delay plots
+    """
+    combined = parm_dict["combined"]
+    plot_model = parm_dict["plot_model"]
+    antenna = parm_dict["this_ant"]
+    destination = parm_dict["destination"]
+    if combined:
+        export_name = f'{destination}/position_delays_{antenna}_combined_{parm_dict["comb_type"]}.png'
+        suptitle = f'Delays for antenna {antenna.split("_")[1]}'
+    else:
+        ddi = parm_dict["this_ddi"]
+        export_name = f"{destination}/position_delays_{antenna}_separated_{ddi}.png"
+        suptitle = (
+            f'Delays for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
+        )
+
+    ant_xdt = parm_dict["xdt_data"]
+    figuresize = parm_dict["figure_size"]
+    angle_unit = parm_dict["angle_unit"]
+    time_unit = parm_dict["time_unit"]
+    delay_unit = parm_dict["delay_unit"]
+    display = parm_dict["display"]
+    dpi = parm_dict["dpi"]
+    antenna_info = ant_xdt.attrs["antenna_info"]
+
+    time = ant_xdt.time.values * convert_unit("day", time_unit, "time")
+    angle_fact = convert_unit("rad", angle_unit, "trigonometric")
+    delay_fact = convert_unit("sec", delay_unit, kind="time")
+    ha = ant_xdt["HOUR_ANGLE"] * angle_fact
+    dec = ant_xdt["DECLINATION"] * angle_fact
+    ele = ant_xdt["ELEVATION"] * angle_fact
+    delays = ant_xdt["DELAYS"].values * delay_fact
+
+    elelim, elelines, declim, declines, halim = _compute_plot_borders(
+        angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
+    )
+    delay_minmax = [np.min(delays), np.max(delays)]
+    delay_border = 0.05 * (delay_minmax[1] - delay_minmax[0])
+    delaylim = [delay_minmax[0] - delay_border, delay_minmax[1] + delay_border]
+
+    fig, axes = create_figure_and_axes(figuresize, [2, 2])
+
+    ylabel = f"Delays [{delay_unit}]"
+    if plot_model:
+        model = ant_xdt["MODEL"].values * delay_fact
+    else:
+        model = None
+    scatter_plot(
+        axes[0, 0],
+        time,
+        f"Time from observation start [{time_unit}]",
+        delays,
+        ylabel,
+        "Time vs Delays",
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[0, 1],
+        ele,
+        f"Elevation [{angle_unit}]",
+        delays,
+        ylabel,
+        "Elevation vs Delays",
+        xlim=elelim,
+        vlines=elelines,
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[1, 0],
+        ha,
+        f"Hour Angle [{angle_unit}]",
+        delays,
+        ylabel,
+        "Hour Angle vs Delays",
+        xlim=halim,
+        ylim=delaylim,
+        model=model,
+    )
+    scatter_plot(
+        axes[1, 1],
+        dec,
+        f"Declination [{angle_unit}]",
+        delays,
+        ylabel,
+        "Declination vs Delays",
+        xlim=declim,
+        vlines=declines,
+        ylim=delaylim,
+        model=model,
+    )
+
+    close_figure(fig, suptitle, export_name, dpi, display)
+    return
 
 
 def _delays_from_phase_differences(ddi_0, ddi_1):
@@ -276,7 +530,7 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
     )
     ntimes = out_times.shape[0]
     out_phase = np.ndarray(ntimes)
-    out_field = np.ndarray(ntimes, dtype=np.integer)
+    out_field = np.ndarray(ntimes, dtype=np.int64)
 
     for i_time in range(ntimes):
         i_pos = np.absolute(pos_time - out_times[i_time]).argmin()
@@ -288,6 +542,15 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
 
 
 def _has_valid_data(field_id, time, delays, antenna, ddi=None):
+    """
+    Determine if locit xds has valid data for locit purposes
+    :param field_id: Array of field ids in time.
+    :param time: Time axis.
+    :param delays: Array of delays  in time
+    :param antenna: Antenna key
+    :param ddi: DDI key
+    :return:
+    """
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
@@ -300,6 +563,13 @@ def _has_valid_data(field_id, time, delays, antenna, ddi=None):
 
 
 def _elevation_ok(nin, antenna, ddi=None):
+    """
+    Determine if elevation limit takes out all the data.
+    :param nin: Number of filtered points
+    :param antenna: antenna key
+    :param ddi: ddi key
+    :return: True or False
+    """
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
@@ -398,6 +668,9 @@ def _create_output_xds(
     locit_parms,
     frequency,
     elevation_limit,
+    antenna_info,
+    ant_key,
+    ddi_key=None,
 ):
     """
     Create the output xds from the computed quantities and the fit results
@@ -412,11 +685,10 @@ def _create_output_xds(
         elevation_limit: the elevation cutoff
 
     Returns:
-    The xds on zarr format on disk
+    The xdt to be plugged to root.
     """
     fit_kterm = locit_parms["fit_kterm"]
     fit_rate = locit_parms["fit_delay_rate"]
-    antenna = locit_parms["antenna_info"][locit_parms["this_ant"]]
     error = np.sqrt(variance)
 
     output_xds = xr.Dataset()
@@ -426,7 +698,7 @@ def _create_output_xds(
     output_xds.attrs["position_error"] = error[1:4]
     output_xds.attrs["fixed_delay_fit"] = fit[0]
     output_xds.attrs["fixed_delay_error"] = error[0]
-    output_xds.attrs["antenna_info"] = antenna
+    output_xds.attrs["antenna_info"] = antenna_info
     output_xds.attrs["elevation_limit"] = elevation_limit
     output_xds.attrs["chi_squared"] = chi_squared
 
@@ -452,12 +724,12 @@ def _create_output_xds(
     output_xds["ELEVATION"] = xr.DataArray(coordinates[2, :], dims=["time"])
     output_xds["LST"] = xr.DataArray(lst, dims=["time"])
 
-    basename = locit_parms["position_name"]
-    outname = "/".join([basename, "ant_" + antenna["name"]])
-    if locit_parms["combine_ddis"] == "no":
-        outname += "/" + f'{locit_parms["this_ddi"]}'
-    output_xds = output_xds.assign_coords(coords)
-    output_xds.to_zarr(outname, mode="w", compute=True, consolidated=True)
+    if ddi_key is None:
+        xdt_name = f"{ant_key}"
+    else:
+        xdt_name = f"{ant_key}-{ddi_key}"
+    output_xdt = xr.DataTree(dataset=output_xds.assign_coords(coords), name=xdt_name)
+    return output_xdt
 
 
 def _fit_data(coordinates, delays, locit_parms):
@@ -532,8 +804,11 @@ def _compute_chi_squared(delays, fit, coordinates, fit_kterm, fit_rate):
     return model, chi_squared
 
 
-def _build_filtered_arrays(field_id, time, delays, locit_parms):
-    """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the elevation limit
+def _build_filtered_arrays(
+    field_id, time, delays, locit_parms, antenna_info, source_dict
+):
+    """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the \
+    elevation limit
 
     Args:
         field_id: Array with the observed field per delay
@@ -542,15 +817,13 @@ def _build_filtered_arrays(field_id, time, delays, locit_parms):
         locit_parms: Locit main function parameters
 
     Returns:
-    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the elevation_limit
+    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the \
+    elevation_limit
     """
-    """ Build the coordinate arrays (ha, dec, elevation, angle) for use in the fitting"""
     elevation_limit = locit_parms["elevation_limit"] * convert_unit(
         "deg", "rad", "trigonometric"
     )
-    antenna = locit_parms["antenna_info"][locit_parms["this_ant"]]
-    src_list = locit_parms["observation_info"]["src_dict"]
-    geo_pos = antenna["geocentric_position"]
+    geo_pos = antenna_info["geocentric_position"]
     ant_pos = EarthLocation.from_geocentric(geo_pos[0], geo_pos[1], geo_pos[2], "meter")
     astro_time = Time(time, format="mjd", scale="utc", location=ant_pos)
     lst = astro_time.sidereal_time("apparent").to(units.radian) / units.radian
@@ -560,9 +833,9 @@ def _build_filtered_arrays(field_id, time, delays, locit_parms):
     coordinates = np.ndarray([4, n_samples])
     for i_sample in range(n_samples):
         field = str(field_id[i_sample])
-        coordinates[0:2, i_sample] = src_list[field][key]
+        coordinates[0:2, i_sample] = source_dict[field][key]
         coordinates[2, i_sample] = hadec_to_elevation(
-            src_list[field][key], antenna["latitude"]
+            source_dict[field][key], antenna_info["latitude"]
         )
         coordinates[3, i_sample] = (
             time[i_sample] - time[0]
@@ -838,3 +1111,260 @@ def _delay_model_kterm_rate(coordinates, fixed_delay, xoff, yoff, zoff, koff, ra
     sterm = _rate_coeff(coordinates) * rate
     kterm = _kterm_coeff(coordinates) * koff
     return xterm + yterm + zterm + fixed_delay + kterm + sterm
+
+
+def export_position_xds_to_table_row(
+    row,
+    attributes,
+    del_fact,
+    pha_fact,
+    pos_fact,
+    slo_fact,
+    pos_unit,
+    del_unit,
+    kterm_present,
+    rate_present,
+):
+    """
+    Export the data from a single X array DataSet attributes to a table row (a list)
+    Args:
+        row: row onto which the data results are to be added
+        attributes: The XDS attributes dictionary
+        del_fact: Delay unit scaling factor
+        pos_fact: Position unit scaling factor
+        slo_fact: Delay rate unit scaling factor
+        kterm_present: Is the elevation axis offset term present?
+        rate_present: Is the delay rate term present?
+        pha_fact: phase unit scaling factor
+        pos_unit: Position unit
+        del_unit: Delay unit
+
+    Returns:
+    The filled table row
+    """
+
+    delay_rms = np.sqrt(attributes["chi_squared"])
+    mean_freq = np.nanmean(attributes["frequency"])
+    phase_rms = twopi * mean_freq * delay_rms
+    row.append(f"{delay_rms*del_fact:4.2e}")
+    row.append(f"{phase_rms*pha_fact:5.1f}")
+
+    sig_scale_pos = convert_unit("mm", pos_unit, "length")
+    sig_scale_del = 1e-3 * convert_unit("nsec", del_unit, "time")
+
+    row.append(
+        fixed_format_error(
+            attributes["fixed_delay_fit"],
+            attributes["fixed_delay_error"],
+            del_fact,
+            sig_scale_del,
+        )
+    )
+    position, poserr = rotate_to_gmt(
+        np.copy(attributes["position_fit"]),
+        attributes["position_error"],
+        attributes["antenna_info"]["longitude"],
+    )
+
+    for i_pos in range(3):
+        row.append(
+            fixed_format_error(position[i_pos], poserr[i_pos], pos_fact, sig_scale_pos)
+        )
+    if kterm_present:
+        row.append(
+            fixed_format_error(
+                attributes["koff_fit"],
+                attributes["koff_error"],
+                pos_fact,
+                sig_scale_pos,
+            )
+        )
+    if rate_present:
+        row.append(
+            fixed_format_error(
+                attributes["rate_fit"],
+                attributes["rate_error"],
+                slo_fact,
+                sig_scale_del,
+            )
+        )
+    return row
+
+
+def export_position_xds_to_parminator(attributes, threshold, kterm_present):
+    """
+    Export a position xds attributes to a string ingestible by VLA's parminator
+    :param attributes: xds attributes
+    :param threshold: threshold of valid corrections in meters
+    :param kterm_present: include K term in the parminator output
+    :return: string Formated for parminator output
+    """
+    axes = ["X", "Y", "Z"]
+    delays, _ = rotate_to_gmt(
+        np.copy(attributes["position_fit"]),
+        attributes["position_error"],
+        attributes["antenna_info"]["longitude"],
+    )
+    station = attributes["antenna_info"]["station"]
+
+    outstr = ""
+    for iaxis, delay in enumerate(delays):
+        correction = delay * clight
+        if np.abs(correction) > threshold:
+            outstr += f"{station}, ,{axes[iaxis]},${correction: .4f}\n"
+
+    if kterm_present:
+        correction = attributes["koff_fit"] * clight
+        if np.abs(correction) > threshold:
+            outstr += f"{station}, ,K,${correction: .4f}\n"
+    return outstr
+
+
+def _compute_plot_borders(angle_fact, latitude, elevation_limit):
+    """
+    Compute plot limits and position of lines to be added to the plots
+    Args:
+        angle_fact: Angle scaling unit factor
+        latitude: Antenna latitude
+        elevation_limit: The elevation limit in the data set
+
+    Returns:
+    Elevation limits, elevation lines, declination limits, declination lines and hour angle limits
+    """
+    latitude *= angle_fact
+    elevation_limit *= angle_fact
+    right_angle = pi / 2 * angle_fact
+    border = 0.05 * right_angle
+    elelim = [-border, right_angle + border]
+    border *= 2
+    declim = [-border - right_angle + latitude, right_angle + border]
+    border *= 2
+    halim = [-border, 4 * right_angle + border]
+    elelines = [0, elevation_limit]  # lines at zero and elevation limit
+    declines = [latitude - right_angle, latitude + right_angle]
+    return elelim, elelines, declim, declines, halim
+
+
+def plot_antenna_position_corrections_worker(
+    attributes_list, filename, telescope, ref_ant, parm_dict
+):
+    """
+    Does the actual individual position correction plots
+    Args:
+        attributes_list: List of XDS attributes
+        filename: Name of the PNG file to be created
+        telescope: Telescope object used in observations
+        ref_ant: Reference antenna in the data set
+        parm_dict: Parameter dictionary of the caller's caller
+
+    Returns:
+    PNG file with the position corrections plot
+    """
+    tel_lon, tel_lat, tel_rad = get_telescope_lat_lon_rad(telescope)
+    length_unit = parm_dict["unit"]
+    scaling = parm_dict["scaling"]
+    len_fac = convert_unit("m", length_unit, "length")
+    corr_fac = clight * scaling
+    figure_size = parm_dict["figure_size"]
+    box_size = parm_dict["box_size"]
+    dpi = parm_dict["dpi"]
+    display = parm_dict["display"]
+
+    xlabel = f"East [{length_unit}]"
+    ylabel = f"North [{length_unit}]"
+
+    fig, axes = create_figure_and_axes(figure_size, [2, 2], default_figsize=[8, 8])
+    xy_whole = axes[0, 0]
+    xy_inner = axes[0, 1]
+    z_whole = axes[1, 0]
+    z_inner = axes[1, 1]
+
+    for attributes in attributes_list:
+        antenna = attributes["antenna_info"]
+        ew_off, ns_off, _, _ = compute_antenna_relative_off(
+            antenna, tel_lon, tel_lat, tel_rad, len_fac
+        )
+        corrections, _ = rotate_to_gmt(
+            np.copy(attributes["position_fit"]),
+            attributes["position_error"],
+            antenna["longitude"],
+        )
+        corrections = np.array(corrections) * corr_fac
+        text = "  " + antenna["name"]
+        if antenna["name"] == ref_ant:
+            text += "*"
+        plot_antenna_position(
+            xy_whole, xy_inner, ew_off, ns_off, text, box_size, marker="+"
+        )
+        add_antenna_position_corrections_to_plot(
+            xy_whole, xy_inner, ew_off, ns_off, corrections[0], corrections[1], box_size
+        )
+        plot_antenna_position(
+            z_whole, z_inner, ew_off, ns_off, text, box_size, marker="+"
+        )
+        add_antenna_position_corrections_to_plot(
+            z_whole, z_inner, ew_off, ns_off, 0, corrections[2], box_size
+        )
+
+    plot_boxes_limits_and_labels(
+        xy_whole,
+        xy_inner,
+        xlabel,
+        ylabel,
+        box_size,
+        "X & Y, outer array",
+        "X & Y, inner array",
+    )
+    plot_boxes_limits_and_labels(
+        z_whole, z_inner, xlabel, ylabel, box_size, "Z, outer array", "Z, inner array"
+    )
+    close_figure(fig, "Position corrections", filename, dpi, display)
+
+
+def add_antenna_position_corrections_to_plot(
+    outerax, innerax, xpos, ypos, xcorr, ycorr, box_size, color="red", linewidth=0.5
+):
+    """
+    Plot an antenna position corrections as a vector from the antenna position
+    Args:
+        outerax: Plotting axis for the outer array box
+        innerax: Plotting axis for the inner array box
+        xpos: X antenna position (east-west)
+        ypos: Y antenna position (north-south)
+        xcorr: X axis correction (horizontal on plot)
+        ycorr: Y axis correction (vectical on plot)
+        box_size: inner array box size
+        color: vector color
+        linewidth: vector line width
+    """
+    half_box = box_size / 2
+    head_size = np.sqrt(xcorr**2 + ycorr**2) / 4
+    if abs(xpos) > half_box or abs(ypos) > half_box:
+        outerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )
+    else:
+        outerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )
+        innerax.arrow(
+            xpos,
+            ypos,
+            xcorr,
+            ycorr,
+            color=color,
+            linewidth=linewidth,
+            head_width=head_size,
+        )

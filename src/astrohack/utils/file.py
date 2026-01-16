@@ -57,6 +57,42 @@ def check_if_file_can_be_opened(filename, minimal_version):
         )
 
 
+def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
+    if os.path.exists(filename):
+        pass
+    else:
+        raise FileNotFoundError(f"{filename} cannot be found.")
+
+    try:
+        with open(f"{filename}/.zattrs", "r") as root_attrs_file:
+            file_metadata = json.load(root_attrs_file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"{filename} is not a proper astrohack file")
+    except json.JSONDecodeError:
+        raise ValueError(f"{filename} metadata is not properly formatted")
+
+    try:
+        origin_info = file_metadata["origin_info"]
+    except KeyError:
+        raise ValueError(f"{filename} metadata is missing origin information")
+
+    if origin_info["origin"] != "astrohack":
+        raise ValueError(f"{filename} was not created by astrohack")
+
+    if origin_info["creator_function"] != file_creator:
+        raise ValueError(
+            f'{filename} was created by {origin_info["creator_function"]} but {file_creator} was expected'
+        )
+
+    file_version = origin_info["version"]
+
+    if data_from_version_needs_patch(file_version, minimal_version):
+        raise ValueError(
+            f"{filename} was created by astrohack version {file_version} which has a deprecated file"
+            f" format, please rerun astrohack on this dataset from scratch to access the data in it."
+        )
+
+
 def load_panel_file(file=None, panel_dict=None, dask_load=True):
     """Open panel file.
 
@@ -148,118 +184,6 @@ def load_image_file(file=None, image_dict=None, dask_load=True):
                         ant_data_dict[ant][ddi] = _open_no_dask_zarr(
                             "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
                         )
-
-    return ant_data_dict
-
-
-def load_locit_file(file=None, locit_dict=None, dask_load=True):
-    """Open Antenna position (locit) file.
-
-    Args:
-        dask_load ():
-        locit_dict ():
-        file (str, optional): Path to holography file. Defaults to None.
-
-
-    Returns:
-        bool: bool describing whether the file was opened properly
-    """
-
-    ant_data_dict = {}
-
-    if locit_dict is not None:
-        ant_data_dict = locit_dict
-
-    ant_list = [dir_name for dir_name in os.listdir(file) if os.path.isdir(file)]
-
-    ant_data_dict["observation_info"] = read_meta_data(f"{file}/.observation_info")
-    ant_data_dict["antenna_info"] = {}
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    for ant in ant_list:
-        if "ant" in ant:
-            ddi_list = [
-                dir_name
-                for dir_name in os.listdir(file + "/" + str(ant))
-                if os.path.isdir(file + "/" + str(ant))
-            ]
-
-            ant_data_dict[ant] = {}
-            ant_data_dict["antenna_info"][ant] = read_meta_data(
-                f"{file}/{ant}/.antenna_info"
-            )
-
-            for ddi in ddi_list:
-                if "ddi" in ddi:
-                    if dask_load:
-                        ant_data_dict[ant][ddi] = xr.open_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-                    else:
-                        ant_data_dict[ant][ddi] = _open_no_dask_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-
-    return ant_data_dict
-
-
-def load_position_file(file=None, position_dict=None, dask_load=True, combine=False):
-    """Open position file.
-
-    Args:
-        combine ():
-        dask_load ():
-        position_dict ():
-        file (str, optional): Path to holography file. Defaults to None.
-
-
-    Returns:
-        bool: bool describing whether the file was opened properly
-    """
-
-    ant_data_dict = {}
-
-    if position_dict is not None:
-        ant_data_dict = position_dict
-
-    ant_list = [dir_name for dir_name in os.listdir(file) if os.path.isdir(file)]
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    if combine:
-        for ant in ant_list:
-            if "ant" in ant:
-                if dask_load:
-                    ant_data_dict[ant] = xr.open_zarr(f"{file}/{ant}")
-                else:
-                    ant_data_dict[ant] = _open_no_dask_zarr(f"{file}/{ant}")
-    else:
-        for ant in ant_list:
-            if "ant" in ant:
-                ddi_list = [
-                    dir_name
-                    for dir_name in os.listdir(file + "/" + str(ant))
-                    if os.path.isdir(file + "/" + str(ant))
-                ]
-                ant_data_dict[ant] = {}
-                for ddi in ddi_list:
-                    if "ddi" in ddi:
-                        if dask_load:
-                            ant_data_dict[ant][ddi] = xr.open_zarr(
-                                "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                            )
-
-                        else:
-                            ant_data_dict[ant][ddi] = _open_no_dask_zarr(
-                                "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                            )
 
     return ant_data_dict
 
@@ -554,7 +478,7 @@ def _get_ds_metadata(ds):
     elif isinstance(ds, xr.Dataset) or isinstance(ds, xr.DataTree):
         metadata = getattr(ds, "attrs")
     else:
-        metadata = ds.xdt.attrs
+        metadata = ds.root.attrs
     return metadata
 
 

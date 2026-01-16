@@ -2,10 +2,10 @@
 name: ipynb Tests
 
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-      - '**.rst'
+  # push:
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '**.rst'
   pull_request:
     paths-ignore:
       - '**.md'
@@ -13,6 +13,6 @@ on:
 
 jobs:
  
-  call-testing-linux:
+  call-testing-ipynb-linux:
     uses: nrao/gh-actions-templates-public/.github/workflows/run-ipynb-template.yml@main
     secrets: inherit

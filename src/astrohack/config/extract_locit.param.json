@@ -2,7 +2,8 @@
     "extract_locit":{
         "locit_name":{
             "type":["str"],
-            "required": true
+            "required": true,
+            "nullable": true
         },
         "cal_table":{
             "type":["str"],

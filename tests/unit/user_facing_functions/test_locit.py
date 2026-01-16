@@ -7,6 +7,7 @@ import numpy as np
 
 from astrohack.locit import locit
 from astrohack.extract_locit import extract_locit
+from astrohack.utils.validation import are_lists_equal
 
 
 def relative_difference(result, expected):
@@ -188,15 +189,16 @@ class TestLocit:
             overwrite=True,
         )
 
+        ref_list = [
+            "DECLINATION",
+            "DELAYS",
+            "ELEVATION",
+            "HOUR_ANGLE",
+            "LST",
+            "MODEL",
+        ]
         for key in position_mds.keys():
-            assert list(position_mds[key].keys()) == [
-                "DECLINATION",
-                "DELAYS",
-                "ELEVATION",
-                "HOUR_ANGLE",
-                "LST",
-                "MODEL",
-            ]
+            assert are_lists_equal(list(position_mds[key].keys()), ref_list)
 
     def test_locit_overwrite(self):
         """

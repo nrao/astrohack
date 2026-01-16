@@ -12,6 +12,8 @@ from .extract_holog import (
 
 from .beamcut import beamcut
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.locit_mds import AstrohackLocitFile
+from astrohack.io.position_mds import AstrohackPositionFile
 
 from .extract_pointing import extract_pointing
 from .holog import holog
@@ -31,8 +33,6 @@ from astrohack.io.mds import (
     AstrohackPointFile,
     AstrohackImageFile,
     AstrohackPanelFile,
-    AstrohackLocitFile,
-    AstrohackPositionFile,
 )
 from .locit import locit
 from .extract_locit import extract_locit

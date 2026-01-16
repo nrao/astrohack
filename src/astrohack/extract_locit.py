@@ -5,14 +5,14 @@ import toolviper.utils.logger as logger
 from typing import Union, List
 
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.data import write_meta_data
-from astrohack.core.extract_locit import extract_antenna_data, extract_spectral_info
 from astrohack.core.extract_locit import (
+    extract_antenna_data,
+    extract_spectral_info,
     extract_source_and_telescope,
     extract_antenna_phase_gains,
 )
 from astrohack.utils.text import get_default_file_name
-from astrohack.io.mds import AstrohackLocitFile
+from astrohack.io.locit_mds import AstrohackLocitFile
 
 
 @toolviper.utils.parameter.validate()
@@ -20,7 +20,7 @@ def extract_locit(
     cal_table: str,
     locit_name: str = None,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[int]] = "all",
+    ddi: Union[str, int, List[int]] = "all",
     overwrite: bool = False,
 ):
     """
@@ -95,28 +95,15 @@ def extract_locit(
         extract_locit_params["locit_name"], extract_locit_params["overwrite"]
     )
 
-    extract_antenna_data(extract_locit_params)
-    extract_spectral_info(extract_locit_params)
-    extract_antenna_phase_gains(extract_locit_params)
-    telescope_name, n_sources = extract_source_and_telescope(extract_locit_params)
+    ddi_dict = extract_spectral_info(extract_locit_params)
 
-    attributes["telescope_name"] = telescope_name
-    attributes["n_sources"] = n_sources
-    attributes["reference_antenna"] = extract_locit_params["reference_antenna"]
-    attributes["n_antennas"] = len(extract_locit_params["ant_dict"])
-
-    output_attr_file = "{name}/{ext}".format(
-        name=extract_locit_params["locit_name"], ext=".locit_input"
+    locit_mds = AstrohackLocitFile.create_from_input_parameters(
+        extract_locit_params["locit_name"], extract_locit_params
     )
-    write_meta_data(output_attr_file, input_params)
+    extract_antenna_data(extract_locit_params, locit_mds)
+    extract_source_and_telescope(extract_locit_params, locit_mds)
 
-    output_attr_file = "{name}/{ext}".format(
-        name=extract_locit_params["locit_name"], ext=".locit_attr"
-    )
-    write_meta_data(output_attr_file, attributes)
+    extract_antenna_phase_gains(extract_locit_params, ddi_dict, locit_mds)
 
-    logger.info(f"Finished processing")
-    locit_mds = AstrohackLocitFile(extract_locit_params["locit_name"])
-    locit_mds.open()
-
+    locit_mds.write()
     return locit_mds

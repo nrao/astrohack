@@ -81,12 +81,10 @@ class TestExtractLocit:
         )
 
         # There should only be 1 antenna in the dict named ea17
-        assert len(locit_mds.keys()) == 3
+        assert len(locit_mds.keys()) == 1
 
         # Check that only the specific antenna is in the keys.
         assert list(locit_mds.keys()) == [
-            "observation_info",
-            "antenna_info",
             "ant_ea17",
         ]
 

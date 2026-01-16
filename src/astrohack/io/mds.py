@@ -6,7 +6,6 @@ import toolviper.utils.logger as logger
 
 from toolviper.utils.console import Colorize
 
-from astrohack.utils import create_pretty_table
 from astrohack.utils.validation import custom_plots_checker
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.validation import custom_split_checker
@@ -18,9 +17,6 @@ from astrohack.visualization.diagnostics import (
     plot_zernike_model_chunk,
 )
 from astrohack.visualization.diagnostics import plot_lm_coverage
-from astrohack.visualization.diagnostics import plot_sky_coverage_chunk
-from astrohack.visualization.diagnostics import plot_delays_chunk
-from astrohack.visualization.diagnostics import plot_position_corrections
 from astrohack.visualization.diagnostics import plot_antenna_chunk
 from astrohack.visualization.diagnostics import plot_aperture_chunk
 from astrohack.visualization.diagnostics import plot_beam_chunk
@@ -29,18 +25,13 @@ from astrohack.utils.file import load_panel_file
 from astrohack.utils.file import load_image_file
 from astrohack.utils.file import load_holog_file
 from astrohack.utils.file import load_point_file
-from astrohack.utils.file import load_locit_file
-from astrohack.utils.file import load_position_file
 
 from astrohack.utils.data import read_meta_data
 from astrohack.utils.data import export_to_aips
 from astrohack.visualization.textual_data import (
-    export_locit_fit_results,
     export_screws_chunk,
     export_gains_table_chunk,
     export_phase_fit_chunk,
-    print_array_configuration,
-    export_to_parminator,
     export_zernike_fit_chunk,
     generate_observation_summary,
 )
@@ -49,17 +40,12 @@ from astrohack.visualization.fits import (
     export_to_fits_holog_chunk,
 )
 
-from astrohack.core.extract_locit import plot_source_table
-from astrohack.core.extract_locit import plot_array_configuration
-
 from astrohack.antenna.antenna_surface import AntennaSurface
 
 from astrohack.utils.text import print_method_list
 from astrohack.utils.text import print_dict_table
 from astrohack.utils.text import print_data_contents
 from astrohack.utils.text import print_summary_header
-from astrohack.utils.text import rad_to_deg_str
-from astrohack.utils.text import rad_to_hour_str
 
 from typing import Any, List, Union, Tuple
 
@@ -239,7 +225,7 @@ class AstrohackImageFile(dict):
         destination: str,
         complex_split: str = "cartesian",
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         parallel: bool = False,
     ) -> None:
         """Export contents of an AstrohackImageFile object to several FITS files in the destination folder
@@ -287,7 +273,7 @@ class AstrohackImageFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         polarization_state: Union[str, List[str]] = "I",
         plot_screws: bool = False,
         amplitude_limits: Union[List[float], Tuple, np.array] = None,
@@ -354,7 +340,7 @@ class AstrohackImageFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         complex_split: str = "polar",
         angle_unit: str = "deg",
         phase_unit: str = "deg",
@@ -406,7 +392,7 @@ class AstrohackImageFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         angle_unit: str = "deg",
         length_unit: str = "mm",
         parallel: bool = False,
@@ -442,7 +428,7 @@ class AstrohackImageFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         parallel: bool = False,
     ) -> None:
         """Export Zernike coefficients from the data in an AstrohackImageFIle object to ASCII files.
@@ -477,7 +463,7 @@ class AstrohackImageFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         display: bool = False,
         colormap: str = "viridis",
         figure_size: Union[Tuple, List[float], np.array] = (16, 9),
@@ -524,7 +510,7 @@ class AstrohackImageFile(dict):
         self,
         summary_file: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         az_el_key: str = "center",
         phase_center_unit: str = "radec",
         az_el_unit: str = "deg",
@@ -692,7 +678,7 @@ class AstrohackHologFile(dict):
         destination: str,
         delta: float = 0.01,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         map_id: Union[int, List[int]] = "all",
         complex_split: str = "polar",
         display: bool = False,
@@ -748,7 +734,7 @@ class AstrohackHologFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         map_id: Union[int, List[int]] = "all",
         angle_unit: str = "deg",
         time_unit: str = "hour",
@@ -820,7 +806,7 @@ class AstrohackHologFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         map_id: Union[int, List[int]] = "all",
         parallel: bool = False,
     ) -> None:
@@ -856,7 +842,7 @@ class AstrohackHologFile(dict):
         self,
         summary_file: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         map_id: Union[int, List[int]] = "all",
         az_el_key: str = "center",
         phase_center_unit: str = "radec",
@@ -1017,7 +1003,7 @@ class AstrohackPanelFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         unit: str = "mm",
         threshold: float = None,
         panel_labels: bool = True,
@@ -1068,7 +1054,7 @@ class AstrohackPanelFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         plot_type: str = "deviation",
         plot_screws: bool = False,
         amplitude_limits: Union[Tuple, List[float], np.array] = None,
@@ -1164,7 +1150,7 @@ class AstrohackPanelFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         parallel: bool = False,
     ) -> None:
         """Export contents of an Astrohack MDS file to several FITS files in the destination folder
@@ -1205,7 +1191,7 @@ class AstrohackPanelFile(dict):
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         wavelengths: Union[float, List[float]] = None,
         wavelength_unit: str = "cm",
         frequencies: Union[float, List[float]] = None,
@@ -1270,7 +1256,7 @@ class AstrohackPanelFile(dict):
         self,
         summary_file: str,
         ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
         az_el_key: str = "center",
         phase_center_unit: str = "radec",
         az_el_unit: str = "deg",
@@ -1397,615 +1383,3 @@ class AstrohackPointFile(dict):
         print_dict_table(self._input_pars)
         print_data_contents(self, ["Antenna"])
         print_method_list([self.summary])
-
-
-class AstrohackLocitFile(dict):
-    """Data Class for extracted gains for antenna location determination"""
-
-    def __init__(self, file: str):
-        """Initialize an AstrohackLocitFile object.
-
-        :param file: File to be linked to this object
-        :type file: str
-
-        :return: AstrohackLocitFile object
-        :rtype: AstrohackLocitFile
-        """
-        super().__init__()
-
-        self.file = file
-        self._input_pars = None
-        self._meta_data = None
-        self._file_is_open = False
-
-    def __getitem__(self, key: str):
-        return super().__getitem__(key)
-
-    def __setitem__(self, key: str, value: Any):
-        return super().__setitem__(key, value)
-
-    @property
-    def is_open(self) -> bool:
-        """Check whether the object has opened the corresponding hack file.
-
-        :return: True if open, else False.
-        :rtype: bool
-        """
-        return self._file_is_open
-
-    def open(self, file: str = None, dask_load: bool = True) -> bool:
-        """Open antenna location file.
-        :param file: File to be opened, if None defaults to the previously defined file
-        :type file: str, optional
-
-        :param dask_load: Is file to be loaded with dask?, default is True
-        :type dask_load: bool, optional
-
-        :return: True if file is properly opened, else returns False
-        :rtype: bool
-        """
-
-        if file is None:
-            file = self.file
-
-        try:
-            load_locit_file(file=file, dask_load=dask_load, locit_dict=self)
-            self._input_pars = read_meta_data(file + "/.locit_input")
-            self._meta_data = read_meta_data(file + "/.locit_attr")
-            self._file_is_open = True
-
-        except Exception as error:
-            logger.error(f"There was an exception opening the file: {error}")
-            self._file_is_open = False
-
-        return self._file_is_open
-
-    def print_source_table(self) -> None:
-        """Prints a table with the sources observed for antenna location determination"""
-        print("\nSources:")
-        field_names = [
-            "Id",
-            "Name",
-            "RA FK5",
-            "DEC FK5",
-            "RA precessed",
-            "DEC precessed",
-        ]
-        table = create_pretty_table(field_names, "l")
-        for source in self["observation_info"]["src_dict"].values():
-            table.add_row(
-                [
-                    source["id"],
-                    source["name"],
-                    rad_to_hour_str(source["fk5"][0]),
-                    rad_to_deg_str(source["fk5"][1]),
-                    rad_to_hour_str(source["precessed"][0]),
-                    rad_to_deg_str(source["precessed"][1]),
-                ]
-            )
-        print(table)
-
-    @toolviper.utils.parameter.validate()
-    def print_array_configuration(self, relative: bool = True) -> None:
-        """Prints a table containing the array configuration
-
-        :param relative: Print antenna coordinates relative to array center or in geocentric coordinates, default is True
-        :type relative: bool, optional
-
-        .. _Description:
-
-        Print arrayx configuration in the dataset. Also marks the reference antenna and the antennas that are
-        absent from the dataset. Coordinates of antenna stations can be relative to the array center or Geocentric
-        (longitude, latitude and radius)
-
-        """
-        param_dict = locals()
-        print_array_configuration(
-            param_dict, self["antenna_info"], self["observation_info"]["telescope_name"]
-        )
-
-    @toolviper.utils.parameter.validate()
-    def plot_source_positions(
-        self,
-        destination: str,
-        labels: bool = False,
-        precessed: bool = False,
-        display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
-        dpi: int = 300,
-    ) -> None:
-        """Plot source positions in either FK5 or precessed right ascension and declination.
-
-        :param destination: Name of the destination folder to contain plot
-        :type destination: str
-
-        :param labels: Add source labels to the plot, defaults to False
-        :type labels: bool, optional
-
-        :param precessed: Plot in precessed coordinates? defaults to False (FK5)
-        :type precessed: bool, optional
-
-        :param display: Display plots inline or suppress, defaults to True
-        :type display: bool, optional
-
-        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-        :type figure_size: numpy.ndarray, list, tuple, optional
-
-        :param dpi: dots per inch to be used in plots, default is 300
-        :type dpi: int, optional
-
-        .. _Description:
-
-        Plot the sources on the source list to a full 24 hours 180 degrees flat 2D representation of the full sky.
-        If precessed is set to True the coordinates precessd to the midpoint of the observations is plotted, otherwise
-        the FK5 coordinates are plotted.
-        The source names can be plotted next to their positions if label is True, however plots may become too crowded
-        if that is the case.
-
-        """
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-
-        if precessed:
-            filename = str(
-                pathlib.Path(destination).joinpath("locit_source_table_precessed.png")
-            )
-            time_range = self["observation_info"]["time_range"]
-            obs_midpoint = (time_range[1] + time_range[0]) / 2.0
-
-        else:
-            filename = str(
-                pathlib.Path(destination).joinpath("locit_source_table_fk5.png")
-            )
-            obs_midpoint = None
-
-        plot_source_table(
-            filename,
-            self["observation_info"]["src_dict"],
-            precessed=precessed,
-            obs_midpoint=obs_midpoint,
-            display=display,
-            figure_size=figure_size,
-            dpi=dpi,
-            label=labels,
-        )
-
-        return
-
-    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    def plot_array_configuration(
-        self,
-        destination: str,
-        stations: bool = True,
-        zoff: bool = False,
-        unit: str = "m",
-        box_size: Union[int, float] = 5000,
-        display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
-        dpi: int = 300,
-    ) -> None:
-        """Plot antenna positions.
-
-        :param destination: Name of the destination folder to contain plot
-        :type destination: str
-
-        :param stations: Add station names to the plot, defaults to True
-        :type stations: bool, optional
-
-        :param zoff: Add Elevation offsets to the plots, defaults to False
-        :type zoff: bool, optional
-
-        :param unit: Unit for the plot, valid values are length units, default is km
-        :type unit: str, optional
-
-        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
-        :type box_size: int, float, optional
-
-        :param display: Display plots inline or suppress, defaults to True
-        :type display: bool, optional
-
-        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-        :type figure_size: numpy.ndarray, list, tuple, optional
-
-        :param dpi: dots per inch to be used in plots, default is 300
-        :type dpi: int, optional
-
-        .. _Description:
-
-
-        """
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        plot_array_configuration(
-            self["antenna_info"], self["observation_info"]["telescope_name"], param_dict
-        )
-        return
-
-    def summary(self) -> None:
-        """Prints summary of the AstrohackLocitFile object, with available data, attributes and available methods"""
-        print_summary_header(self.file)
-        print_dict_table(self._input_pars)
-        print_data_contents(self, ["Antenna", "Contents"])
-        print_method_list(
-            [
-                self.summary,
-                self.print_source_table,
-                self.print_array_configuration,
-                self.plot_source_positions,
-                self.plot_array_configuration,
-            ]
-        )
-
-
-class AstrohackPositionFile(dict):
-    """Data Class for extracted antenna location determination"""
-
-    def __init__(self, file: str):
-        """Initialize an AstrohackPositionFile object.
-        :param file: File to be linked to this object
-        :type file: str
-
-        :return: AstrohackPositionFile object
-        :rtype: AstrohackPositionFile
-        """
-        super().__init__()
-
-        self.combined = None
-        self.file = file
-        self._meta_data = None
-        self._input_pars = None
-        self._file_is_open = False
-
-    def __getitem__(self, key: str):
-        return super().__getitem__(key)
-
-    def __setitem__(self, key: str, value: Any):
-        return super().__setitem__(key, value)
-
-    @property
-    def is_open(self) -> bool:
-        """Check whether the object has opened the corresponding hack file.
-
-        :return: True if open, else False.
-        :rtype: bool
-        """
-        return self._file_is_open
-
-    def open(self, file: str = None, dask_load: bool = True) -> bool:
-        """Open antenna location file.
-        :param file: File to be opened, if None defaults to the previously defined file
-        :type file: str, optional
-
-        :param dask_load: Is file to be loaded with dask?, default is True
-        :type dask_load: bool, optional
-
-        :return: True if file is properly opened, else returns False
-        :rtype: bool
-        """
-
-        if file is None:
-            file = self.file
-
-        self._meta_data = read_meta_data(file + "/.position_attr")
-        self.combined = self._meta_data["combine_ddis"] != "no"
-        self._input_pars = read_meta_data(file + "/.position_input")
-
-        try:
-            load_position_file(
-                file=file,
-                dask_load=dask_load,
-                position_dict=self,
-                combine=self.combined,
-            )
-            self._meta_data = read_meta_data(file + "/.position_attr")
-            self.combined = self._meta_data["combine_ddis"] != "no"
-            self._input_pars = read_meta_data(file + "/.position_input")
-
-            self._file_is_open = True
-
-        except Exception as error:
-            logger.error(f"There was an exception opening the file: {error}")
-            self._file_is_open = False
-
-        return self._file_is_open
-
-    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    def export_locit_fit_results(
-        self,
-        destination: str,
-        ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
-        position_unit: str = "m",
-        time_unit: str = "hour",
-        delay_unit: str = "nsec",
-        phase_unit: str = "deg",
-    ) -> None:
-        """Export antenna position fit results to a text file.
-
-        :param destination: Name of the destination folder to contain exported fit results
-        :type destination: str
-
-        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-        :type ant: list or str, optional
-
-        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-        :type ddi: list or int, optional
-
-        :param position_unit: Unit to list position fit results, defaults to 'm'
-        :type position_unit: str, optional
-
-        :param time_unit: Unit for time in position fit results, defaults to 'hour'
-        :type time_unit: str, optional
-
-        :param delay_unit: Unit for delays, defaults to 'nsec'
-        :type delay_unit: str, optional
-
-        :param phase_unit: Unit for phasess, defaults to 'deg'
-        :type phase_unit: str, optional
-
-        .. _Description:
-
-        Produce a text file with the fit results from astrohack.locit for better determination of antenna locations.
-        """
-
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        param_dict["combined"] = self.combined
-        export_locit_fit_results(self, param_dict)
-
-    @toolviper.utils.parameter.validate()
-    def export_results_to_parminator(
-        self,
-        filename: str,
-        ant: Union[str, List[str]] = "all",
-        ddi: int = None,
-        correction_threshold: float = 0.01,
-    ) -> None:
-        """Export antenna position fit results to a VLA parminator file.
-
-        :param filename: Name of the parminator file to be created
-        :type filename: str
-
-        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-        :type ant: list or str, optional
-
-        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-        :type ddi: list or int, optional
-
-        :param correction_threshold: Correction threshold in meters to include an antenna position correction in output.
-        :type correction_threshold: float, optional
-
-        .. _Description:
-
-        Produce a VLA parminator compatible text file with the fit results from astrohack.locit.
-        """
-        param_dict = locals()
-        param_dict["combined"] = self.combined
-        if not self.combined:
-            if not isinstance(ddi, int):
-                msg = "If position file contains multiple DDIs one must be specified."
-                logger.error(msg)
-                raise Exception(msg)
-        export_to_parminator(self, param_dict)
-
-    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    def plot_sky_coverage(
-        self,
-        destination: str,
-        ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
-        time_unit: str = "hour",
-        angle_unit: str = "deg",
-        display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
-        dpi: int = 300,
-        parallel: bool = False,
-    ) -> None:
-        """Plot the sky coverage of the data used for antenna position fitting
-
-        :param destination: Name of the destination folder to contain the plots
-        :type destination: str
-
-        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-        :type ant: list or str, optional
-
-        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-        :type ddi: list or int, optional
-
-        :param angle_unit: Unit for angle in plots, defaults to 'deg'
-        :type angle_unit: str, optional
-
-        :param time_unit: Unit for time in plots, defaults to 'hour'
-        :type time_unit: str, optional
-
-        :param display: Display plots inline or suppress, defaults to True
-        :type display: bool, optional
-
-        :param figure_size: 2 element array/list/tuple with the plot size in inches
-        :type figure_size: numpy.ndarray, list, tuple, optional
-
-        :param dpi: plot resolution in pixels per inch, default is 300
-        :type dpi: int, optional
-
-        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-        :type parallel: bool, optional
-
-        .. _Description:
-
-        This method produces 4 plots for each selected antenna and DDI. These plots are:
-        1) Time vs Elevation
-        2) Time vs Hour Angle
-        3) Time vs Declination
-        4) Hour Angle vs Declination
-
-        These plots are intended to display the coverage of the sky of the fitted data
-
-        """
-
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        param_dict["combined"] = self.combined
-        if self.combined:
-            compute_graph(
-                self, plot_sky_coverage_chunk, param_dict, ["ant"], parallel=parallel
-            )
-        else:
-            compute_graph(
-                self,
-                plot_sky_coverage_chunk,
-                param_dict,
-                ["ant", "ddi"],
-                parallel=parallel,
-            )
-
-    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    def plot_delays(
-        self,
-        destination: str,
-        ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
-        time_unit: str = "hour",
-        angle_unit: str = "deg",
-        delay_unit: str = "nsec",
-        plot_model: bool = True,
-        display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
-        dpi: int = 300,
-        parallel: bool = False,
-    ) -> None:
-        """Plot the delays used for antenna position fitting and optionally the resulting fit.
-
-        :param destination: Name of the destination folder to contain the plots
-        :type destination: str
-
-        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-        :type ant: list or str, optional
-
-        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-        :type ddi: list or int, optional
-
-        :param angle_unit: Unit for angle in plots, defaults to 'deg'
-        :type angle_unit: str, optional
-
-        :param time_unit: Unit for time in plots, defaults to 'hour'
-        :type time_unit: str, optional
-
-        :param delay_unit: Unit for delay in plots, defaults to 'nsec'
-        :type delay_unit: str, optional
-
-        :param plot_model: Plot the fitted model results alongside the data.
-        :type plot_model: bool, optional
-
-        :param display: Display plots inline or suppress, defaults to True
-        :type display: bool, optional
-
-        :param figure_size: 2 element array/list/tuple with the plot size in inches
-        :type figure_size: numpy.ndarray, list, tuple, optional
-
-        :param dpi: plot resolution in pixels per inch, default is 300
-        :type dpi: int, optional
-
-        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-        :type parallel: bool, optional
-
-        .. _Description:
-
-        This method produces 4 plots for each selected antenna and DDI. These plots are:
-        1) Time vs Delays
-        2) Elevation vs Delays
-        3) Hour Angle vs Delays
-        4) Declination vs Delays
-
-        These plots are intended to display the gain variation with the 4 relevant parameters for the fitting and also
-        asses the quality of the position fit.
-
-        """
-
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-
-        param_dict["combined"] = self.combined
-        param_dict["comb_type"] = self._meta_data["combine_ddis"]
-        if self.combined:
-            compute_graph(
-                self, plot_delays_chunk, param_dict, ["ant"], parallel=parallel
-            )
-        else:
-            compute_graph(
-                self, plot_delays_chunk, param_dict, ["ant", "ddi"], parallel=parallel
-            )
-
-    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    def plot_position_corrections(
-        self,
-        destination: str,
-        ant: Union[str, List[str]] = "all",
-        ddi: Union[int, List[int]] = "all",
-        unit: str = "km",
-        box_size: Union[int, float] = 5,
-        scaling: Union[int, float] = 250,
-        figure_size: Union[Tuple, List[float], np.array] = None,
-        display: bool = True,
-        dpi: int = 300,
-    ) -> None:
-        """Plot Antenna position corrections on an array configuration plot
-
-        :param destination: Name of the destination folder to contain plot
-        :type destination: str
-
-        :param ant: Select which antennas are to be plotted, defaults to all when None, ex. ea25
-        :type ant: list or str, optional
-
-        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-        :type ddi: list or int, optional
-
-        :param unit: Unit for the plot, valid values are length units, default is km
-        :type unit: str, optional
-
-        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
-        :type box_size: int, float, optional
-
-        :param scaling: scaling factor to plotting the corrections, default is 250
-        :type scaling: int, float, optional
-
-        :param display: Display plots inline or suppress, defaults to True
-        :type display: bool, optional
-
-        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-        :type figure_size: numpy.ndarray, list, tuple, optional
-
-        :param dpi: dots per inch to be used in plots, default is 300
-        :type dpi: int, optional
-
-        .. _Description:
-
-        Plot the position corrections computed by locit on top of an array configuration plot.
-        The corrections are too small to be visualized on the array plot since they are of the order of mm and the array
-        is usually spread over km, or at least hundreds of meters.
-        The scaling factor is used to bring the corrections to a scale discernible on the plot, this plot should not be
-        used to estimate correction values, for that purpose use export_locit_fit_results instead.
-
-        """
-
-        param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        param_dict["combined"] = self.combined
-        plot_position_corrections(param_dict, self)
-
-    def summary(self) -> None:
-        """Prints summary of the AstrohackPositionFile object, with available data, attributes and available methods"""
-        print_summary_header(self.file)
-        print_dict_table(self._input_pars)
-        if self.combined:
-            print_data_contents(self, ["Antenna"])
-        else:
-            print_data_contents(self, ["Antenna", "Contents"])
-        print_method_list(
-            [
-                self.summary,
-                self.export_locit_fit_results,
-                self.plot_sky_coverage,
-                self.plot_delays,
-                self.plot_position_corrections,
-            ]
-        )

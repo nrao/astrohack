@@ -2,15 +2,15 @@
 name: MacOS Tests
 
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-      - '**.rst'
+  # push:
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '**.rst'
   pull_request:
     paths-ignore:
       - '**.md'
       - '**.rst'
 
 jobs:
-  call-testing-linux:
+  call-testing-macos:
     uses: nrao/gh-actions-templates-public/.github/workflows/python-testing-macos-template.yml@main

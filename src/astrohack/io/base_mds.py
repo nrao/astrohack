@@ -141,11 +141,11 @@ class AstrohackBaseFile:
 
         return self._file_is_open
 
-    def write(self):
+    def write(self, mode="w"):
         """
         Write mds to disk by saving the data tree to a file
         """
-        self.root.to_zarr(self.file, mode="w", consolidated=True)
+        self.root.to_zarr(self.file, mode=mode, consolidated=True)
 
     def summary(self) -> None:
         """
@@ -179,3 +179,42 @@ class AstrohackBaseFile:
         add_caller_and_version_to_dict_2(data_obj.root.attrs, direct_call=False)
         data_obj.root.attrs["input_parameters"] = input_parameters
         return data_obj
+
+    def add_node_to_tree(self, new_node, dump_to_disk=True):
+        assert isinstance(new_node, xr.DataTree)
+        lvls = new_node.name.split("-")
+        n_lvls = len(lvls)
+        if n_lvls == 1:
+            lvl_0 = lvls[0]
+            self.root.update({lvl_0: new_node})
+        elif n_lvls == 2:
+            lvl_0, lvl_1 = lvls
+            if lvl_0 in self.keys():
+                self[lvl_0].update({lvl_1: new_node})
+            else:
+                self[lvl_0] = xr.DataTree(name=lvl_0, children={lvl_1: new_node})
+        elif n_lvls == 3:
+            lvl_0, lvl_1, lvl_2 = lvls
+            if lvl_0 in self.keys():
+                if lvl_1 in self[lvl_0].keys():
+                    self[lvl_0][lvl_1].update({lvl_2: new_node})
+                else:
+                    self[lvl_0][lvl_1] = xr.DataTree(
+                        name=lvl_1, children={lvl_2: new_node}
+                    )
+            else:
+                self[lvl_0] = xr.DataTree(
+                    name=lvl_0,
+                    children={
+                        lvl_1: xr.DataTree(name=lvl_1, children={lvl_2: new_node})
+                    },
+                )
+        else:
+            raise NotImplementedError("Cannot handle a case of more than three levels")
+
+        if dump_to_disk:
+            self.write(mode="a")
+            del self.root
+            self.open()
+
+        return

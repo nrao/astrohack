@@ -1,33 +1,35 @@
 import os
 
-import dask
 import numpy as np
-import toolviper.utils.logger as logger
 import xarray as xr
-import copy
 
-from astrohack.utils.conversion import convert_dict_from_numba
-from astrohack.utils.file import load_point_file
-from astrohack.utils.tools import get_valid_state_ids
 from casacore import tables as ctables
 from numba import njit
 from numba.core import types
 from numba.typed import Dict
 from scipy import spatial
 
+import toolviper.utils.logger as logger
 
-def process_extract_pointing(ms_name, pnt_name, exclude, parallel=True):
+from astrohack.utils.conversion import convert_dict_from_numba
+from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.tools import get_valid_state_ids
+from astrohack.io.point_mds import AstrohackPointFile
+
+
+def process_extract_pointing(input_params):
     """Top level function to extract subset of pointing table data into a dictionary of xarray data arrays.
 
     Args:
-        exclude ():
-        ms_name (str): Measurement file name.
-        pnt_name (str): Output pointing dictionary file name.
-        parallel (bool, optional): Process in parallel. Defaults to True.
+        input_params(dict): extract_pointing parameters
 
     Returns:
-        dict: pointing dictionary of xarray data arrays
+        AstrohackPointFile: point mds file
     """
+
+    ms_name = input_params["ms_name"]
+    pnt_name = input_params["point_name"]
+    exclude = input_params["exclude"]
 
     # Get antenna names and ids
     ctb = ctables.table(
@@ -85,50 +87,51 @@ def process_extract_pointing(ms_name, pnt_name, exclude, parallel=True):
         time, scan_ids, state_ids, ddi, mapping_state_ids
     )
 
-    point_meta_ds = xr.Dataset()
-    point_meta_ds.attrs["mapping_state_ids"] = mapping_state_ids
-    point_meta_ds.to_zarr(pnt_name, mode="w", compute=True, consolidated=True)
+    # Create mds file here
+    point_mds = AstrohackPointFile.create_from_input_parameters(pnt_name, input_params)
+    point_mds.root.attrs["mapping_state_ids"] = mapping_state_ids
 
     ###########################################################################################
-    pnt_params = {"pnt_name": pnt_name, "scan_time_dict": scan_time_dict}
+    pnt_params = {
+        "ms_name": ms_name,
+        "pnt_name": pnt_name,
+        "scan_time_dict": scan_time_dict,
+        "ant": "all",
+    }
 
-    if parallel:
-        delayed_pnt_list = []
-        for i_ant in range(len(antenna_id)):
-            this_pars = copy.deepcopy(pnt_params)
-            this_pars["ant_id"] = antenna_id[i_ant]
-            this_pars["ant_name"] = antenna_name[i_ant]
+    looping_dict = {}
+    for i_ant, ant_name in enumerate(antenna_name):
+        looping_dict[f"ant_{ant_name}"] = {"id": antenna_id[i_ant], "name": ant_name}
 
-            delayed_pnt_list.append(
-                dask.delayed(_make_ant_pnt_chunk)(ms_name, this_pars)
-            )
-
-        dask.compute(delayed_pnt_list)
-
+    executed_graph = compute_graph_to_mds_tree(
+        looping_dict,
+        _make_ant_pnt_chunk,
+        pnt_params,
+        ["ant"],
+        point_mds,
+    )
+    if executed_graph:
+        point_mds.write()
+        return point_mds
     else:
-        for i_ant in range(len(antenna_id)):
-            pnt_params["ant_id"] = antenna_id[i_ant]
-            pnt_params["ant_name"] = antenna_name[i_ant]
-
-            _make_ant_pnt_chunk(ms_name, pnt_params)
-
-    return load_point_file(pnt_name, diagnostic=True)
+        logger.warning("No data to process")
+        return None
 
 
-def _make_ant_pnt_chunk(ms_name, pnt_params):
+def _make_ant_pnt_chunk(pnt_params):
     """Extract subset of pointing table data into a dictionary of xarray data arrays. This is written to disk as a
     zarr file. This function processes a chunk the overall data and is managed by Dask.
 
     Args:
-        ms_name (str): Measurement file name.
-        ant_id (int): Antenna id
-        pnt_name (str): Name of output pointing dictionary file name.
+        pnt_params(dict): extract_pointing parameters
     """
-
-    ant_id = pnt_params["ant_id"]
-    ant_name = pnt_params["ant_name"]
-    pnt_name = pnt_params["pnt_name"]
+    data_dict = pnt_params["data_dict"]
+    ms_name = pnt_params["ms_name"]
     scan_time_dict = pnt_params["scan_time_dict"]
+
+    ant_id = data_dict["id"]
+    ant_name = data_dict["name"]
+    ant_key = pnt_params["this_ant"]
 
     table_obj = ctables.table(
         os.path.join(ms_name, "POINTING"),
@@ -142,7 +145,7 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
         % ant_id
     )
 
-    # NB: Add check if directions reference frame is Azemuth Elevation (AZELGEO)
+    # NB: Add check if directions reference frame is Azimuth Elevation (AZELGEO)
     try:
         direction = tb.getcol("DIRECTION")[:, 0, :]
         target = tb.getcol("TARGET")[:, 0, :]
@@ -150,7 +153,7 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
         direction_time = tb.getcol("TIME")
         pointing_offset = tb.getcol("POINTING_OFFSET")[:, 0, :]
 
-    except Exception:
+    except RuntimeError:
         tb.close()
         logger.warning("Skipping antenna " + str(ant_id) + " no pointing info")
 
@@ -188,13 +191,13 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
 
     # ## NB: Is VLA's definition of Azimuth the same for ALMA, MeerKAT, etc.? (positive for a clockwise rotation from
     # north, viewed from above) ## NB: Compare with calculation using WCS in astropy.
-    l = np.cos(target[:, 1]) * np.sin(target[:, 0] - direction[:, 0])
-    m = np.sin(target[:, 1]) * np.cos(direction[:, 1]) - np.cos(target[:, 1]) * np.sin(
-        direction[:, 1]
-    ) * np.cos(target[:, 0] - direction[:, 0])
+    l_points = np.cos(target[:, 1]) * np.sin(target[:, 0] - direction[:, 0])
+    m_points = np.sin(target[:, 1]) * np.cos(direction[:, 1]) - np.cos(
+        target[:, 1]
+    ) * np.sin(direction[:, 1]) * np.cos(target[:, 0] - direction[:, 0])
 
     pnt_xds["DIRECTIONAL_COSINES"] = xr.DataArray(
-        np.array([l, m]).T, dims=("time", "lm")
+        np.array([l_points, m_points]).T, dims=("time", "lm")
     )
 
     """
@@ -247,14 +250,14 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
                 time=slice(time_index[0], time_index[1])
             )
 
-            r = (
+            avg_lm_dist = (
                 np.sqrt(
                     pointing_offset_scan_slice.isel(az_el=0) ** 2
                     + pointing_offset_scan_slice.isel(az_el=1) ** 2
                 )
             ).mean()
 
-            if r > 10**-12:  # Antenna is mapping since lm is non-zero
+            if avg_lm_dist > 10**-12:  # Antenna is mapping since lm is non-zero
                 if ("map_" + str(map_id)) in map_scans_dict:
                     map_scans_dict["map_" + str(map_id)].append(scan_id)
 
@@ -269,20 +272,9 @@ def _make_ant_pnt_chunk(ms_name, pnt_params):
     pnt_xds.attrs["mapping_scans_obs_dict"] = [mapping_scans_obs_dict]
     ###############
 
-    pnt_xds.attrs["ant_name"] = pnt_params["ant_name"]
+    pnt_xds.attrs["ant_name"] = ant_name
 
-    logger.debug(
-        "Writing pointing xds to {file}".format(
-            file=os.path.join(pnt_name, "ant_" + str(ant_name))
-        )
-    )
-
-    pnt_xds.to_zarr(
-        os.path.join(pnt_name, "ant_{}".format(str(ant_name))),
-        mode="w",
-        compute=True,
-        consolidated=True,
-    )
+    return xr.DataTree(dataset=pnt_xds, name=ant_key)
 
 
 def _extract_scan_time_dict(time, scan_ids, state_ids, ddi_ids, mapping_state_ids):
@@ -322,40 +314,40 @@ def _extract_scan_time_dict_jit(time, scan_ids, state_ids, ddi_ids, mapping_stat
     mapping_state_ids.
 
     """
-    d1 = Dict.empty(
+    dict_template = Dict.empty(
         key_type=types.int64,
         value_type=np.zeros(2, dtype=types.float64),
     )
 
     scan_time_dict = Dict.empty(
         key_type=types.int64,
-        value_type=d1,
+        value_type=dict_template,
     )
 
     mapping_scans = set()
 
-    for i, s in enumerate(scan_ids):
-        s = types.int64(s)
-        t = time[i]
-        ddi = ddi_ids[i]
+    for i_scan, scan_num in enumerate(scan_ids):
+        scan_num = types.int64(scan_num)
+        time_val = time[i_scan]
+        ddi = ddi_ids[i_scan]
 
-        state_id = state_ids[i]
+        state_id = state_ids[i_scan]
 
         if state_id in mapping_state_ids:
-            mapping_scans.add(s)
+            mapping_scans.add(scan_num)
             if ddi in scan_time_dict:
-                if s in scan_time_dict[ddi]:
-                    if scan_time_dict[ddi][s][0] > t:
-                        scan_time_dict[ddi][s][0] = t
+                if scan_num in scan_time_dict[ddi]:
+                    if scan_time_dict[ddi][scan_num][0] > time_val:
+                        scan_time_dict[ddi][scan_num][0] = time_val
 
-                    if scan_time_dict[ddi][s][1] < t:
-                        scan_time_dict[ddi][s][1] = t
+                    if scan_time_dict[ddi][scan_num][1] < time_val:
+                        scan_time_dict[ddi][scan_num][1] = time_val
 
                 else:
-                    scan_time_dict[ddi][s] = np.array([t, t])
+                    scan_time_dict[ddi][scan_num] = np.array([time_val, time_val])
 
             else:
-                scan_time_dict[ddi] = {s: np.array([t, t])}
+                scan_time_dict[ddi] = {scan_num: np.array([time_val, time_val])}
 
     return scan_time_dict
 

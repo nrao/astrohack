@@ -185,7 +185,12 @@ class AstrohackBaseFile:
         data_obj.root.attrs["input_parameters"] = input_parameters
         return data_obj
 
-    def add_node_to_tree(self, new_node, dump_to_disk=True):
+    def _dump_to_disk(self):
+        self.write(mode="a")
+        del self.root
+        self.open()
+
+    def add_node_to_tree(self, new_node, dump_to_disk=True, running_in_parallel=False):
         """
         Add a node to root at a position determined by new_node's name
 
@@ -230,10 +235,11 @@ class AstrohackBaseFile:
             raise NotImplementedError("Cannot handle a case of more than three levels")
 
         if dump_to_disk:
-            lock = Lock("Root dump lock")
-            lock.acquire(timeout=1)
-            self.write(mode="a")
-            del self.root
-            self.open()
-            lock.release()
+            if running_in_parallel:
+                lock = Lock("Root dump lock")
+                lock.acquire(timeout=1)
+                self._dump_to_disk()
+                lock.release()
+            else:
+                self._dump_to_disk()
         return

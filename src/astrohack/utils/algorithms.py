@@ -5,6 +5,9 @@ import scipy.constants
 import xarray as xr
 from numba import njit
 
+import pandas as pd
+from scipy.spatial import distance_matrix
+
 import toolviper.utils.logger as logger
 
 from astrohack.utils.text import format_angular_distance, create_dataset_label
@@ -611,3 +614,19 @@ def regrid_data_onto_2d_grid(x_axis, y_axis, linear_array, grid_idx):
     gridded = np.full(grid_shape, np.nan)
     gridded[grid_idx[:, 0], grid_idx[:, 1]] = linear_array[:]
     return gridded
+
+
+def compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names):
+    """
+    Compute a matrix of antenna position distances from antenna positions
+    :param ant_pos: antenna position array
+    :param ant_names: antenna names array
+    :return: dict with antenna distance matrix
+    """
+    pos_df = pd.DataFrame(ant_pos, columns=["x", "y", "z"], index=ant_names)
+    dist_mat_df = pd.DataFrame(
+        distance_matrix(pos_df.values, pos_df.values),
+        index=pos_df.index,
+        columns=pos_df.index,
+    )
+    return dist_mat_df.to_dict(orient="index")

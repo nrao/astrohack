@@ -88,7 +88,10 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
                     "offset": ant_off[i_ant].tolist(),
                 }
                 ant_xdtree.attrs["antenna_info"] = ant_info
-                locit_mds[ant_key] = ant_xdtree
+                locit_mds.add_node_to_tree(
+                    ant_xdtree, dump_to_disk=True, running_in_parallel=False
+                )
+
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
         msg = f"Unsupported antenna characteristics"

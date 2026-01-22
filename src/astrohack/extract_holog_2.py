@@ -20,18 +20,12 @@ from rich.console import Console
 from rich.table import Table
 
 from astrohack import open_pointing
+from astrohack.utils import compute_antenna_baseline_distance_matrix_dict
 
 from astrohack.utils.file import (
     overwrite_file,
-    check_if_file_can_be_opened,
-    check_if_file_can_be_opened_2,
 )
-from astrohack.utils.file import load_holog_file
-from astrohack.utils.file import load_point_file
-from astrohack.utils.data import write_meta_data
 from astrohack.core.extract_holog_2 import (
-    create_holog_obs_dict,
-    create_holog_json,
     extract_holog_processing,
 )
 from astrohack.core.extract_holog_2 import process_extract_holog_chunk
@@ -406,26 +400,23 @@ def generate_holog_obs_dict(
     pnt_mds = AstrohackPointFile(extract_holog_params["point_name"])
     pnt_mds.open()
 
-    holog_obs_dict = create_holog_obs_dict(
-        pnt_mds,
-        extract_holog_params["baseline_average_distance"],
-        extract_holog_params["baseline_average_nearest"],
-        ant_names,
-        ant_pos,
-        ant_names_main,
-        write_distance_matrix=True,
+    dist_matrix_dict = compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names)
+
+    holog_obs_dict = HologObsDict.create_from_ms_info(
+        pnt_mds=pnt_mds,
+        exclude_antennas=extract_holog_params["exclude_antennas"],
+        baseline_average_distance=extract_holog_params["baseline_average_distance"],
+        baseline_average_nearest=extract_holog_params["baseline_average_nearest"],
+        dist_matrix_dict=dist_matrix_dict,
+        ant_names_main=ant_names_main,
     )
 
-    encoded_obj = json.dumps(holog_obs_dict, cls=NumpyEncoder)
-
-    if write:
-        with open("holog_obs_dict.json", "w") as outfile:
-            outfile.write(encoded_obj)
-
-    return HologObsDict(json.loads(encoded_obj))
+    return holog_obs_dict
 
 
-def get_number_of_parameters(holog_obs_dict: HologObsDict) -> Tuple[int, int, int, int]:
+def get_number_of_parameters(
+    holog_obs_dict: HologObsDict,
+) -> Tuple[int, int, int, int]:
     scan_list = []
     ant_list = []
     baseline_list = []

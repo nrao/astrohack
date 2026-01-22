@@ -209,7 +209,7 @@ def locit(
                 "reference_antenna": locit_mds.root.attrs["reference_antenna"],
             }
         )
-        position_mds.write()
+        position_mds.write(mode="a")
         return position_mds
     else:
         logger.warning("No data to process")

@@ -1,4 +1,3 @@
-import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -28,11 +27,12 @@ from astrohack.visualization import (
 )
 
 
-def locit_separated_chunk(locit_parms):
+def locit_separated_chunk(locit_parms, output_mds):
     """
     This is the chunk function for locit when treating each DDI separately
     Args:
         locit_parms: the locit parameter dictionary
+        output_mds: Output mds file onto which to add results
 
     Returns:
     xds save to disk in the .zarr format
@@ -60,7 +60,7 @@ def locit_separated_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                return _create_output_xds(
+                new_node = _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -75,19 +75,19 @@ def locit_separated_chunk(locit_parms):
                     ant_key,
                     ddi_key,
                 )
-            else:
-                return None
-        else:
-            return None
-    else:
-        return None
+                output_mds.add_node_to_tree(
+                    new_node,
+                    dump_to_disk=False,
+                    running_in_parallel=locit_parms["parallel"],
+                )
 
 
-def locit_combined_chunk(locit_parms):
+def locit_combined_chunk(locit_parms, output_mds):
     """
     This is the chunk function for locit when we are combining the DDIs for an antenna for a single solution
     Args:
         locit_parms: the locit parameter dictionary
+        output_mds: Output mds file onto which to add results
 
     Returns:
     xds save to disk in the .zarr format
@@ -129,7 +129,7 @@ def locit_combined_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                return _create_output_xds(
+                new_node = _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -143,20 +143,20 @@ def locit_combined_chunk(locit_parms):
                     antenna_info,
                     ant_key,
                 )
-            else:
-                return None
-        else:
-            return None
-    else:
-        return None
+                output_mds.add_node_to_tree(
+                    new_node,
+                    dump_to_disk=True,
+                    running_in_parallel=locit_parms["parallel"],
+                )
 
 
-def locit_difference_chunk(locit_parms):
+def locit_difference_chunk(locit_parms, output_mds):
     """
     This is the chunk function for locit when we are combining two DDIs for an antenna for a single solution by using
     the difference in phase between the two DDIs of different frequencies
     Args:
         locit_parms: the locit parameter dictionary
+        output_mds: Output mds file onto which to add results
 
     Returns:
     xds save to disk in the .zarr format
@@ -202,7 +202,7 @@ def locit_difference_chunk(locit_parms):
                     locit_parms["fit_kterm"],
                     locit_parms["fit_delay_rate"],
                 )
-                return _create_output_xds(
+                new_node = _create_output_xds(
                     coordinates,
                     lst,
                     delays,
@@ -216,12 +216,11 @@ def locit_difference_chunk(locit_parms):
                     antenna_info,
                     ant_key,
                 )
-            else:
-                return None
-        else:
-            return None
-    else:
-        return None
+                output_mds.add_node_to_tree(
+                    new_node,
+                    dump_to_disk=True,
+                    running_in_parallel=locit_parms["parallel"],
+                )
 
 
 def plot_sky_coverage_chunk(parm_dict):
@@ -691,6 +690,8 @@ def _create_output_xds(
     fit_rate = locit_parms["fit_delay_rate"]
     error = np.sqrt(variance)
 
+    # print(delays)
+
     output_xds = xr.Dataset()
     output_xds.attrs["polarization"] = locit_parms["polarization"]
     output_xds.attrs["frequency"] = frequency
@@ -724,11 +725,14 @@ def _create_output_xds(
     output_xds["ELEVATION"] = xr.DataArray(coordinates[2, :], dims=["time"])
     output_xds["LST"] = xr.DataArray(lst, dims=["time"])
 
+    # print(output_xds["DELAYS"].values)
+
     if ddi_key is None:
         xdt_name = f"{ant_key}"
     else:
         xdt_name = f"{ant_key}-{ddi_key}"
     output_xdt = xr.DataTree(dataset=output_xds.assign_coords(coords), name=xdt_name)
+    print(output_xds["DELAYS"].values)
     return output_xdt
 
 

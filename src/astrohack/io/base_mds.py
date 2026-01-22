@@ -1,5 +1,7 @@
 import xarray as xr
 
+from dask.distributed import Lock
+
 import toolviper.utils.logger as logger
 
 from astrohack.utils import (
@@ -228,8 +230,10 @@ class AstrohackBaseFile:
             raise NotImplementedError("Cannot handle a case of more than three levels")
 
         if dump_to_disk:
+            lock = Lock("Root dump lock")
+            lock.acquire(timeout=1)
             self.write(mode="a")
             del self.root
             self.open()
-
+            lock.release()
         return

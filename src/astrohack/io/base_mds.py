@@ -144,6 +144,9 @@ class AstrohackBaseFile:
     def write(self, mode="w"):
         """
         Write mds to disk by saving the data tree to a file
+
+        :param mode: File mode
+        :type mode: str
         """
         self.root.to_zarr(self.file, mode=mode, consolidated=True)
 
@@ -181,6 +184,18 @@ class AstrohackBaseFile:
         return data_obj
 
     def add_node_to_tree(self, new_node, dump_to_disk=True):
+        """
+        Add a node to root at a position determined by new_node's name
+
+        :param new_node: Node to be included in root
+        :type new_node: xarray.DataTree
+
+        :param dump_to_disk: Dump root to disk to freeup RAM
+        :type dump_to_disk: bool
+
+        :return: None
+        :rtype: NoneType
+        """
         assert isinstance(new_node, xr.DataTree)
         lvls = new_node.name.split("-")
         n_lvls = len(lvls)

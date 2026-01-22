@@ -13,15 +13,20 @@ def _construct_xdtree_graph_recursively(
     param_dict,
     delayed_list,
     key_order,
+    output_mds=None,
     parallel=False,
     oneup=None,
 ):
     if len(key_order) == 0:
         param_dict["xdt_data"] = xr_datatree
-        if parallel:
-            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(param_dict)))
+        if output_mds is None:
+            args = [param_dict]
         else:
-            delayed_list.append((chunk_function, param_dict))
+            args = [param_dict, output_mds]
+        if parallel:
+            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(args)))
+        else:
+            delayed_list.append((chunk_function, args))
     else:
         key_base = key_order[0]
         exec_list = param_to_list(param_dict[key_base], xr_datatree, key_base)
@@ -40,6 +45,7 @@ def _construct_xdtree_graph_recursively(
                     delayed_list=delayed_list,
                     key_order=key_order[1:],
                     parallel=parallel,
+                    output_mds=output_mds,
                     oneup=item,
                 )
 
@@ -56,6 +62,7 @@ def _construct_general_graph_recursively(
     param_dict,
     delayed_list,
     key_order,
+    output_mds=None,
     parallel=False,
     oneup=None,
 ):
@@ -66,11 +73,14 @@ def _construct_general_graph_recursively(
         elif isinstance(looping_dict, dict):
             param_dict["data_dict"] = looping_dict
 
-        if parallel:
-            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(param_dict)))
-
+        if output_mds is None:
+            args = [param_dict]
         else:
-            delayed_list.append((chunk_function, param_dict))
+            args = [param_dict, output_mds]
+        if parallel:
+            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(args)))
+        else:
+            delayed_list.append((chunk_function, args))
     else:
         key = key_order[0]
 
@@ -89,6 +99,7 @@ def _construct_general_graph_recursively(
                     param_dict=this_param_dict,
                     delayed_list=delayed_list,
                     key_order=key_order[1:],
+                    output_mds=output_mds,
                     parallel=parallel,
                     oneup=item,
                 )
@@ -107,6 +118,7 @@ def compute_graph_to_mds_tree(
     key_order,
     output_mds,
     parallel=False,
+    fetch_returns=False,
 ):
     delayed_list = []
     if hasattr(looping_dict, "root"):
@@ -116,6 +128,7 @@ def compute_graph_to_mds_tree(
             param_dict=param_dict,
             delayed_list=delayed_list,
             key_order=key_order,
+            output_mds=output_mds,
             parallel=parallel,
         )
     else:
@@ -125,40 +138,27 @@ def compute_graph_to_mds_tree(
             param_dict=param_dict,
             delayed_list=delayed_list,
             key_order=key_order,
+            output_mds=output_mds,
             parallel=parallel,
         )
 
     if len(delayed_list) == 0:
         logger.warning(f"List of delayed processing jobs is empty: No data to process")
 
-        return False
+        return False, None
 
     else:
         if parallel:
             return_list = dask.compute(delayed_list)[0]
         else:
             return_list = []
-            for pair in delayed_list:
-                return_list.append(pair[0](pair[1]))
+            for function, args in delayed_list:
+                return_list.append(function(*args))
 
-        for xdtree in return_list:
-            if xdtree is None:
-                # This if deals with the case that the calling routine did not produce output (e.g. locit)
-                continue
-            lvls = xdtree.name.split("-")
-            n_lvls = len(lvls)
-            if n_lvls == 1:
-                lvl_0 = lvls[0]
-                output_mds.root.update({lvl_0: xdtree})
-            elif n_lvls == 2:
-                lvl_0, lvl_1 = lvls
-                if lvl_0 in output_mds.keys():
-                    output_mds[lvl_0].update({lvl_1: xdtree})
-                else:
-                    output_mds[lvl_0] = xr.DataTree(
-                        name=lvl_0, children={lvl_1: xdtree}
-                    )
-        return True
+        if fetch_returns:
+            return True, return_list
+        else:
+            return True
 
 
 def compute_graph(
@@ -213,8 +213,8 @@ def compute_graph(
             return_list = dask.compute(delayed_list)[0]
         else:
             return_list = []
-            for pair in delayed_list:
-                return_list.append(pair[0](pair[1]))
+            for function, args in delayed_list:
+                return_list.append(function(*args))
 
         if fetch_returns:
             return True, return_list

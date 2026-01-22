@@ -10,6 +10,7 @@ from astrohack.utils import (
     get_property_string,
     get_data_content_string,
     get_method_list_string,
+    lnbr,
 )
 
 
@@ -243,3 +244,13 @@ class AstrohackBaseFile:
             else:
                 self._dump_to_disk()
         return
+
+    def __repr__(self):
+        """
+        Simple printing function to glance at the datatree inside
+        :return: Print contents
+        """
+        outstr = f"<{type(self).__name__}>{lnbr}"
+        outstr += f"File on disk: {self.file}{lnbr}"
+        outstr += f"Data tree: {lnbr}{self.root.__repr__()}"
+        return outstr

@@ -29,12 +29,15 @@ quack_chans = 4
 ###########################################################
 ### Working Chunks
 ###########################################################
-def process_beamcut_chunk(beamcut_chunk_params):
+def process_beamcut_chunk(beamcut_chunk_params, output_mds):
     """
     Ingests a holog_xds containing beamcuts and produces a beamcut_xdtree containing the cuts separated in xdses.
 
     :param beamcut_chunk_params: Parameter dictionary with inputs
     :type beamcut_chunk_params: dict
+
+    :param output_mds: Output mds file
+    :type output_mds: AstrohackBeamcutFile
 
     :return: Beamcut_xdtree containing the different cuts for this antenna and DDI.
     :rtype: xr.DataTree
@@ -67,7 +70,11 @@ def process_beamcut_chunk(beamcut_chunk_params):
         create_report_chunk(beamcut_chunk_params, cut_xdtree)
         logger.info(f"Completed plots for {datalabel}")
 
-    return cut_xdtree
+    output_mds.add_node_to_tree(
+        cut_xdtree,
+        dump_to_disk=True,
+        running_in_parallel=beamcut_chunk_params["parallel"],
+    )
 
 
 def plot_beamcut_in_amplitude_chunk(par_dict, cut_xdtree=None):

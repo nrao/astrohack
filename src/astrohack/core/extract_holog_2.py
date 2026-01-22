@@ -1,5 +1,7 @@
 import os
 import json
+import dask
+import copy
 
 import numpy as np
 import xarray as xr
@@ -11,6 +13,7 @@ from numba.core import types
 
 from casacore import tables as ctables
 
+from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
 from astrohack.utils import create_dataset_label
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
@@ -18,8 +21,270 @@ from astrohack.utils.algorithms import calculate_optimal_grid_parameters
 from astrohack.utils.conversion import casa_time_to_mjd
 from astrohack.utils.constants import twopi, clight
 from astrohack.utils.gridding import grid_1d_data
+from astrohack.utils.constants import pol_str
+
 
 from astrohack.utils.file import load_point_file
+
+
+def extract_holog_processing(extract_holog_params, pnt_mds):
+    holog_obs_dict = extract_holog_params["holog_obs_dict"]
+    parallel = extract_holog_params["parallel"]
+
+    # Get spectral windows
+    ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "DATA_DESCRIPTION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    ddi_spw = ctb.getcol("SPECTRAL_WINDOW_ID")
+    ddpol_indexol = ctb.getcol("POLARIZATION_ID")
+    ms_ddi = np.arange(len(ddi_spw))
+    ctb.close()
+
+    # Get antenna IDs and names
+    ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "ANTENNA"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    ant_names = np.array(ctb.getcol("NAME"))
+    ant_id = np.arange(len(ant_names))
+    ant_pos = ctb.getcol("POSITION")
+    ant_station = ctb.getcol("STATION")
+
+    ctb.close()
+
+    # Get antenna IDs in the main table
+    ctb = ctables.table(
+        extract_holog_params["ms_name"],
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    ant1 = np.unique(ctb.getcol("ANTENNA1"))
+    ant2 = np.unique(ctb.getcol("ANTENNA2"))
+    ant_id_main = np.unique(np.append(ant1, ant2))
+
+    ant_names_main = ant_names[ant_id_main]
+    ctb.close()
+
+    # Create holog_obs_dict or modify user supplied holog_obs_dict.
+    ddi = extract_holog_params["ddi"]
+    if isinstance(ddi, int):
+        ddi = [ddi]
+
+    # Create holog_obs_dict if not specified
+    if holog_obs_dict is None:
+        holog_obs_dict = create_holog_obs_dict(
+            pnt_mds,
+            extract_holog_params["baseline_average_distance"],
+            extract_holog_params["baseline_average_nearest"],
+            ant_names,
+            ant_pos,
+            ant_names_main,
+            exclude_antennas=extract_holog_params["exclude_antennas"],
+        )
+
+        # From the generated holog_obs_dict subselect user supplied ddis.
+        if ddi != "all":
+            holog_obs_dict_keys = list(holog_obs_dict.keys())
+            for ddi_key in holog_obs_dict_keys:
+                if "ddi" in ddi_key:
+                    ddi_id = int(ddi_key.replace("ddi_", ""))
+                    if ddi_id not in ddi:
+                        del holog_obs_dict[ddi_key]
+
+    ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "STATE"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    # Scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
+    obs_modes = ctb.getcol("OBS_MODE")
+    ctb.close()
+
+    state_ids = get_valid_state_ids(obs_modes)
+
+    spw_ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "SPECTRAL_WINDOW"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+    pol_ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "POLARIZATION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    obs_ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "OBSERVATION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    telescope_name = obs_ctb.getcol("TELESCOPE_NAME")[0]
+    # start_time_unix = obs_ctb.getcol('TIME_RANGE')[0][0] - 3506716800.0
+    # time = Time(start_time_unix, format='unix').jyear
+
+    # If we have an EVLA run from before 2023 the pointing table needs to be fixed.
+    if telescope_name == "EVLA":  # and time < 2023:
+        n_mapping = 0
+        for ddi_key, ddi_dict in holog_obs_dict.items():
+            n_map_ddi = 0
+            for map_dict in ddi_dict.values():
+                n_map_ddi += len(map_dict["ant"])
+            if n_map_ddi == 0:
+                logger.warning(f"DDI {ddi_key} has 0 mapping antennas")
+            n_mapping += n_map_ddi
+
+        if n_mapping == 0:
+            msg = "No mapping antennas to process, maybe you need to fix the pointing table?"
+            logger.error(msg)
+            raise Exception(msg)
+
+    count = 0
+    delayed_list = []
+
+    for ddi_name in holog_obs_dict.keys():
+        ddi = int(ddi_name.replace("ddi_", ""))
+        spw_setup_id = ddi_spw[ddi]
+        pol_setup_id = ddpol_indexol[ddi]
+
+        extract_holog_params["ddi"] = ddi
+        extract_holog_params["chan_setup"] = {}
+        extract_holog_params["pol_setup"] = {}
+        extract_holog_params["chan_setup"]["chan_freq"] = spw_ctb.getcol(
+            "CHAN_FREQ", startrow=spw_setup_id, nrow=1
+        )[0, :]
+
+        extract_holog_params["chan_setup"]["chan_width"] = spw_ctb.getcol(
+            "CHAN_WIDTH", startrow=spw_setup_id, nrow=1
+        )[0, :]
+
+        extract_holog_params["chan_setup"]["eff_bw"] = spw_ctb.getcol(
+            "EFFECTIVE_BW", startrow=spw_setup_id, nrow=1
+        )[0, :]
+
+        extract_holog_params["chan_setup"]["ref_freq"] = spw_ctb.getcol(
+            "REF_FREQUENCY", startrow=spw_setup_id, nrow=1
+        )[0]
+
+        extract_holog_params["chan_setup"]["total_bw"] = spw_ctb.getcol(
+            "TOTAL_BANDWIDTH", startrow=spw_setup_id, nrow=1
+        )[0]
+
+        extract_holog_params["pol_setup"]["pol"] = pol_str[
+            pol_ctb.getcol("CORR_TYPE", startrow=pol_setup_id, nrow=1)[0, :]
+        ]
+
+        # Loop over all beam_scan_ids, a beam_scan_id can consist of more than one scan in a measurement set (this is
+        # the case for the VLA pointed mosaics).
+        for holog_map_key in holog_obs_dict[ddi_name].keys():
+
+            if "map" in holog_map_key:
+                scans = holog_obs_dict[ddi_name][holog_map_key]["scans"]
+                if len(scans) > 1:
+                    logger.info(
+                        "Processing ddi: {ddi}, scans: [{min} ... {max}]".format(
+                            ddi=ddi, min=scans[0], max=scans[-1]
+                        )
+                    )
+                else:
+                    logger.info(
+                        "Processing ddi: {ddi}, scan: {scan}".format(
+                            ddi=ddi, scan=scans
+                        )
+                    )
+
+                if (
+                    len(list(holog_obs_dict[ddi_name][holog_map_key]["ant"].keys()))
+                    != 0
+                ):
+                    map_ant_list = []
+                    ref_ant_per_map_ant_list = []
+
+                    map_ant_name_list = []
+                    ref_ant_per_map_ant_name_list = []
+                    for map_ant_str in holog_obs_dict[ddi_name][holog_map_key][
+                        "ant"
+                    ].keys():
+
+                        ref_ant_ids = np.array(
+                            _convert_ant_name_to_id(
+                                ant_names,
+                                list(
+                                    holog_obs_dict[ddi_name][holog_map_key]["ant"][
+                                        map_ant_str
+                                    ]
+                                ),
+                            )
+                        )
+
+                        map_ant_id = _convert_ant_name_to_id(ant_names, map_ant_str)[0]
+
+                        ref_ant_per_map_ant_list.append(ref_ant_ids)
+                        map_ant_list.append(map_ant_id)
+
+                        ref_ant_per_map_ant_name_list.append(
+                            list(
+                                holog_obs_dict[ddi_name][holog_map_key]["ant"][
+                                    map_ant_str
+                                ]
+                            )
+                        )
+                        map_ant_name_list.append(map_ant_str)
+
+                    extract_holog_params["ref_ant_per_map_ant_tuple"] = tuple(
+                        ref_ant_per_map_ant_list
+                    )
+                    extract_holog_params["map_ant_tuple"] = tuple(map_ant_list)
+
+                    extract_holog_params["ref_ant_per_map_ant_name_tuple"] = tuple(
+                        ref_ant_per_map_ant_name_list
+                    )
+                    extract_holog_params["map_ant_name_tuple"] = tuple(
+                        map_ant_name_list
+                    )
+
+                    extract_holog_params["scans"] = scans
+                    extract_holog_params["sel_state_ids"] = state_ids
+                    extract_holog_params["holog_map_key"] = holog_map_key
+                    extract_holog_params["ant_names"] = ant_names
+                    extract_holog_params["ant_station"] = ant_station
+
+                    if parallel:
+                        delayed_list.append(
+                            dask.delayed(process_extract_holog_chunk)(
+                                dask.delayed(copy.deepcopy(extract_holog_params))
+                            )
+                        )
+                    else:
+                        process_extract_holog_chunk(extract_holog_params)
+
+                    count += 1
+
+                else:
+                    logger.warning(
+                        "DDI " + str(ddi) + " has no holography data to extract."
+                    )
+
+    spw_ctb.close()
+    pol_ctb.close()
+    obs_ctb.close()
+
+    if parallel:
+        dask.compute(delayed_list)
 
 
 def process_extract_holog_chunk(extract_holog_params):
@@ -899,3 +1164,17 @@ def create_holog_json(holog_file, holog_dict):
         logger.error(f"{error}")
 
         raise Exception(error)
+
+
+def _convert_ant_name_to_id(ant_list, ant_names):
+    """_summary_
+
+    Args:
+        ant_list (_type_): _description_
+        ant_names (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+
+    return np.nonzero(np.isin(ant_list, ant_names))[0]

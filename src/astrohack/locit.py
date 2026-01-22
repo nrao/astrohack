@@ -4,7 +4,7 @@ import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
 from astrohack.utils.graph import compute_graph_to_mds_tree
-from astrohack.utils.file import overwrite_file
+from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened_2
 from astrohack.core.locit import (
     locit_separated_chunk,
     locit_combined_chunk,
@@ -157,9 +157,8 @@ def locit(
     input_params = locit_params.copy()
     attributes = locit_params.copy()
 
-    assert pathlib.Path(locit_params["locit_name"]).exists() is True, logger.error(
-        f'File {locit_params["locit_name"]} does not exists.'
-    )
+    check_if_file_can_be_opened_2(locit_params["locit_name"], "extract_locit", "0.10.1")
+
     overwrite_file(locit_params["position_name"], locit_params["overwrite"])
 
     locit_mds = AstrohackLocitFile(locit_params["locit_name"])

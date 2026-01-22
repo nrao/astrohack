@@ -41,7 +41,6 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
 
     ddi_spw = ctb.getcol("SPECTRAL_WINDOW_ID")
     ddpol_indexol = ctb.getcol("POLARIZATION_ID")
-    ms_ddi = np.arange(len(ddi_spw))
     ctb.close()
 
     # Get antenna IDs and names
@@ -53,7 +52,6 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
     )
 
     ant_names = np.array(ctb.getcol("NAME"))
-    ant_id = np.arange(len(ant_names))
     ant_pos = ctb.getcol("POSITION")
     ant_station = ctb.getcol("STATION")
 
@@ -79,6 +77,7 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
     if isinstance(ddi, int):
         ddi = [ddi]
 
+    return
     # Create holog_obs_dict if not specified
     if holog_obs_dict is None:
         holog_obs_dict = create_holog_obs_dict(

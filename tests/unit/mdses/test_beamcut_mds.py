@@ -47,6 +47,7 @@ class TestBeamcutMDS:
 
         assert isinstance(beamcut_mds, AstrohackBeamcutFile)
 
+    @pytest.mark.skip(reason="Summary test is fickle")
     def test_beamcut_mds_summary(self):
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
         summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"

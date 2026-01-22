@@ -16,7 +16,7 @@ from astrohack.utils.file import (
 from astrohack.io.mds import AstrohackImageFile
 from astrohack.io.mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
-from astrohack.io.mds import AstrohackPointFile
+from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
 from astrohack.utils.text import print_array
@@ -290,7 +290,7 @@ def open_pointing(file: str) -> Union[AstrohackPointFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened_2(file, "locit", "0.10.1")
     _data_file = AstrohackPointFile(file=file)
 
     if _data_file.open():

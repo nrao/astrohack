@@ -97,6 +97,7 @@ def process_extract_pointing(input_params):
         "pnt_name": pnt_name,
         "scan_time_dict": scan_time_dict,
         "ant": "all",
+        "parallel": input_params["parallel"],
     }
 
     looping_dict = {}
@@ -111,19 +112,20 @@ def process_extract_pointing(input_params):
         point_mds,
     )
     if executed_graph:
-        point_mds.write()
+        point_mds.write(mode="a")
         return point_mds
     else:
         logger.warning("No data to process")
         return None
 
 
-def _make_ant_pnt_chunk(pnt_params):
+def _make_ant_pnt_chunk(pnt_params, output_mds):
     """Extract subset of pointing table data into a dictionary of xarray data arrays. This is written to disk as a
     zarr file. This function processes a chunk the overall data and is managed by Dask.
 
     Args:
         pnt_params(dict): extract_pointing parameters
+        output_mds: Output AstrohackPointFile
     """
     data_dict = pnt_params["data_dict"]
     ms_name = pnt_params["ms_name"]
@@ -154,10 +156,8 @@ def _make_ant_pnt_chunk(pnt_params):
         pointing_offset = tb.getcol("POINTING_OFFSET")[:, 0, :]
 
     except RuntimeError:
-        tb.close()
         logger.warning("Skipping antenna " + str(ant_id) + " no pointing info")
-
-        return 0
+        return
 
     tb.close()
     table_obj.close()
@@ -274,7 +274,11 @@ def _make_ant_pnt_chunk(pnt_params):
 
     pnt_xds.attrs["ant_name"] = ant_name
 
-    return xr.DataTree(dataset=pnt_xds, name=ant_key)
+    output_mds.add_node_to_tree(
+        xr.DataTree(dataset=pnt_xds, name=ant_key),
+        dump_to_disk=True,
+        running_in_parallel=pnt_params["parallel"],
+    )
 
 
 def _extract_scan_time_dict(time, scan_ids, state_ids, ddi_ids, mapping_state_ids):

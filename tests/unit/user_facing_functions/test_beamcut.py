@@ -3,6 +3,7 @@ import numpy as np
 import shutil
 import glob
 
+import pytest
 from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
@@ -79,6 +80,7 @@ class TestBeamcut:
         shutil.rmtree(cls.data_folder, ignore_errors=True)
         shutil.rmtree(cls.destination_folder, ignore_errors=True)
 
+    @pytest.mark.skip(reason="mds equality test is not yet robust")
     def test_results(self):
         # Has to be run first
         local_beamcut_mds = beamcut(

@@ -51,6 +51,10 @@ class HologObsDict(dict):
             json_dict = json.load(file)
             return cls(json_dict)
 
+    def to_json_file(self, filepath):
+        with open(filepath, "w") as file:
+            json.dump(self, file, indent=4)
+
     @classmethod
     def create_from_ms_info(
         cls,

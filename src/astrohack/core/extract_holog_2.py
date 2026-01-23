@@ -76,13 +76,9 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
     ant_id_main = np.unique(np.append(ant1, ant2))
     ant_names_main = ant_names[ant_id_main]
 
-    # Create holog_obs_dict or modify user supplied holog_obs_dict.
-    ddi = extract_holog_params["ddi"]
-    if isinstance(ddi, int):
-        ddi = [ddi]
-
     dist_matrix_dict = compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names)
 
+    # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
         holog_obs_dict = HologObsDict.create_from_ms_info(
             pnt_mds=pnt_mds,
@@ -93,8 +89,20 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
             ant_names_main=ant_names_main,
         )
 
-        if ddi != "all":
-            holog_obs_dict.select("ddi", ddi)
+    user_ddi_sel = extract_holog_params["ddi"]
+    if isinstance(user_ddi_sel, int):
+        user_ddi_sel = [user_ddi_sel]
+
+    if user_ddi_sel != "all":
+        holog_obs_dict.select("ddi", user_ddi_sel)
+
+    user_ant_sel = extract_holog_params["ant"]
+    if isinstance(user_ant_sel, int):
+        user_ant_sel = [user_ant_sel]
+
+    if user_ant_sel != "all":
+        holog_obs_dict.select("antenna", user_ant_sel)
+
     holog_obs_dict.print()
     return
     ctb = ctables.table(

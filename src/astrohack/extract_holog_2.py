@@ -45,6 +45,7 @@ def extract_holog(
     point_name: str,
     holog_name: str = None,
     holog_obs_dict: HologObsDict = None,
+    ant: Union[str, List[str]] = "all",
     ddi: Union[int, List[int], str] = "all",
     baseline_average_distance: Union[float, str] = "all",
     baseline_average_nearest: Union[float, str] = 1,
@@ -75,6 +76,9 @@ def extract_holog(
     a row (alternating sets of antennas is fine). If the holog_obs_dict is specified, the ddi input is ignored. The \
     user can self generate this dictionary using `generate_holog_obs_dict`.
     :type holog_obs_dict: dict, optional
+
+    :param ant: Antennas that should be extracted from the measurement set. Defaults to all mapping antennas in the ms.
+    :type ant: str | list[str], optional
 
     :param ddi:  DDI(s) that should be extracted from the measurement set. Defaults to all DDI's in the ms.
     :type ddi: int numpy.ndarray | int list, optional

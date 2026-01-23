@@ -414,29 +414,6 @@ def generate_holog_obs_dict(
     return holog_obs_dict
 
 
-def get_number_of_parameters(
-    holog_obs_dict: HologObsDict,
-) -> Tuple[int, int, int, int]:
-    scan_list = []
-    ant_list = []
-    baseline_list = []
-
-    for ddi in holog_obs_dict.keys():
-        for mapping in holog_obs_dict[ddi].keys():
-            scan_list.append(len(holog_obs_dict[ddi][mapping]["scans"]))
-            ant_list.append(len(holog_obs_dict[ddi][mapping]["ant"].keys()))
-
-            for ant in holog_obs_dict[ddi][mapping]["ant"].keys():
-                baseline_list.append(len(holog_obs_dict[ddi][mapping]["ant"][ant]))
-
-    n_ddi = len(holog_obs_dict.keys())
-    n_scans = max(scan_list)
-    n_ant = max(ant_list)
-    n_baseline = max(baseline_list)
-
-    return n_ddi, n_scans, n_ant, n_baseline
-
-
 def model_memory_usage(ms_name: str, holog_obs_dict: HologObsDict = None) -> int:
     """Determine the approximate memory usage per core of a given measurement file.
 
@@ -449,7 +426,6 @@ def model_memory_usage(ms_name: str, holog_obs_dict: HologObsDict = None) -> int
     :return: Memory per core
     :rtype: int
     """
-
     # Get holog observations dictionary
     if holog_obs_dict is None:
         extract_pointing(
@@ -470,7 +446,23 @@ def model_memory_usage(ms_name: str, holog_obs_dict: HologObsDict = None) -> int
         shutil.rmtree("temporary.pointing.zarr")
 
     # Get number of each parameter
-    n_ddi, n_scans, n_ant, n_baseline = get_number_of_parameters(holog_obs_dict)
+
+    scan_list = []
+    ant_list = []
+    baseline_list = []
+
+    for ddi in holog_obs_dict.keys():
+        for mapping in holog_obs_dict[ddi].keys():
+            scan_list.append(len(holog_obs_dict[ddi][mapping]["scans"]))
+            ant_list.append(len(holog_obs_dict[ddi][mapping]["ant"].keys()))
+
+            for ant in holog_obs_dict[ddi][mapping]["ant"].keys():
+                baseline_list.append(len(holog_obs_dict[ddi][mapping]["ant"][ant]))
+
+    n_ddi = len(holog_obs_dict.keys())
+    n_scans = max(scan_list)
+    n_ant = max(ant_list)
+    n_baseline = max(baseline_list)
 
     # Get model file
     if not pathlib.Path("model").exists():

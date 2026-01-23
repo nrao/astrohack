@@ -108,7 +108,7 @@ class HologObsDict(dict):
 
                                     if map_key not in holog_obs_dict[ddi]:
                                         holog_obs_dict[ddi][map_key] = {
-                                            "scans": np.array(scan_list),
+                                            "scans": scan_list,
                                             "ant": {},
                                         }
 
@@ -177,8 +177,8 @@ class HologObsDict(dict):
                     ##################################################
 
                     if ref_ant_set:
-                        holog_obs_dict[ddi][map_id]["ant"][map_ant_key] = np.array(
-                            list(ref_ant_set)
+                        holog_obs_dict[ddi][map_id]["ant"][map_ant_key] = list(
+                            ref_ant_set
                         )
                     else:
                         del holog_obs_dict[ddi][map_id]["ant"][

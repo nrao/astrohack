@@ -1,11 +1,9 @@
-import json
 import pathlib
 import toolviper.utils.logger as logger
 
 import numpy as np
 
 from casacore import tables
-from rich.console import Console
 
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
@@ -397,80 +395,3 @@ def print_json(obj: JSON, indent: int = 6, columns: int = 7) -> None:
             print("{key}".format(key=key_str).rjust(indent, " "))
             print_json(value, indent + 4, columns=columns)
             print("{close}".format(close="}").rjust(indent - 4, " "))
-
-
-def inspect_holog_obs_dict(
-    file: Union[str, JSON] = ".holog_obs_dict.json", style: str = "static"
-) -> Union[NoReturn, JSON]:
-    """ Print formatted holography observation dictionary
-
-    :param file: Input file, can be either JSON file or string., defaults to '.holog_obs_dict.json'
-    :type file: str | JSON, optional
-
-    :param style: Print style of JSON dictionary. This can be static, formatted generalized print out or dynamic, \
-    prints a collapsible formatted dictionary, defaults to static
-    :type style: str, optional
-
-    .. _Description:
-
-    **Example Usage**
-    The `inspect_holog_obs_dict` loads a holography observation dict either from disk or from memory (as an return \
-    value from `generate_holog_obs_dict`) and displays it in a more readable way like JSON.stringify() in javascript.
-
-    .. parsed-literal::
-        import astrohack
-
-        astrohack.dio.inspect_holog_obs_dict(file=holog_obs_obj)
-
-        >> ddi_0:{
-            map_0:{
-                scans:{
-                        [
-                            8,   9,  10,  12,  13,  14,  16
-                            17,  18,  23,  24,  25,  27,  28
-                            29,  31,  32,  33,  38,  39,  40
-                            42,  43,  44,  46,  47,  48,  53
-                            54,  55,  57
-                        ]
-                }
-                ant:{
-                    ea06:{
-                        [
-                            ea04, ea25
-                        ]
-                    }
-                }
-            }
-        } 
-    """
-
-    if not isinstance(file, dict):
-        try:
-            with open(file) as json_file:
-                json_object = json.load(json_file)
-
-        except IsADirectoryError:
-            try:
-                with open(file + "/holog_obs_dict.json") as json_file:
-                    json_object = json.load(json_file)
-            except FileNotFoundError:
-                logger.error(
-                    "holog observations dictionary not found: {file}".format(file=file)
-                )
-        except FileNotFoundError:
-            logger.error(
-                "holog observations dictionary not found: {file}".format(file=file)
-            )
-
-    else:
-        json_object = file
-
-    if style == "dynamic":
-        from IPython.display import JSON
-
-        return JSON(json_object)
-
-    else:
-        console = Console()
-        console.log(json_object, log_locals=False)
-        return None

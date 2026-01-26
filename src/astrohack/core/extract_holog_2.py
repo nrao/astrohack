@@ -47,6 +47,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
 
     ant_names = pnt_mds.root.attrs["antenna_names"]
     ant_ids = pnt_mds.root.attrs["antenna_ids"]
+    ant_stations = pnt_mds.root.attrs["antenna_stations"]
 
     # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
@@ -168,6 +169,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
 
                 map_ant_name_list = []
                 ref_ant_per_map_ant_name_list = []
+                ref_ant_stations_list = []
                 for map_ant_name, ref_ant_name_list in map_data["ant"].items():
 
                     ref_ant_ids = _convert_ant_name_to_id(
@@ -186,6 +188,10 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
                     ref_ant_per_map_ant_name_list.append(
                         list(map_data["ant"][map_ant_name])
                     )
+                    ref_ant_stations = _convert_ant_name_to_id(
+                        ref_ant_name_list, ant_names, ant_stations
+                    )
+                    ref_ant_stations_list.append(ref_ant_stations)
                     map_ant_name_list.append(map_ant_name)
 
                 map_dict = {
@@ -195,6 +201,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
                         ref_ant_per_map_ant_name_list
                     ),
                     "map_ant_name_tuple": tuple(map_ant_name_list),
+                    "ref_ant_stations": tuple(ref_ant_stations_list),
                     "scans": scans,
                     "sel_state_ids": state_ids,
                     "ant_names": ant_names,
@@ -216,7 +223,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
     return looping_dict
 
 
-def process_extract_holog_chunk(extract_holog_params):
+def process_extract_holog_chunk(extract_holog_params, holog_mds):
     """Perform data query on holography data chunk and get unique time and state_ids/
 
     Args:
@@ -224,20 +231,32 @@ def process_extract_holog_chunk(extract_holog_params):
     """
 
     ms_name = extract_holog_params["ms_name"]
-    pnt_name = extract_holog_params["point_name"]
     data_column = extract_holog_params["data_column"]
-    ddi = extract_holog_params["ddi"]
-    scans = extract_holog_params["scans"]
-    ant_names = extract_holog_params["ant_names"]
-    ant_station = extract_holog_params["ant_station"]
-    ref_ant_per_map_ant_tuple = extract_holog_params["ref_ant_per_map_ant_tuple"]
-    map_ant_tuple = extract_holog_params["map_ant_tuple"]
-    map_ant_name_tuple = extract_holog_params["map_ant_name_tuple"]
-    holog_map_key = extract_holog_params["holog_map_key"]
     time_interval = extract_holog_params["time_smoothing_interval"]
     pointing_interpolation_method = extract_holog_params[
         "pointing_interpolation_method"
     ]
+    holog_name = extract_holog_params["holog_name"]
+
+    pnt_mds = extract_holog_params["pnt_mds"]
+    inp_data_dict = extract_holog_params["data_dict"]
+
+    ddi_key = extract_holog_params["this_ddi"]
+    map_key = extract_holog_params["this_map"]
+
+    ddi_id = int(ddi_key.replace("ddi_", ""))
+
+    scans = inp_data_dict["scans"]
+    ant_names = inp_data_dict["ant_names"]
+    ant_stations = inp_data_dict["ref_ant_stations"]
+    ref_ant_per_map_ant_tuple = inp_data_dict["ref_ant_per_map_ant_tuple"]
+    map_ant_tuple = inp_data_dict["map_ant_tuple"]
+    map_ant_name_tuple = inp_data_dict["map_ant_name_tuple"]
+    sel_state_ids = inp_data_dict["sel_state_ids"]
+    chan_setup = inp_data_dict["chan_setup"]
+    pol = inp_data_dict["pol_setup"]["pol"]
+
+    chan_freq = chan_setup["chan_freq"]
 
     # This piece of information is no longer used leaving them here commented out for completeness
     # ref_ant_per_map_ant_name_tuple = extract_holog_params["ref_ant_per_map_ant_name_tuple"]
@@ -250,12 +269,6 @@ def process_extract_holog_chunk(extract_holog_params):
             "Inconsistancy between antenna list length, see error above for more info."
         )
 
-    sel_state_ids = extract_holog_params["sel_state_ids"]
-    holog_name = extract_holog_params["holog_name"]
-
-    chan_freq = extract_holog_params["chan_setup"]["chan_freq"]
-    pol = extract_holog_params["pol_setup"]["pol"]
-
     table_obj = ctables.table(
         ms_name, readonly=True, lockoptions={"option": "usernoread"}, ack=False
     )
@@ -264,13 +277,13 @@ def process_extract_holog_chunk(extract_holog_params):
         ctb = ctables.taql(
             "select %s, SCAN_NUMBER, ANTENNA1, ANTENNA2, TIME, TIME_CENTROID, WEIGHT, FLAG_ROW, FLAG, FIELD_ID from "
             "$table_obj WHERE DATA_DESC_ID == %s AND SCAN_NUMBER in %s AND STATE_ID in %s"
-            % (data_column, ddi, scans, list(sel_state_ids))
+            % (data_column, ddi_id, scans, list(sel_state_ids))
         )
     else:
         ctb = ctables.taql(
             "select %s, SCAN_NUMBER, ANTENNA1, ANTENNA2, TIME, TIME_CENTROID, WEIGHT, FLAG_ROW, FLAG, FIELD_ID from "
             "$table_obj WHERE DATA_DESC_ID == %s AND SCAN_NUMBER in %s"
-            % (data_column, ddi, scans)
+            % (data_column, ddi_id, scans)
         )
     vis_data = ctb.getcol(data_column)
     weight = ctb.getcol("WEIGHT")
@@ -294,7 +307,7 @@ def process_extract_holog_chunk(extract_holog_params):
     table_obj.close()
 
     map_ref_dict = _get_map_ref_dict(
-        map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_station
+        map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
 
     (
@@ -325,9 +338,8 @@ def process_extract_holog_chunk(extract_holog_params):
 
     map_ant_name_list = ["_".join(("ant", i)) for i in map_ant_name_list]
 
-    pnt_ant_dict = load_point_file(pnt_name, map_ant_name_list, dask_load=False)
     pnt_map_dict = _extract_pointing_chunk(
-        map_ant_name_list, time_vis, pnt_ant_dict, pointing_interpolation_method
+        map_ant_name_list, time_vis, pnt_mds, pointing_interpolation_method
     )
 
     grid_params = {}
@@ -338,7 +350,7 @@ def process_extract_holog_chunk(extract_holog_params):
         antenna_name = "_".join(("ant", ant_names[ant_index]))
         telescope = get_proper_telescope(gen_info["telescope name"], antenna_name)
         n_pix, cell_size = calculate_optimal_grid_parameters(
-            pnt_map_dict, antenna_name, telescope.diameter, chan_freq, ddi
+            pnt_map_dict, antenna_name, telescope.diameter, chan_freq, ddi_id
         )
 
         grid_params[antenna_name] = {"n_pix": n_pix, "cell_size": cell_size}
@@ -349,43 +361,45 @@ def process_extract_holog_chunk(extract_holog_params):
     # vis_map_dict, weight_map_dict, flagged_mapping_antennas,time_vis,pnt_map_dict,ant_names) time_vis = time_vis +
     # over_flow_protector_constant
 
-    _create_holog_file(
-        holog_name,
-        vis_map_dict,
-        weight_map_dict,
-        pnt_map_dict,
-        time_vis,
-        used_samples_dict,
-        chan_freq,
-        pol,
-        flagged_mapping_antennas,
-        holog_map_key,
-        ddi,
-        ms_name,
-        ant_names,
-        ant_station,
-        grid_params,
-        time_interval,
-        gen_info,
-        map_ref_dict,
-        scan_time_ranges,
-        unq_scans,
-    )
+    # _create_holog_file(
+    #     holog_name,
+    #     vis_map_dict,
+    #     weight_map_dict,
+    #     pnt_map_dict,
+    #     time_vis,
+    #     used_samples_dict,
+    #     chan_freq,
+    #     pol,
+    #     flagged_mapping_antennas,
+    #     map_key,
+    #     ddi_id,
+    #     ms_name,
+    #     ant_names,
+    #     ant_station,
+    #     grid_params,
+    #     time_interval,
+    #     gen_info,
+    #     map_ref_dict,
+    #     scan_time_ranges,
+    #     unq_scans,
+    # )
 
     logger.info(
         "Finished extracting holography chunk for ddi: {ddi} holog_map_key: {holog_map_key}".format(
-            ddi=ddi, holog_map_key=holog_map_key
+            ddi=ddi_id, holog_map_key=map_key
         )
     )
 
 
-def _get_map_ref_dict(map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_station):
+def _get_map_ref_dict(
+    map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
+):
     map_dict = {}
     for ii, map_id in enumerate(map_ant_tuple):
         map_name = ant_names[map_id]
         ref_list = []
         for ref_id in ref_ant_per_map_ant_tuple[ii]:
-            ref_list.append(f"{ant_names[ref_id]} @ {ant_station[ref_id]}")
+            ref_list.append(f"{ant_names[ref_id]} @ {ant_stations[ref_id]}")
         map_dict[map_name] = ref_list
     return map_dict
 

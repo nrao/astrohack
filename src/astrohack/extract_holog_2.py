@@ -212,6 +212,9 @@ def extract_holog(
 
     extract_holog_params = locals()
 
+    # VVV This is a temporary fix waiting for the implementation of a mapping parameter
+    extract_holog_params["map"] = "all"
+
     assert pathlib.Path(extract_holog_params["ms_name"]).exists() is True, logger.error(
         f'File {extract_holog_params["ms_name"]} does not exists.'
     )
@@ -223,7 +226,7 @@ def extract_holog(
     pnt_mds = open_pointing(point_name)
 
     looping_dict = extract_holog_preprocessing(extract_holog_params, pnt_mds)
-    print_dict_types(looping_dict, show_values=True)
+    # print_dict_types(looping_dict, show_values=True)
 
     holog_mds = AstrohackHologFile.create_from_input_parameters(
         holog_name, extract_holog_params

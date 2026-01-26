@@ -62,10 +62,10 @@ class HologObsDict(dict):
         exclude_antennas,
         baseline_average_distance,
         baseline_average_nearest,
-        dist_matrix_dict,
-        ant_names_main,
     ):
 
+        ant_names_main = pnt_mds.root.attrs["antenna_names"]
+        dist_matrix_dict = pnt_mds.root.attrs["baseline_dist_matrix"]
         mapping_scans_dict = {}
         holog_obs_dict = cls()
         map_id = 0

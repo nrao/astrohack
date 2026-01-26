@@ -20,7 +20,6 @@ from rich.console import Console
 from rich.table import Table
 
 from astrohack import open_pointing
-from astrohack.utils import compute_antenna_baseline_distance_matrix_dict
 
 from astrohack.utils.file import (
     overwrite_file,
@@ -253,7 +252,6 @@ def extract_holog(
 
 
 def generate_holog_obs_dict(
-    ms_name: str,
     point_name: str,
     baseline_average_distance: str = "all",
     baseline_average_nearest: str = "all",
@@ -263,8 +261,8 @@ def generate_holog_obs_dict(
     """
     Generate holography observation dictionary, from measurement set..
 
-    :param ms_name: Name of input measurement file name.
-    :type ms_name: str
+    :param point_name: Name of *<point_name>.point.zarr* file to use.
+    :type point_name: str, optional
 
     :param baseline_average_distance: To increase the signal-to-noise for a mapping antenna multiple reference
     antennas can be used. The baseline_average_distance is the acceptable distance between a mapping antenna and a
@@ -282,14 +280,12 @@ def generate_holog_obs_dict(
     :param write: Write file flag.
     :type point_name: bool, optional
 
-    :param point_name: Name of *<point_name>.point.zarr* file to use.
-    :type point_name: str, optional
 
     :param parallel: Boolean for whether to process in parallel. Defaults to False
     :type parallel: bool, optional
 
     :return: holog observation dictionary
-    :rtype: json
+    :rtype: HologObsDict
 
     .. _Description:
 
@@ -365,54 +361,18 @@ def generate_holog_obs_dict(
     """
     extract_holog_params = locals()
 
-    assert pathlib.Path(ms_name).exists() is True, logger.error(
-        f"File {ms_name} does not exists."
-    )
     assert pathlib.Path(point_name).exists() is True, logger.error(
         f"File {point_name} does not exists."
     )
 
-    # Get antenna IDs and names
-    ctb = ctables.table(
-        os.path.join(extract_holog_params["ms_name"], "ANTENNA"),
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    ant_names = np.array(ctb.getcol("NAME"))
-    ant_id = np.arange(len(ant_names))
-    ant_pos = ctb.getcol("POSITION")
-
-    ctb.close()
-
-    # Get antenna IDs that are in the main table
-    ctb = ctables.table(
-        extract_holog_params["ms_name"],
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    ant1 = np.unique(ctb.getcol("ANTENNA1"))
-    ant2 = np.unique(ctb.getcol("ANTENNA2"))
-    ant_id_main = np.unique(np.append(ant1, ant2))
-
-    ant_names_main = ant_names[ant_id_main]
-    ctb.close()
-
     pnt_mds = AstrohackPointFile(extract_holog_params["point_name"])
     pnt_mds.open()
-
-    dist_matrix_dict = compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names)
 
     holog_obs_dict = HologObsDict.create_from_ms_info(
         pnt_mds=pnt_mds,
         exclude_antennas=extract_holog_params["exclude_antennas"],
         baseline_average_distance=extract_holog_params["baseline_average_distance"],
         baseline_average_nearest=extract_holog_params["baseline_average_nearest"],
-        dist_matrix_dict=dist_matrix_dict,
-        ant_names_main=ant_names_main,
     )
 
     return holog_obs_dict
@@ -440,7 +400,6 @@ def model_memory_usage(ms_name: str, holog_obs_dict: HologObsDict = None) -> int
         )
 
         holog_obs_dict = generate_holog_obs_dict(
-            ms_name=ms_name,
             point_name="temporary.pointing.zarr",
             baseline_average_distance="all",
             baseline_average_nearest="all",

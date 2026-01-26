@@ -17,7 +17,6 @@ from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
 from astrohack.utils import (
     create_dataset_label,
-    compute_antenna_baseline_distance_matrix_dict,
 )
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters
@@ -47,21 +46,9 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
     ddpol_indexol = ctb.getcol("POLARIZATION_ID")
     ctb.close()
 
-    # Get antenna IDs and names
-    ctb = ctables.table(
-        os.path.join(extract_holog_params["ms_name"], "ANTENNA"),
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    ant_names = np.array(ctb.getcol("NAME"))
-    ant_pos = ctb.getcol("POSITION")
-    ant_station = ctb.getcol("STATION")
-
-    ctb.close()
-
-    # Get antenna IDs in the main table
+    ant_names = pnt_mds.root.attrs["antenna_names"]
+    ant_ids = pnt_mds.root.attrs["antenna_ids"]
+    # Get antenna IDs that are in the main table
     ctb = ctables.table(
         extract_holog_params["ms_name"],
         readonly=True,
@@ -71,12 +58,14 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
 
     ant1 = np.unique(ctb.getcol("ANTENNA1"))
     ant2 = np.unique(ctb.getcol("ANTENNA2"))
+    ant_id_main = np.unique(np.append(ant1, ant2))
     ctb.close()
 
-    ant_id_main = np.unique(np.append(ant1, ant2))
-    ant_names_main = ant_names[ant_id_main]
-
-    dist_matrix_dict = compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names)
+    ant_names_main = []
+    for ant_id in ant_id_main:
+        i_name = ant_ids.index(ant_id)
+        ant_names_main.append(ant_names[i_name])
+    ant_names_main = np.array(ant_names_main)
 
     # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
@@ -85,8 +74,6 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
             exclude_antennas=extract_holog_params["exclude_antennas"],
             baseline_average_distance=extract_holog_params["baseline_average_distance"],
             baseline_average_nearest=extract_holog_params["baseline_average_nearest"],
-            dist_matrix_dict=dist_matrix_dict,
-            ant_names_main=ant_names_main,
         )
 
     user_ddi_sel = extract_holog_params["ddi"]

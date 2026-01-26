@@ -48,7 +48,7 @@ def extract_pointing_preprocessing(input_params):
     antenna_names = ctb.getcol("NAME")
     ctb.close()
 
-    antenna_id = list(range(len(antenna_names)))
+    antenna_ids = list(range(len(antenna_names)))
 
     # Exclude antennas according to user direction
     if exclude:
@@ -57,9 +57,9 @@ def extract_pointing_preprocessing(input_params):
         for i_ant, antenna in enumerate(exclude):
             if antenna in antenna_names:
                 antenna_names.remove(antenna)
-                antenna_id.remove(i_ant)
+                antenna_ids.remove(i_ant)
 
-    antenna_id = np.array(antenna_id)
+    antenna_ids = np.array(antenna_ids)
 
     # Get Holography scans with start and end times.
     ctb = ctables.table(
@@ -100,6 +100,8 @@ def extract_pointing_preprocessing(input_params):
         "scan_time_dict": scan_time_dict,
         "ant": "all",
         "parallel": input_params["parallel"],
+        "antenna_names": antenna_names,
+        "antenna_ids": antenna_ids,
     }
 
     ant_dist_matrix = compute_antenna_baseline_distance_matrix_dict(
@@ -109,7 +111,7 @@ def extract_pointing_preprocessing(input_params):
     looping_dict = {}
     for i_ant, ant_name in enumerate(antenna_names):
         looping_dict[f"ant_{ant_name}"] = {
-            "id": antenna_id[i_ant],
+            "id": antenna_ids[i_ant],
             "name": ant_name,
             "position": antenna_positions[i_ant].tolist(),
             "station": antenna_stations[i_ant],

@@ -1,5 +1,3 @@
-import copy
-import json
 import os
 import pathlib
 import pickle
@@ -8,19 +6,15 @@ import math
 import multiprocessing
 
 import toolviper.utils.parameter
-import dask
 
 import psutil
 
-import numpy as np
 import toolviper.utils.logger as logger
 
-from casacore import tables as ctables
 from rich.console import Console
 from rich.table import Table
 
 from astrohack import open_pointing
-from astrohack.utils import print_dict_types
 
 from astrohack.utils.file import (
     overwrite_file,
@@ -30,14 +24,13 @@ from astrohack.core.extract_holog_2 import (
 )
 from astrohack.core.extract_holog_2 import process_extract_holog_chunk
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.text import NumpyEncoder
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.extract_pointing import extract_pointing
 from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.utils.graph import compute_graph_to_mds_tree
 
-from typing import Union, List, Tuple
+from typing import Union, List
 
 
 # @toolviper.utils.parameter.validate(add_data_type=HologObsDict)
@@ -225,11 +218,13 @@ def extract_holog(
 
     pnt_mds = open_pointing(point_name)
 
-    looping_dict = extract_holog_preprocessing(extract_holog_params, pnt_mds)
+    looping_dict, used_holog_obs_dict = extract_holog_preprocessing(
+        extract_holog_params, pnt_mds
+    )
     # print_dict_types(looping_dict, show_values=True)
 
     holog_mds = AstrohackHologFile.create_from_input_parameters(
-        holog_name, extract_holog_params
+        holog_name, extract_holog_params.copy()
     )
 
     extract_holog_params["pnt_mds"] = pnt_mds
@@ -241,6 +236,8 @@ def extract_holog(
         ["ddi", "map"],
         holog_mds,
     )
+
+    holog_mds.root.attrs["holog_obs_dict"] = used_holog_obs_dict
 
     if executed_graph:
         holog_mds.write(mode="a")

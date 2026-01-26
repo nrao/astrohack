@@ -201,6 +201,9 @@ class AstrohackBaseFile:
         :param dump_to_disk: Dump root to disk to freeup RAM
         :type dump_to_disk: bool
 
+        :param running_in_parallel: Get dask lock if running in parallel
+        :type running_in_parallel: bool
+
         :return: None
         :rtype: NoneType
         """

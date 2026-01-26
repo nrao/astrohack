@@ -85,7 +85,7 @@ def approve_prefix(key):
 
     if not key.endswith("_info"):
         logger.warning(
-            f"File meta data contains and unknown key ({key}), the file may not complete properly."
+            f"File meta data contains an unknown key ({key}), the file may not complete properly."
         )
 
     return False

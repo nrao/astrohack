@@ -102,6 +102,7 @@ def extract_pointing_preprocessing(input_params):
         "parallel": input_params["parallel"],
         "antenna_names": antenna_names,
         "antenna_ids": antenna_ids,
+        "antenna_stations": antenna_stations,
     }
 
     ant_dist_matrix = compute_antenna_baseline_distance_matrix_dict(

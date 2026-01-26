@@ -93,6 +93,7 @@ def extract_pointing(
     point_mds.root.attrs["baseline_dist_matrix"] = ant_dist_matrix
     point_mds.root.attrs["antenna_names"] = pnt_params.pop("antenna_names")
     point_mds.root.attrs["antenna_ids"] = pnt_params.pop("antenna_ids")
+    point_mds.root.attrs["antenna_stations"] = pnt_params.pop("antenna_stations")
 
     executed_graph = compute_graph_to_mds_tree(
         looping_dict,

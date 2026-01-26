@@ -2,9 +2,14 @@ import pathlib
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
+from astrohack.utils import print_dict_types
+from astrohack.utils.graph import compute_graph_to_mds_tree
 from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
-from astrohack.core.extract_pointing_2 import process_extract_pointing
+from astrohack.core.extract_pointing_2 import (
+    extract_pointing_preprocessing,
+    make_ant_pnt_chunk,
+)
 from astrohack.io.point_mds import AstrohackPointFile
 
 from typing import List, Union
@@ -17,7 +22,7 @@ def extract_pointing(
     exclude: Union[str, List[str]] = None,
     parallel: bool = False,
     overwrite: bool = False,
-) -> AstrohackPointFile:
+) -> Union[AstrohackPointFile, None]:
     """ Extract pointing data from measurement set.  Creates holography output file.
 
     :param ms_name: Name of input measurement file name.
@@ -77,5 +82,27 @@ def extract_pointing(
     overwrite_file(
         extract_pointing_params["point_name"], extract_pointing_params["overwrite"]
     )
+    ant_dist_matrix, looping_dict, pnt_params, mapping_state_ids = (
+        extract_pointing_preprocessing(extract_pointing_params)
+    )
+    # Create mds file here
+    point_mds = AstrohackPointFile.create_from_input_parameters(
+        point_name, input_params
+    )
+    point_mds.root.attrs["mapping_state_ids"] = mapping_state_ids
+    point_mds.root.attrs["baseline_dist_matrix"] = ant_dist_matrix
 
-    return process_extract_pointing(extract_pointing_params)
+    executed_graph = compute_graph_to_mds_tree(
+        looping_dict,
+        make_ant_pnt_chunk,
+        pnt_params,
+        ["ant"],
+        point_mds,
+    )
+
+    if executed_graph:
+        point_mds.write(mode="a")
+        return point_mds
+    else:
+        logger.warning("No data to process")
+        return None

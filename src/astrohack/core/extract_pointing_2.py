@@ -11,13 +11,17 @@ from scipy import spatial
 
 import toolviper.utils.logger as logger
 
+from astrohack.utils import (
+    compute_antenna_baseline_distance_matrix_dict,
+    print_dict_types,
+)
 from astrohack.utils.conversion import convert_dict_from_numba
 from astrohack.utils.graph import compute_graph_to_mds_tree
 from astrohack.utils.tools import get_valid_state_ids
 from astrohack.io.point_mds import AstrohackPointFile
 
 
-def process_extract_pointing(input_params):
+def extract_pointing_preprocessing(input_params):
     """Top level function to extract subset of pointing table data into a dictionary of xarray data arrays.
 
     Args:
@@ -39,18 +43,20 @@ def process_extract_pointing(input_params):
         ack=False,
     )
 
-    antenna_name = ctb.getcol("NAME")
+    antenna_positions = ctb.getcol("POSITION")
+    antenna_stations = ctb.getcol("STATION")
+    antenna_names = ctb.getcol("NAME")
     ctb.close()
 
-    antenna_id = list(range(len(antenna_name)))
+    antenna_id = list(range(len(antenna_names)))
 
     # Exclude antennas according to user direction
     if exclude:
         if not isinstance(exclude, list):
             exclude = list(exclude)
         for i_ant, antenna in enumerate(exclude):
-            if antenna in antenna_name:
-                antenna_name.remove(antenna)
+            if antenna in antenna_names:
+                antenna_names.remove(antenna)
                 antenna_id.remove(i_ant)
 
     antenna_id = np.array(antenna_id)
@@ -87,10 +93,6 @@ def process_extract_pointing(input_params):
         time, scan_ids, state_ids, ddi, mapping_state_ids
     )
 
-    # Create mds file here
-    point_mds = AstrohackPointFile.create_from_input_parameters(pnt_name, input_params)
-    point_mds.root.attrs["mapping_state_ids"] = mapping_state_ids
-
     ###########################################################################################
     pnt_params = {
         "ms_name": ms_name,
@@ -100,26 +102,23 @@ def process_extract_pointing(input_params):
         "parallel": input_params["parallel"],
     }
 
-    looping_dict = {}
-    for i_ant, ant_name in enumerate(antenna_name):
-        looping_dict[f"ant_{ant_name}"] = {"id": antenna_id[i_ant], "name": ant_name}
-
-    executed_graph = compute_graph_to_mds_tree(
-        looping_dict,
-        _make_ant_pnt_chunk,
-        pnt_params,
-        ["ant"],
-        point_mds,
+    ant_dist_matrix = compute_antenna_baseline_distance_matrix_dict(
+        antenna_positions, antenna_names
     )
-    if executed_graph:
-        point_mds.write(mode="a")
-        return point_mds
-    else:
-        logger.warning("No data to process")
-        return None
+
+    looping_dict = {}
+    for i_ant, ant_name in enumerate(antenna_names):
+        looping_dict[f"ant_{ant_name}"] = {
+            "id": antenna_id[i_ant],
+            "name": ant_name,
+            "position": antenna_positions[i_ant].tolist(),
+            "station": antenna_stations[i_ant],
+        }
+
+    return ant_dist_matrix, looping_dict, pnt_params, mapping_state_ids
 
 
-def _make_ant_pnt_chunk(pnt_params, output_mds):
+def make_ant_pnt_chunk(pnt_params, output_mds):
     """Extract subset of pointing table data into a dictionary of xarray data arrays. This is written to disk as a
     zarr file. This function processes a chunk the overall data and is managed by Dask.
 
@@ -133,6 +132,8 @@ def _make_ant_pnt_chunk(pnt_params, output_mds):
 
     ant_id = data_dict["id"]
     ant_name = data_dict["name"]
+    ant_pos = data_dict["position"]
+    ant_station = data_dict["station"]
     ant_key = pnt_params["this_ant"]
 
     table_obj = ctables.table(
@@ -273,6 +274,8 @@ def _make_ant_pnt_chunk(pnt_params, output_mds):
     ###############
 
     pnt_xds.attrs["ant_name"] = ant_name
+    pnt_xds.attrs["ant_pos"] = ant_pos
+    pnt_xds.attrs["ant_station"] = ant_station
 
     output_mds.add_node_to_tree(
         xr.DataTree(dataset=pnt_xds, name=ant_key),

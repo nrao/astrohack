@@ -288,7 +288,7 @@ def open_pointing(file: str) -> Union[AstrohackPointFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "process_extract_pointing", "0.10.1")
+    check_if_file_can_be_opened_2(file, "extract_pointing", "0.10.1")
     _data_file = AstrohackPointFile(file=file)
 
     if _data_file.open():

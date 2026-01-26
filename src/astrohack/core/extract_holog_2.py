@@ -30,9 +30,8 @@ from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.utils.file import load_point_file
 
 
-def extract_holog_processing(extract_holog_params, pnt_mds):
+def extract_holog_preprocessing(extract_holog_params, pnt_mds):
     holog_obs_dict = extract_holog_params["holog_obs_dict"]
-    parallel = extract_holog_params["parallel"]
 
     # Get spectral windows
     ctb = ctables.table(
@@ -48,24 +47,6 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
 
     ant_names = pnt_mds.root.attrs["antenna_names"]
     ant_ids = pnt_mds.root.attrs["antenna_ids"]
-    # Get antenna IDs that are in the main table
-    ctb = ctables.table(
-        extract_holog_params["ms_name"],
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    ant1 = np.unique(ctb.getcol("ANTENNA1"))
-    ant2 = np.unique(ctb.getcol("ANTENNA2"))
-    ant_id_main = np.unique(np.append(ant1, ant2))
-    ctb.close()
-
-    ant_names_main = []
-    for ant_id in ant_id_main:
-        i_name = ant_ids.index(ant_id)
-        ant_names_main.append(ant_names[i_name])
-    ant_names_main = np.array(ant_names_main)
 
     # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
@@ -90,8 +71,6 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
     if user_ant_sel != "all":
         holog_obs_dict.select("antenna", user_ant_sel)
 
-    holog_obs_dict.print()
-    return
     ctb = ctables.table(
         os.path.join(extract_holog_params["ms_name"], "STATE"),
         readonly=True,
@@ -145,138 +124,96 @@ def extract_holog_processing(extract_holog_params, pnt_mds):
             logger.error(msg)
             raise Exception(msg)
 
-    count = 0
-    delayed_list = []
-
-    for ddi_name in holog_obs_dict.keys():
-        ddi = int(ddi_name.replace("ddi_", ""))
+    looping_dict = {}
+    for ddi_key in holog_obs_dict.keys():
+        ddi = int(ddi_key.replace("ddi_", ""))
         spw_setup_id = ddi_spw[ddi]
         pol_setup_id = ddpol_indexol[ddi]
 
-        extract_holog_params["ddi"] = ddi
-        extract_holog_params["chan_setup"] = {}
-        extract_holog_params["pol_setup"] = {}
-        extract_holog_params["chan_setup"]["chan_freq"] = spw_ctb.getcol(
-            "CHAN_FREQ", startrow=spw_setup_id, nrow=1
-        )[0, :]
+        chan_freq = spw_ctb.getcol("CHAN_FREQ", startrow=spw_setup_id, nrow=1)[0, :]
+        chan_width = spw_ctb.getcol("CHAN_WIDTH", startrow=spw_setup_id, nrow=1)[0, :]
+        eff_bw = spw_ctb.getcol("EFFECTIVE_BW", startrow=spw_setup_id, nrow=1)[0, :]
+        ref_freq = spw_ctb.getcol("REF_FREQUENCY", startrow=spw_setup_id, nrow=1)[0]
+        total_bw = spw_ctb.getcol("TOTAL_BANDWIDTH", startrow=spw_setup_id, nrow=1)[0]
+        chan_setup = {
+            "chan_freq": chan_freq,
+            "chan_width": chan_width,
+            "eff_bw": eff_bw,
+            "ref_freq": ref_freq,
+            "total_bw": total_bw,
+        }
+        pol_setup = {
+            "pol": pol_str[
+                pol_ctb.getcol("CORR_TYPE", startrow=pol_setup_id, nrow=1)[0, :]
+            ]
+        }
 
-        extract_holog_params["chan_setup"]["chan_width"] = spw_ctb.getcol(
-            "CHAN_WIDTH", startrow=spw_setup_id, nrow=1
-        )[0, :]
-
-        extract_holog_params["chan_setup"]["eff_bw"] = spw_ctb.getcol(
-            "EFFECTIVE_BW", startrow=spw_setup_id, nrow=1
-        )[0, :]
-
-        extract_holog_params["chan_setup"]["ref_freq"] = spw_ctb.getcol(
-            "REF_FREQUENCY", startrow=spw_setup_id, nrow=1
-        )[0]
-
-        extract_holog_params["chan_setup"]["total_bw"] = spw_ctb.getcol(
-            "TOTAL_BANDWIDTH", startrow=spw_setup_id, nrow=1
-        )[0]
-
-        extract_holog_params["pol_setup"]["pol"] = pol_str[
-            pol_ctb.getcol("CORR_TYPE", startrow=pol_setup_id, nrow=1)[0, :]
-        ]
-
-        # Loop over all beam_scan_ids, a beam_scan_id can consist of more than one scan in a measurement set (this is
-        # the case for the VLA pointed mosaics).
-        for holog_map_key in holog_obs_dict[ddi_name].keys():
-
-            if "map" in holog_map_key:
-                scans = holog_obs_dict[ddi_name][holog_map_key]["scans"]
-                if len(scans) > 1:
-                    logger.info(
-                        "Processing ddi: {ddi}, scans: [{min} ... {max}]".format(
-                            ddi=ddi, min=scans[0], max=scans[-1]
-                        )
+        ddi_dict = {}
+        for map_key, map_data in holog_obs_dict[ddi_key].items():
+            scans = map_data["scans"]
+            if len(scans) > 1:
+                logger.info(
+                    "Processing ddi: {ddi}, scans: [{min} ... {max}]".format(
+                        ddi=ddi, min=scans[0], max=scans[-1]
                     )
-                else:
-                    logger.info(
-                        "Processing ddi: {ddi}, scan: {scan}".format(
-                            ddi=ddi, scan=scans
-                        )
+                )
+            else:
+                logger.info(
+                    "Processing ddi: {ddi}, scan: {scan}".format(ddi=ddi, scan=scans)
+                )
+
+            if len(list(map_data["ant"].keys())) != 0:
+                map_ant_list = []
+                ref_ant_per_map_ant_list = []
+
+                map_ant_name_list = []
+                ref_ant_per_map_ant_name_list = []
+                for map_ant_name, ref_ant_name_list in map_data["ant"].items():
+
+                    ref_ant_ids = _convert_ant_name_to_id(
+                        ref_ant_name_list,
+                        ant_names,
+                        ant_ids,
                     )
 
-                if (
-                    len(list(holog_obs_dict[ddi_name][holog_map_key]["ant"].keys()))
-                    != 0
-                ):
-                    map_ant_list = []
-                    ref_ant_per_map_ant_list = []
+                    map_ant_id = _convert_ant_name_to_id(
+                        map_ant_name, ant_names, ant_ids
+                    )[0]
 
-                    map_ant_name_list = []
-                    ref_ant_per_map_ant_name_list = []
-                    for map_ant_str in holog_obs_dict[ddi_name][holog_map_key][
-                        "ant"
-                    ].keys():
+                    ref_ant_per_map_ant_list.append(ref_ant_ids)
+                    map_ant_list.append(map_ant_id)
 
-                        ref_ant_ids = np.array(
-                            _convert_ant_name_to_id(
-                                ant_names,
-                                list(
-                                    holog_obs_dict[ddi_name][holog_map_key]["ant"][
-                                        map_ant_str
-                                    ]
-                                ),
-                            )
-                        )
-
-                        map_ant_id = _convert_ant_name_to_id(ant_names, map_ant_str)[0]
-
-                        ref_ant_per_map_ant_list.append(ref_ant_ids)
-                        map_ant_list.append(map_ant_id)
-
-                        ref_ant_per_map_ant_name_list.append(
-                            list(
-                                holog_obs_dict[ddi_name][holog_map_key]["ant"][
-                                    map_ant_str
-                                ]
-                            )
-                        )
-                        map_ant_name_list.append(map_ant_str)
-
-                    extract_holog_params["ref_ant_per_map_ant_tuple"] = tuple(
-                        ref_ant_per_map_ant_list
+                    ref_ant_per_map_ant_name_list.append(
+                        list(map_data["ant"][map_ant_name])
                     )
-                    extract_holog_params["map_ant_tuple"] = tuple(map_ant_list)
+                    map_ant_name_list.append(map_ant_name)
 
-                    extract_holog_params["ref_ant_per_map_ant_name_tuple"] = tuple(
+                map_dict = {
+                    "ref_ant_per_map_ant_tuple": tuple(ref_ant_per_map_ant_list),
+                    "map_ant_tuple": tuple(map_ant_list),
+                    "ref_ant_per_map_ant_name_tuple": tuple(
                         ref_ant_per_map_ant_name_list
-                    )
-                    extract_holog_params["map_ant_name_tuple"] = tuple(
-                        map_ant_name_list
-                    )
+                    ),
+                    "map_ant_name_tuple": tuple(map_ant_name_list),
+                    "scans": scans,
+                    "sel_state_ids": state_ids,
+                    "ant_names": ant_names,
+                    "chan_setup": chan_setup,
+                    "pol_setup": pol_setup,
+                }
+                ddi_dict[map_key] = map_dict
 
-                    extract_holog_params["scans"] = scans
-                    extract_holog_params["sel_state_ids"] = state_ids
-                    extract_holog_params["holog_map_key"] = holog_map_key
-                    extract_holog_params["ant_names"] = ant_names
-                    extract_holog_params["ant_station"] = ant_station
-
-                    if parallel:
-                        delayed_list.append(
-                            dask.delayed(process_extract_holog_chunk)(
-                                dask.delayed(copy.deepcopy(extract_holog_params))
-                            )
-                        )
-                    else:
-                        process_extract_holog_chunk(extract_holog_params)
-
-                    count += 1
-
-                else:
-                    logger.warning(
-                        "DDI " + str(ddi) + " has no holography data to extract."
-                    )
+            else:
+                logger.warning(
+                    f"{create_dataset_label(ddi_key, map_key)} has no holography data to extract."
+                )
+        looping_dict[ddi_key] = ddi_dict
 
     spw_ctb.close()
     pol_ctb.close()
     obs_ctb.close()
 
-    if parallel:
-        dask.compute(delayed_list)
+    return looping_dict
 
 
 def process_extract_holog_chunk(extract_holog_params):
@@ -989,15 +926,27 @@ def create_holog_json(holog_file, holog_dict):
         raise Exception(error)
 
 
-def _convert_ant_name_to_id(ant_list, ant_names):
+def _convert_ant_name_to_id(
+    ant_name_list,
+    ref_ant_names,
+    ref_ant_ids,
+):
     """_summary_
 
     Args:
-        ant_list (_type_): _description_
+        ant_name_list (list): _description_
         ant_names (_type_): _description_
 
     Returns:
         _type_: _description_
     """
+    if not isinstance(ant_name_list, list):
+        ant_name_list = [ant_name_list]
 
-    return np.nonzero(np.isin(ant_list, ant_names))[0]
+    ant_ids_list = []
+    for ant_name in ant_name_list:
+        if ant_name in ref_ant_names:
+            i_ids = ref_ant_names.index(ant_name)
+            ant_ids_list.append(ref_ant_ids[i_ids])
+
+    return ant_ids_list

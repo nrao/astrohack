@@ -20,12 +20,13 @@ from rich.console import Console
 from rich.table import Table
 
 from astrohack import open_pointing
+from astrohack.utils import print_dict_types
 
 from astrohack.utils.file import (
     overwrite_file,
 )
 from astrohack.core.extract_holog_2 import (
-    extract_holog_processing,
+    extract_holog_preprocessing,
 )
 from astrohack.core.extract_holog_2 import process_extract_holog_chunk
 from astrohack.utils.text import get_default_file_name
@@ -220,7 +221,8 @@ def extract_holog(
 
     pnt_mds = open_pointing(point_name)
 
-    extract_holog_processing(extract_holog_params, pnt_mds)
+    looping_dict = extract_holog_preprocessing(extract_holog_params, pnt_mds)
+    print_dict_types(looping_dict, show_values=True)
 
     # if count > 0:
     #     logger.info("Finished processing")

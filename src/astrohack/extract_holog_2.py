@@ -35,6 +35,7 @@ from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.extract_pointing import extract_pointing
 from astrohack.core.holog_obs_dict import HologObsDict
+from astrohack.utils.graph import compute_graph_to_mds_tree
 
 from typing import Union, List, Tuple
 
@@ -224,33 +225,26 @@ def extract_holog(
     looping_dict = extract_holog_preprocessing(extract_holog_params, pnt_mds)
     print_dict_types(looping_dict, show_values=True)
 
-    # if count > 0:
-    #     logger.info("Finished processing")
-    #
-    #     holog_dict = load_holog_file(
-    #         file=extract_holog_params["holog_name"], dask_load=True, load_pnt_dict=False
-    #     )
-    #
-    #     create_holog_json(extract_holog_params["holog_name"], holog_dict)
-    #
-    #     holog_attr_file = "{name}/{ext}".format(
-    #         name=extract_holog_params["holog_name"], ext=".holog_input"
-    #     )
-    #     write_meta_data(holog_attr_file, input_pars)
-    #
-    #     with open(
-    #         f"{extract_holog_params['holog_name']}/holog_obs_dict.json", "w"
-    #     ) as outfile:
-    #         json.dump(holog_obs_dict, outfile, cls=NumpyEncoder)
-    #
-    #     holog_mds = AstrohackHologFile(extract_holog_params["holog_name"])
-    #     holog_mds.open()
-    #
-    #     return holog_mds
-    #
-    # else:
-    #     logger.warning("No data to process")
-    #     return None
+    holog_mds = AstrohackHologFile.create_from_input_parameters(
+        holog_name, extract_holog_params
+    )
+
+    extract_holog_params["pnt_mds"] = pnt_mds
+
+    executed_graph = compute_graph_to_mds_tree(
+        looping_dict,
+        process_extract_holog_chunk,
+        extract_holog_params,
+        ["ddi", "map"],
+        holog_mds,
+    )
+
+    if executed_graph:
+        holog_mds.write(mode="a")
+        return holog_mds
+    else:
+        logger.warning("No data to process")
+        return None
 
 
 def generate_holog_obs_dict(

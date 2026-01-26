@@ -477,11 +477,21 @@ def _extract_holog_chunk_jit(
             (n_time, n_chan, n_pol),
             dtype=types.float64,
         )
+
+        # This code here is to uncommented and the snippet above commited for this function to work outside jit
+        # vis_map_dict[antenna_id] = np.zeros(
+        #     (n_time, n_chan, n_pol),
+        #     dtype=np.complex128,
+        # )
+        # sum_weight_map_dict[antenna_id] = np.zeros(
+        #     (n_time, n_chan, n_pol),
+        #     dtype=np.float64,
+        # )
         used_samples_dict[antenna_id] = np.full(n_time, False, dtype=bool)
 
     time_index = 0
     for row in range(n_row):
-        if not flag_row:
+        if np.all(flag_row == False):
             continue
 
         # Find index of time_vis_row[row] in time_samples, assumes time_vis_row is ordered in time

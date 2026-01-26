@@ -705,7 +705,7 @@ def _create_holog_file(
             holog_filename = holog_name
 
             logger.debug(f"Writing {dataset_label} holog data to {holog_filename}")
-            dataset_name = "-".join([map_ant_key, f"ddi_{ddi_key}", map_key])
+            dataset_name = "-".join([map_ant_key, ddi_key, map_key])
 
             holog_mds.add_node_to_tree(
                 xr.DataTree(name=dataset_name, dataset=xds),

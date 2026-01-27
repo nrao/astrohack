@@ -40,7 +40,6 @@ class HologObsDict(dict):
             from IPython.display import JSON
 
             return JSON(self)
-
         else:
             console = Console()
             console.log(self, log_locals=False)

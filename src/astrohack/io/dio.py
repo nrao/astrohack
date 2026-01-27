@@ -12,7 +12,7 @@ from astrohack.utils.file import (
     check_if_file_can_be_opened_2,
 )
 from astrohack.io.mds import AstrohackImageFile
-from astrohack.io.mds import AstrohackHologFile
+from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
@@ -97,7 +97,7 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
             ddi_m: …
             }
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened_2(file, "extract_holog", "0.10.1")
     _data_file = AstrohackHologFile(file=file)
 
     if _data_file.open():

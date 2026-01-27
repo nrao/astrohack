@@ -14,7 +14,7 @@ import toolviper.utils.logger as logger
 from rich.console import Console
 from rich.table import Table
 
-from astrohack import open_pointing
+from astrohack import open_pointing, open_holog
 
 from astrohack.utils.file import (
     overwrite_file,
@@ -49,6 +49,7 @@ def extract_holog(
     pointing_interpolation_method: str = "linear",
     parallel: bool = False,
     overwrite: bool = False,
+    append: bool = False,
 ) -> Union[AstrohackHologFile, None]:
     """
     Extract holography and optionally pointing data, from measurement set. Creates holography output file.
@@ -110,6 +111,10 @@ def extract_holog(
 
     :param overwrite: Boolean for whether to overwrite current holog.zarr and point.zarr files, defaults to False.
     :type overwrite: bool, optional
+
+    :param append: Should data be appended to an existing holog file on disk, append and overwrite cannot be both true\
+    defaults to False.
+    :type append: bool, optional
 
     :return: Holography holog object.
     :rtype: AstrohackHologFile
@@ -212,9 +217,8 @@ def extract_holog(
         f'File {extract_holog_params["ms_name"]} does not exists.'
     )
 
-    overwrite_file(
-        extract_holog_params["holog_name"], extract_holog_params["overwrite"]
-    )
+    if append and overwrite:
+        raise RuntimeError("Append and overwrite cannot be both set to True.")
 
     pnt_mds = open_pointing(point_name)
 
@@ -223,9 +227,16 @@ def extract_holog(
     )
     # print_dict_types(looping_dict, show_values=True)
 
-    holog_mds = AstrohackHologFile.create_from_input_parameters(
-        holog_name, extract_holog_params.copy()
-    )
+    if append:
+        holog_mds = open_holog(holog_name)
+        holog_mds.root.attrs["input_parameters"] = extract_holog_params.copy()
+    else:
+        overwrite_file(
+            extract_holog_params["holog_name"], extract_holog_params["overwrite"]
+        )
+        holog_mds = AstrohackHologFile.create_from_input_parameters(
+            holog_name, extract_holog_params.copy()
+        )
 
     extract_holog_params["pnt_mds"] = pnt_mds
 

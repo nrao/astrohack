@@ -15,7 +15,6 @@ from astrohack.core.holog import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.mds import AstrohackImageFile
 
-
 Array = NewType("Array", Union[np.array, List[int], List[float]])
 
 

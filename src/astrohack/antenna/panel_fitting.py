@@ -5,7 +5,6 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils import gauss_elimination, least_squares_jit
 
-
 ###################################
 #  General purpose                #
 ###################################

@@ -8,7 +8,6 @@ import toolviper
 import shutil
 import xarray as xr
 
-
 datafolder = "paneldata/"
 
 

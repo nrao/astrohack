@@ -11,10 +11,8 @@ from nbconvert.preprocessors.execute import CellExecutionError
 
 start = time.time()
 # Parse args
-parser = argparse.ArgumentParser(
-    description="Runs a set of Jupyter \
-                                              notebooks."
-)
+parser = argparse.ArgumentParser(description="Runs a set of Jupyter \
+                                              notebooks.")
 file_text = """ Notebook file(s) to be run, e.g. '*.ipynb' (default),
 'my_nb1.ipynb', 'my_nb1.ipynb my_nb2.ipynb', 'my_dir/*.ipynb'
 """

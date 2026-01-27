@@ -6,6 +6,7 @@ import toolviper.utils.logger as logger
 
 from typing import Union, List, Any
 from rich.console import Console
+from astrohack import open_holog
 
 
 def _add_prefix_to_keys(prefix, key_list):
@@ -54,6 +55,11 @@ class HologObsDict(dict):
     def to_json_file(self, filepath):
         with open(filepath, "w") as file:
             json.dump(self, file, indent=4)
+
+    @classmethod
+    def from_holog_file(cls, filepath):
+        holog_mds = open_holog(filepath)
+        return cls(holog_mds.root.attrs["holog_obs_dict"])
 
     @classmethod
     def create_from_ms_info(

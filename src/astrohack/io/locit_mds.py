@@ -244,8 +244,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         :type dpi: int, optional
 
         .. _Description:
-
-
+        Plot the array configuration from the antenna positions.
         """
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)

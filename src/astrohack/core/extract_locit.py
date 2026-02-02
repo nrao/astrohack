@@ -409,7 +409,7 @@ def plot_source_table(
     return
 
 
-def plot_array_configuration(parm_dict, root_tree):
+def plot_array_configuration_locit(parm_dict, root_tree):
     """backend for plotting array configuration
 
     Args:

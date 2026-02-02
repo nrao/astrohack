@@ -6,7 +6,10 @@ from typing import Union, Tuple, List
 import toolviper.utils.parameter
 
 from astrohack.antenna import get_proper_telescope
-from astrohack.core.extract_locit import plot_source_table, plot_array_configuration
+from astrohack.core.extract_locit import (
+    plot_source_table,
+    plot_array_configuration_locit,
+)
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
     create_pretty_table,
@@ -246,5 +249,5 @@ class AstrohackLocitFile(AstrohackBaseFile):
         """
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        plot_array_configuration(param_dict, self.root)
+        plot_array_configuration_locit(param_dict, self.root)
         return

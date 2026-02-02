@@ -84,6 +84,16 @@ def extract_pointing_preprocessing(input_params):
     # scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
     obs_modes = ctb.getcol("OBS_MODE")
     ctb.close()
+
+    obs_ctb = ctables.table(
+        os.path.join(ms_name, "OBSERVATION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    telescope_name = obs_ctb.getcol("TELESCOPE_NAME")[0]
+
     mapping_state_ids = get_valid_state_ids(obs_modes)
 
     mapping_state_ids = np.array(mapping_state_ids)
@@ -103,6 +113,7 @@ def extract_pointing_preprocessing(input_params):
         "antenna_names": antenna_names,
         "antenna_ids": antenna_ids,
         "antenna_stations": antenna_stations,
+        "telescope_name": telescope_name,
     }
 
     ant_dist_matrix = compute_antenna_baseline_distance_matrix_dict(
@@ -410,6 +421,11 @@ def plot_pointing_in_time_together(input_params, point_mds):
         )
     else:
         logger.warning(f"No valid antennas selected, no plot produced.")
+    return
+
+
+def plot_array_configuration_pointing(input_params, point_mds):
+
     return
 
 

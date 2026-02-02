@@ -92,14 +92,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         ack=False,
     )
 
-    obs_ctb = ctables.table(
-        os.path.join(extract_holog_params["ms_name"], "OBSERVATION"),
-        readonly=True,
-        lockoptions={"option": "usernoread"},
-        ack=False,
-    )
-
-    telescope_name = obs_ctb.getcol("TELESCOPE_NAME")[0]
+    telescope_name = pnt_mds.root.attrs["telescope_name"]
     # start_time_unix = obs_ctb.getcol('TIME_RANGE')[0][0] - 3506716800.0
     # time = Time(start_time_unix, format='unix').jyear
 

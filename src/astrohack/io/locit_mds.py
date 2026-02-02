@@ -8,7 +8,6 @@ import toolviper.utils.parameter
 from astrohack.antenna import get_proper_telescope
 from astrohack.core.extract_locit import (
     plot_source_table,
-    plot_array_configuration_locit,
 )
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
@@ -20,6 +19,7 @@ from astrohack.utils import (
 )
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.validation import custom_unit_checker
+from astrohack.visualization.diagnostics import plot_array_configuration
 
 
 class AstrohackLocitFile(AstrohackBaseFile):
@@ -249,5 +249,5 @@ class AstrohackLocitFile(AstrohackBaseFile):
         """
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        plot_array_configuration_locit(param_dict, self.root)
+        plot_array_configuration(param_dict, self.root, "locit")
         return

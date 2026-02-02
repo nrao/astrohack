@@ -688,8 +688,6 @@ def _create_output_xds(
     fit_rate = locit_parms["fit_delay_rate"]
     error = np.sqrt(variance)
 
-    # print(delays)
-
     output_xds = xr.Dataset()
     output_xds.attrs["polarization"] = locit_parms["polarization"]
     output_xds.attrs["frequency"] = frequency
@@ -723,14 +721,11 @@ def _create_output_xds(
     output_xds["ELEVATION"] = xr.DataArray(coordinates[2, :], dims=["time"])
     output_xds["LST"] = xr.DataArray(lst, dims=["time"])
 
-    # print(output_xds["DELAYS"].values)
-
     if ddi_key is None:
         xdt_name = f"{ant_key}"
     else:
         xdt_name = f"{ant_key}-{ddi_key}"
     output_xdt = xr.DataTree(dataset=output_xds.assign_coords(coords), name=xdt_name)
-    print(output_xds["DELAYS"].values)
     return output_xdt
 
 

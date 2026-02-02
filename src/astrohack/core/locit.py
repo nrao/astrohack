@@ -14,7 +14,7 @@ from astrohack.utils import (
     compute_antenna_relative_off,
 )
 
-from astrohack.core.extract_locit import plot_antenna_position
+from astrohack.visualization.diagnostics import plot_one_antenna_position
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
 from astrohack.utils.constants import *
@@ -158,8 +158,6 @@ def locit_difference_chunk(locit_parms, output_mds):
         locit_parms: the locit parameter dictionary
         output_mds: Output mds file onto which to add results
 
-    Returns:
-    xds save to disk in the .zarr format
     """
     ant_xdt = locit_parms["xdt_data"]
     antenna_info = ant_xdt.attrs["antenna_info"]
@@ -1297,13 +1295,13 @@ def plot_antenna_position_corrections_worker(
         text = "  " + antenna["name"]
         if antenna["name"] == ref_ant:
             text += "*"
-        plot_antenna_position(
+        plot_one_antenna_position(
             xy_whole, xy_inner, ew_off, ns_off, text, box_size, marker="+"
         )
         add_antenna_position_corrections_to_plot(
             xy_whole, xy_inner, ew_off, ns_off, corrections[0], corrections[1], box_size
         )
-        plot_antenna_position(
+        plot_one_antenna_position(
             z_whole, z_inner, ew_off, ns_off, text, box_size, marker="+"
         )
         add_antenna_position_corrections_to_plot(

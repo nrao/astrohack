@@ -287,9 +287,17 @@ def make_ant_pnt_chunk(pnt_params, output_mds):
     pnt_xds.attrs["mapping_scans_obs_dict"] = [mapping_scans_obs_dict]
     ###############
 
-    pnt_xds.attrs["ant_name"] = ant_name
-    pnt_xds.attrs["ant_pos"] = ant_pos
-    pnt_xds.attrs["ant_station"] = ant_station
+    ant_rad = np.sqrt(ant_pos[0] ** 2 + ant_pos[1] ** 2 + ant_pos[2] ** 2)
+    ant_lat = np.arcsin(ant_pos[2] / ant_rad)
+    ant_lon = -np.arccos(ant_pos[0] / (ant_rad * np.cos(ant_lat)))
+
+    pnt_xds.attrs["antenna_info"] = {
+        "name": ant_name,
+        "station": ant_station,
+        "longitude": ant_lon,
+        "latitude": ant_lat,
+        "radius": ant_rad,
+    }
 
     output_mds.add_node_to_tree(
         xr.DataTree(dataset=pnt_xds, name=ant_key),
@@ -421,11 +429,6 @@ def plot_pointing_in_time_together(input_params, point_mds):
         )
     else:
         logger.warning(f"No valid antennas selected, no plot produced.")
-    return
-
-
-def plot_array_configuration_pointing(input_params, point_mds):
-
     return
 
 

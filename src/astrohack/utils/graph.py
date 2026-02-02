@@ -24,7 +24,7 @@ def _construct_xdtree_graph_recursively(
         else:
             args = [param_dict, output_mds]
         if parallel:
-            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(args)))
+            delayed_list.append(dask.delayed(chunk_function)(*args))
         else:
             delayed_list.append((chunk_function, args))
     else:
@@ -78,7 +78,7 @@ def _construct_general_graph_recursively(
         else:
             args = [param_dict, output_mds]
         if parallel:
-            delayed_list.append(dask.delayed(chunk_function)(dask.delayed(args)))
+            delayed_list.append(dask.delayed(chunk_function)(*args))
         else:
             delayed_list.append((chunk_function, args))
     else:

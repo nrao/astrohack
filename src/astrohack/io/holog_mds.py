@@ -1,4 +1,13 @@
+import numpy as np
+import pathlib
+
+from astropy.time import Time
+from typing import Union, Tuple, List
+
 from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.utils.constants import fontsize, markersize
+from astrohack.visualization.plot_tools import close_figure, create_figure_and_axes
+from astrohack.utils.graph import compute_graph
 
 
 class AstrohackHologFile(AstrohackBaseFile):
@@ -15,61 +24,62 @@ class AstrohackHologFile(AstrohackBaseFile):
         super().__init__(file=file)
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_diagnostics(
-    #     self,
-    #     destination: str,
-    #     delta: float = 0.01,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     map_id: Union[int, List[int]] = "all",
-    #     complex_split: str = "polar",
-    #     display: bool = False,
-    #     figure_size: Union[Tuple, List[float], np.array] = None,
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Plot diagnostic calibration plots from the holography data file.
-    #
-    #     :param destination: Name of the destination folder to contain diagnostic plots
-    #     :type destination: str
-    #     :param delta: Defines a fraction of cell_size around which to look for peaks., defaults to 0.01
-    #     :type delta: float, optional
-    #     :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
-    #     configuration,  defaults to "all" when None, ex. 0
-    #     :type map_id: list or int, optional
-    #     :param complex_split: How to split complex data, cartesian (real + imaginary) or polar (amplitude + phase), \
-    #     default is polar
-    #     :type complex_split: str, optional
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #     :param parallel: Run in parallel, defaults to False
-    #     :type parallel: bool, optional
-    #
-    #     **Additional Information**
-    #     The visibilities extracted by extract_holog are complex due to the nature of interferometric measurements. To
-    #     ease the visualization of the complex data it can be split into real and imaginary parts (cartesian) or in
-    #     amplitude and phase (polar).
-    #
-    #     .. rubric:: Available complex splitting possibilities:
-    #     - *cartesian*: Split is done to a real part and an imaginary part in the plots
-    #     - *polar*:     Split is done to an amplitude and a phase in the plots
-    #
-    #     """
-    #
-    #     param_dict = locals()
-    #     param_dict["map"] = map_id
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     key_order = ["ddi", "map", "ant"]
-    #     compute_graph(self, calibration_plot_chunk, param_dict, key_order, parallel)
+    def plot_diagnostics(
+        self,
+        destination: str,
+        delta: float = 0.01,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        map_id: Union[int, List[int]] = "all",
+        complex_split: str = "polar",
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """ Plot diagnostic calibration plots from the holography data file.
+
+        :param destination: Name of the destination folder to contain diagnostic plots
+        :type destination: str
+        :param delta: Defines a fraction of cell_size around which to look for peaks., defaults to 0.01
+        :type delta: float, optional
+        :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+        :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+        :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
+        configuration,  defaults to "all" when None, ex. 0
+        :type map_id: list or int, optional
+        :param complex_split: How to split complex data, cartesian (real + imaginary) or polar (amplitude + phase), \
+        default is polar
+        :type complex_split: str, optional
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+        :param parallel: Run in parallel, defaults to False
+        :type parallel: bool, optional
+
+        **Additional Information**
+        The visibilities extracted by extract_holog are complex due to the nature of interferometric measurements. To
+        ease the visualization of the complex data it can be split into real and imaginary parts (cartesian) or in
+        amplitude and phase (polar).
+
+        .. rubric:: Available complex splitting possibilities:
+        - *cartesian*: Split is done to a real part and an imaginary part in the plots
+        - *polar*:     Split is done to an amplitude and a phase in the plots
+
+        """
+
+        param_dict = locals()
+        param_dict["map"] = map_id
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        key_order = ["ant", "ddi", "map"]
+        compute_graph(self, _calibration_plot_chunk, param_dict, key_order, parallel)
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     # def plot_lm_sky_coverage(
@@ -245,3 +255,109 @@ class AstrohackHologFile(AstrohackBaseFile):
     #         output_file.write(summary)
     #     if print_summary:
     #         print(summary)
+
+
+def _extract_indices(laxis, maxis, squared_radius):
+    indices = []
+
+    assert laxis.shape[0] == maxis.shape[0], "l, m must be same size."
+
+    for i in range(laxis.shape[0]):
+        squared_sum = np.power(laxis[i], 2) + np.power(maxis[i], 2)
+        if squared_sum <= squared_radius:
+            indices.append(i)
+
+    return np.array(indices)
+
+
+def _calibration_plot_chunk(param_dict):
+    xds_data = param_dict["xdt_data"].dataset
+    delta = param_dict["delta"]
+    complex_split = param_dict["complex_split"]
+    display = param_dict["display"]
+    figuresize = param_dict["figure_size"]
+    destination = param_dict["destination"]
+    dpi = param_dict["dpi"]
+    thisfont = 1.2 * fontsize
+
+    UNIX_CONVERSION = 3506716800
+
+    radius = np.power(xds_data.attrs["summary"]["beam"]["cell size"] * delta, 2)
+
+    l_axis = xds_data.DIRECTIONAL_COSINES.values[..., 0]
+    m_axis = xds_data.DIRECTIONAL_COSINES.values[..., 1]
+
+    assert l_axis.shape[0] == m_axis.shape[0], "l, m dimensions don't match!"
+
+    indices = _extract_indices(laxis=l_axis, maxis=m_axis, squared_radius=radius)
+
+    if complex_split == "cartesian":
+        vis_dict = {
+            "data": [
+                xds_data.isel(time=indices).VIS.real,
+                xds_data.isel(time=indices).VIS.imag,
+            ],
+            "polarization": [0, 3],
+            "label": ["REAL", "IMAG"],
+        }
+    else:
+        vis_dict = {
+            "data": [
+                xds_data.isel(time=indices).apply(np.abs).VIS,
+                xds_data.isel(time=indices).apply(np.angle).VIS,
+            ],
+            "polarization": [0, 3],
+            "label": ["AMP", "PHASE"],
+        }
+
+    times = np.unique(
+        Time(vis_dict["data"][0].time.data - UNIX_CONVERSION, format="unix").iso
+    )
+
+    fig, axis = create_figure_and_axes(figuresize, [4, 1], sharex=True)
+
+    chan = np.arange(0, xds_data.chan.data.shape[0])
+
+    length = times.shape[0]
+
+    for i, vis in enumerate(vis_dict["data"]):
+        for j, pol in enumerate(vis_dict["polarization"]):
+            for time in range(length):
+                k = 2 * i + j
+                axis[k].plot(
+                    chan,
+                    vis[time, :, pol],
+                    marker="o",
+                    label=times[time],
+                    markersize=markersize,
+                )
+                axis[k].set_ylabel(
+                    f'Vis ({vis_dict["label"][i]}; {xds_data.pol.values[pol]})',
+                    fontsize=thisfont,
+                )
+                axis[k].tick_params(axis="both", which="major", labelsize=thisfont)
+
+    axis[3].set_xlabel("Channel", fontsize=thisfont)
+    axis[0].legend(
+        bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+        loc="lower left",
+        ncols=4,
+        mode="expand",
+        borderaxespad=0.0,
+        fontsize=fontsize,
+    )
+
+    fig.suptitle(
+        f'Data Calibration Check: [{param_dict["this_ddi"]}, {param_dict["this_map"]}, {param_dict["this_ant"]}]',
+        ha="center",
+        va="center",
+        x=0.5,
+        y=0.95,
+        rotation=0,
+        fontsize=1.5 * thisfont,
+    )
+    plotfile = (
+        f'{destination}/holog_diagnostics_{param_dict["this_ant"]}_'
+        f'{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
+    )
+    close_figure(fig, None, plotfile, dpi, display, tight_layout=False)

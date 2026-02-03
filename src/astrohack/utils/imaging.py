@@ -78,7 +78,7 @@ def parallactic_derotation(data, parallactic_angle_dict):
     # Find the middle index of the array. This is calculated because there might be a desire to change
     # the array length at some point and I don't want to hard code the middle value.
     #
-    # It is assumed, and should be true, that the parallacitc angle array size is consistent over map.
+    # It is assumed, and should be true, that the parallactic angle array size is consistent over map.
     maps = list(parallactic_angle_dict.keys())
 
     # Get the median index for the first map (this should be the same for every map).

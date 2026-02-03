@@ -17,9 +17,9 @@ Array = NewType("Array", Union[np.array, List[int], List[float]])
 # @toolviper.utils.parameter.validate()
 def holog(
     holog_name: str,
+    image_name: str = None,
     grid_size: Union[int, Array, List] = None,
     cell_size: Union[float, Array, List] = None,
-    image_name: str = None,
     padding_factor: int = 10,
     grid_interpolation_mode: str = "gaussian",
     chan_average: bool = True,
@@ -40,6 +40,10 @@ def holog(
     :param holog_name: Name of holography .holog.zarr file to process.
     :type holog_name: str
 
+    :param image_name: Defines the name of the output image name. If value is None, the name will be set to \
+    <base_name>.image.zarr, defaults to None
+    :type image_name: str, optional
+
     :param grid_size: Numpy array specifying the dimensions of the grid used in data gridding. If not specified \
     grid_size is calculated using POINTING_OFFSET in pointing table.
     :type grid_size: numpy.ndarray, dtype int, list optional
@@ -47,10 +51,6 @@ def holog(
     :param cell_size: Size 2 array defining the cell size of each beam grid bin in radians. If not specified, the used \
     cell_size is the one given in the observation_summary of the input holog file.
     :type cell_size: numpy.ndarray, dtype float, list optional
-
-    :param image_name: Defines the name of the output image name. If value is None, the name will be set to \
-    <base_name>.image.zarr, defaults to None
-    :type image_name: str, optional
 
     :param padding_factor: Padding factor applied to beam grid before computing the fast-fourier transform. The default\
      has been set for operation on most systems. The user should be aware of memory constraints before increasing this\

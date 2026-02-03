@@ -17,6 +17,11 @@ from astrohack.utils.fits import (
     put_stokes_axis_in_fits_header,
     put_resolution_in_fits_header,
 )
+from astrohack.visualization.plot_tools import (
+    create_figure_and_axes,
+    close_figure,
+    simple_imshow_map_plot,
+)
 
 
 class AstrohackImageFile(AstrohackBaseFile):
@@ -172,57 +177,67 @@ class AstrohackImageFile(AstrohackBaseFile):
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_beams(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     complex_split: str = "polar",
-    #     angle_unit: str = "deg",
-    #     phase_unit: str = "deg",
-    #     display: bool = False,
-    #     colormap: str = "viridis",
-    #     figure_size: Union[Tuple, List[float], np.array] = (8, 4.5),
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Beam plots from the data in an AstrohackImageFIle object.
-    #
-    #     :param destination: Name of the destination folder to contain plots
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param angle_unit: Unit for L and M axes in plots, default is 'deg'.
-    #     :type angle_unit: str, optional
-    #     :param complex_split: How to split complex beam data, cartesian (real + imag) or polar (amplitude + phase, \
-    #     default)
-    #     :type complex_split: str, optional
-    #     :param phase_unit: Unit for phase in 'polar' plots, default is 'deg'.
-    #     :type phase_unit: str
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param colormap: Colormap for plots, default is viridis
-    #     :type colormap: str, optional
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #     :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Produce plots from ``astrohack.holog`` results for analysis
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self, plot_beam_chunk, param_dict, ["ant", "ddi"], parallel=parallel
-    #     )
-    #
+    def plot_beams(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        complex_split: str = "polar",
+        angle_unit: str = "deg",
+        phase_unit: str = "deg",
+        display: bool = False,
+        colormap: str = "viridis",
+        figure_size: Union[Tuple, List[float], np.array] = (8, 4.5),
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """ Beam plots from the data in an AstrohackImageFIle object.
+
+        :param destination: Name of the destination folder to contain plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param angle_unit: Unit for L and M axes in plots, default is 'deg'.
+        :type angle_unit: str, optional
+
+        :param complex_split: How to split complex beam data, cartesian (real + imag) or polar (amplitude + phase, \
+        default)
+        :type complex_split: str, optional
+
+        :param phase_unit: Unit for phase in 'polar' plots, default is 'deg'.
+        :type phase_unit: str
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param colormap: Colormap for plots, default is viridis
+        :type colormap: str, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Produce plots from ``astrohack.holog`` results for analysis
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, _plot_beam_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     # def export_phase_fit_results(
     #     self,
@@ -613,3 +628,122 @@ def _plot_aperture_chunk(parm_dict):
             surface.plot_amplitude(basename, "image_aperture", parm_dict)
         else:
             logger.warning(f"Polarization state {pol_state} not available in data")
+
+
+def _plot_beam_chunk(parm_dict):
+    """
+    Chunk function for the user facing function plot_beams
+    Args:
+        parm_dict: parameter dictionary
+    """
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    input_xds = parm_dict["xdt_data"]
+    laxis = input_xds.l.values * convert_unit(
+        "rad", parm_dict["angle_unit"], "trigonometric"
+    )
+    maxis = input_xds.m.values * convert_unit(
+        "rad", parm_dict["angle_unit"], "trigonometric"
+    )
+    if input_xds.sizes["chan"] != 1:
+        raise Exception("Only single channel holographies supported")
+
+    if input_xds.sizes["time"] != 1:
+        raise Exception("Only single mapping holographies supported")
+
+    full_beam = input_xds.BEAM.isel(time=0, chan=0).values
+    pol_axis = input_xds.pol.values
+
+    for i_pol, pol in enumerate(pol_axis):
+        basename = f"{destination}/{antenna}_{ddi}_pol_{pol}"
+        _plot_beam_by_pol(laxis, maxis, pol, full_beam[i_pol, ...], basename, parm_dict)
+
+
+def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
+    """
+    Plot a beam
+    Args:
+        laxis: L axis
+        maxis: M axis
+        pol: Polarization state
+        beam_image: Beam data
+        basename: Basename for output file
+        parm_dict: dictionary with general and plotting parameters
+    """
+
+    fig, axes = create_figure_and_axes(parm_dict["figure_size"], [1, 2])
+    norm_z_label = f"Z Scale [Normalized]"
+    x_label = f'L axis [{parm_dict["angle_unit"]}]'
+    y_label = f'M axis [{parm_dict["angle_unit"]}]'
+
+    if parm_dict["complex_split"] == "cartesian":
+        vmin = np.min([np.nanmin(beam_image.real), np.nanmin(beam_image.imag)])
+        vmax = np.max([np.nanmax(beam_image.real), np.nanmax(beam_image.imag)])
+        simple_imshow_map_plot(
+            axes[0],
+            fig,
+            laxis,
+            maxis,
+            beam_image.real,
+            "Real part",
+            parm_dict["colormap"],
+            [vmin, vmax],
+            x_label=x_label,
+            y_label=y_label,
+            z_label=norm_z_label,
+        )
+        simple_imshow_map_plot(
+            axes[1],
+            fig,
+            laxis,
+            maxis,
+            beam_image.imag,
+            "Imaginary part",
+            parm_dict["colormap"],
+            [vmin, vmax],
+            x_label=x_label,
+            y_label=y_label,
+            z_label=norm_z_label,
+        )
+    else:
+        scale = convert_unit("rad", parm_dict["phase_unit"], "trigonometric")
+        amplitude = np.absolute(beam_image)
+        phase = np.angle(beam_image) * scale
+
+        simple_imshow_map_plot(
+            axes[0],
+            fig,
+            laxis,
+            maxis,
+            amplitude,
+            "Amplitude",
+            parm_dict["colormap"],
+            [np.nanmin(amplitude[amplitude > 1e-8]), np.nanmax(amplitude)],
+            x_label=x_label,
+            y_label=y_label,
+            z_label=norm_z_label,
+        )
+        simple_imshow_map_plot(
+            axes[1],
+            fig,
+            laxis,
+            maxis,
+            phase,
+            "Phase",
+            parm_dict["colormap"],
+            [-np.pi * scale, np.pi * scale],
+            x_label=x_label,
+            y_label=y_label,
+            z_label=f"Phase [{parm_dict['phase_unit']}]",
+        )
+
+    plot_name = add_prefix(
+        add_prefix(basename, parm_dict["complex_split"]), "image_beam"
+    )
+    suptitle = (
+        f'Beam for Antenna: {parm_dict["this_ant"].split("_")[1]}, DDI: {parm_dict["this_ddi"].split("_")[1]}, '
+        f"pol. State: {pol}"
+    )
+    close_figure(fig, suptitle, plot_name, parm_dict["dpi"], parm_dict["display"])
+    return

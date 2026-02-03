@@ -8,8 +8,18 @@ import toolviper.utils.logger as logger
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.graph import compute_graph
-from astrohack.utils.constants import clight
+from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
+from astrohack.utils.phase_fitting import aips_par_names
+
+from astrohack.utils.text import (
+    format_label,
+    format_frequency,
+    create_pretty_table,
+    string_to_ascii_file,
+    create_dataset_label,
+    format_value_error,
+)
 from astrohack.utils.fits import (
     write_fits,
     add_prefix,
@@ -239,40 +249,46 @@ class AstrohackImageFile(AstrohackBaseFile):
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    # def export_phase_fit_results(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     angle_unit: str = "deg",
-    #     length_unit: str = "mm",
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """Export perturbations phase fit results from the data in an AstrohackImageFIle object to ASCII files.
-    #
-    #     :param destination: Name of the destination folder to contain ASCII files
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param angle_unit: Unit for results that are angles.
-    #     :type angle_unit: str, optional
-    #     :param length_unit: Unit for results that are displacements.
-    #     :type length_unit: str, optional
-    #     :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Export the results of the phase fitting process in ``astrohack.holog`` for analysis
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self, export_phase_fit_chunk, param_dict, ["ant", "ddi"], parallel=parallel
-    #     )
+    def export_phase_fit_results(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        angle_unit: str = "deg",
+        length_unit: str = "mm",
+        parallel: bool = False,
+    ) -> None:
+        """Export perturbations phase fit results from the data in an AstrohackImageFIle object to ASCII files.
+
+        :param destination: Name of the destination folder to contain ASCII files
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param angle_unit: Unit for results that are angles.
+        :type angle_unit: str, optional
+
+        :param length_unit: Unit for results that are displacements.
+        :type length_unit: str, optional
+
+        :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Export the results of the phase fitting process in ``astrohack.holog`` for analysis
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, _export_phase_fit_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+
     #
     # @toolviper.utils.parameter.validate()
     # def export_zernike_fit_results(
@@ -747,3 +763,54 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
     )
     close_figure(fig, suptitle, plot_name, parm_dict["dpi"], parm_dict["display"])
     return
+
+
+def _export_phase_fit_chunk(parm_dict):
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    phase_fit_results = parm_dict["xdt_data"].attrs["phase_fitting"]
+    if phase_fit_results is None:
+        logger.warning(
+            f"No phase fit results to export for {create_dataset_label(antenna, ddi)}"
+        )
+        return
+
+    angle_unit = parm_dict["angle_unit"]
+    length_unit = parm_dict["length_unit"]
+    field_names = ["Parameter", "Value", "Unit"]
+    alignment = ["l", "r", "c"]
+    outstr = ""
+
+    for mapkey, map_dict in phase_fit_results.items():
+        for freq, freq_dict in map_dict.items():
+            for pol, pol_dict in freq_dict.items():
+                outstr += (
+                    f'* {mapkey.replace("_", " ")}, Frequency {format_frequency(freq)}, '
+                    f"polarization state {pol}:\n\n "
+                )
+                table = create_pretty_table(field_names, alignment)
+                for par_name in aips_par_names:
+                    item = pol_dict[par_name]
+                    val = item["value"]
+                    err = item["error"]
+                    unit = item["unit"]
+                    if unit in length_units:
+                        fac = convert_unit(unit, length_unit, "length")
+                    elif unit in trigo_units:
+                        fac = convert_unit(unit, angle_unit, "trigonometric")
+                    else:
+                        msg = f"Unknown unit {unit}"
+                        logger.error(msg)
+                        raise Exception(msg)
+
+                    row = [
+                        format_label(par_name),
+                        format_value_error(fac * val, fac * err, 1.0, 1e-4),
+                        unit,
+                    ]
+                    table.add_row(row)
+
+                outstr += table.get_string() + "\n\n"
+
+    string_to_ascii_file(outstr, f"{destination}/image_phase_fit_{antenna}_{ddi}.txt")

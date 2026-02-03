@@ -1,6 +1,7 @@
 import numpy as np
 import pathlib
 
+from datetime import date
 from astropy.time import Time
 from typing import Union, Tuple, List
 
@@ -15,6 +16,7 @@ from astrohack.visualization.plot_tools import (
 )
 from astrohack.utils.graph import compute_graph
 from astrohack.utils.conversion import convert_unit
+from astrohack.utils.algorithms import compute_average_stokes_visibilities
 
 
 class AstrohackHologFile(AstrohackBaseFile):
@@ -180,42 +182,41 @@ class AstrohackHologFile(AstrohackBaseFile):
         compute_graph(self, _plot_lm_coverage_chunk, param_dict, key_order, parallel)
         return
 
-    #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def export_to_aips(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     map_id: Union[int, List[int]] = "all",
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Export data compatible to AIPS's HOLOG task
-    #
-    #     :param destination: Name of the destination folder to contain SCII files
-    #     :type destination: str
-    #     :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
-    #     configuration,  defaults to "all" when None, ex. 0
-    #     :type map_id: list or int, optional
-    #     :param parallel: Run in parallel, defaults to False
-    #     :type parallel: bool, optional
-    #
-    #     **Additional Information**
-    #
-    #     This method converts the data for an Antenna mapping to the ASCII format used by AIPS's HOLOG task.
-    #     Currently only stokes I is supported.
-    #     """
-    #     param_dict = locals()
-    #     param_dict["map"] = map_id
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     key_order = ["ddi", "map", "ant"]
-    #     compute_graph(self, export_to_aips, param_dict, key_order, parallel)
-    #     return
+    def export_to_aips(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        map_id: Union[int, List[int]] = "all",
+        parallel: bool = False,
+    ) -> None:
+        """ Export data compatible to AIPS's HOLOG task
+
+        :param destination: Name of the destination folder to contain SCII files
+        :type destination: str
+        :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+        :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+        :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
+        configuration,  defaults to "all" when None, ex. 0
+        :type map_id: list or int, optional
+        :param parallel: Run in parallel, defaults to False
+        :type parallel: bool, optional
+
+        **Additional Information**
+
+        This method converts the data for an Antenna mapping to the ASCII format used by AIPS's HOLOG task.
+        Currently only stokes I is supported.
+        """
+        param_dict = locals()
+        param_dict["map"] = map_id
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        key_order = ["ant", "ddi", "map"]
+        compute_graph(self, _export_to_aips_chunk, param_dict, key_order, parallel)
+        return
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     # def observation_summary(
@@ -586,4 +587,50 @@ def _plot_correlation_sub(visi, weights, correlation, pol_axis, time, lm, param_
             f'Correlation {correlation} is not present for {param_dict["this_ant"]} {param_dict["this_ddi"]} '
             f'{param_dict["this_map"]}, skipping...'
         )
+    return
+
+
+def _export_to_aips_chunk(param_dict):
+    xds_data = param_dict["xdt_data"]
+    stokes = "I"
+    stokes_vis = compute_average_stokes_visibilities(xds_data, stokes)
+    filename = (
+        f'{param_dict["destination"]}/holog_visibilities_{param_dict["this_ant"]}_'
+        f'{param_dict["this_ddi"]}_{param_dict["this_map"]}.txt'
+    )
+    ant_num = xds_data.attrs["summary"]["general"]["antenna name"].split("a")[1]
+    cmt = "#! "
+
+    today = date.today().strftime("%y%m%d")
+    outstr = (
+        cmt
+        + f"RefAnt = ** Antenna = {ant_num} Stokes = '{stokes}_' Freq =  {stokes_vis.attrs['frequency']:.9f}"
+        f" DATE-OBS = '{today}'\n"
+    )
+    outstr += cmt + "MINsamp =   0  Npoint =   1\n"
+    outstr += cmt + "IFnumber =   2   Channel =    32.0\n"
+    outstr += cmt + "TimeRange = -99,  0,  0,  0,  999,  0,  0,  0\n"
+    outstr += cmt + "Averaged Ref-Ants = 10, 15,\n"
+    outstr += cmt + "DOCAL = T  DOPOL =-1\n"
+    outstr += cmt + "BCHAN=     4 ECHAN=    60 CHINC=  1 averaged\n"
+    outstr += (
+        cmt
+        + "   LL             MM             AMPLITUDE      PHASE         SIGMA(AMP)   SIGMA(PHASE)\n"
+    )
+    lm = xds_data["DIRECTIONAL_COSINES"].values
+    amp = stokes_vis["AMPLITUDE"].values
+    pha = stokes_vis["PHASE"].values
+    sigma_amp = stokes_vis["SIGMA_AMP"]
+    sigma_pha = stokes_vis["SIGMA_PHA"]
+    for i_time in range(len(xds_data.time)):
+        if np.isfinite(sigma_amp[i_time]):
+            outstr += (
+                f"{lm[i_time, 0]:15.7f}{lm[i_time, 1]:15.7f}{amp[i_time]:15.7f}{pha[i_time]:15.7f}"
+                f"{sigma_amp[i_time]:15.7f}{sigma_pha[i_time]:15.7f}\n"
+            )
+    outstr += f"{cmt}Average number samples per point =   1.000"
+
+    with open(filename, "w") as outfile:
+        outfile.write(outstr)
+
     return

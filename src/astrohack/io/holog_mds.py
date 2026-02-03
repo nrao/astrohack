@@ -4,10 +4,17 @@ import pathlib
 from astropy.time import Time
 from typing import Union, Tuple, List
 
+from toolviper.utils import logger as logger
+
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.constants import fontsize, markersize
-from astrohack.visualization.plot_tools import close_figure, create_figure_and_axes
+from astrohack.visualization.plot_tools import (
+    close_figure,
+    create_figure_and_axes,
+    scatter_plot,
+)
 from astrohack.utils.graph import compute_graph
+from astrohack.utils.conversion import convert_unit
 
 
 class AstrohackHologFile(AstrohackBaseFile):
@@ -41,24 +48,33 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         :param destination: Name of the destination folder to contain diagnostic plots
         :type destination: str
+
         :param delta: Defines a fraction of cell_size around which to look for peaks., defaults to 0.01
         :type delta: float, optional
+
         :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
         :type ant: list or str, optional
+
         :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
         :type ddi: list or int, optional
+
         :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
         configuration,  defaults to "all" when None, ex. 0
         :type map_id: list or int, optional
+
         :param complex_split: How to split complex data, cartesian (real + imaginary) or polar (amplitude + phase), \
         default is polar
         :type complex_split: str, optional
+
         :param display: Display plots inline or suppress, defaults to True
         :type display: bool, optional
+
         :param figure_size: 2 element array/list/tuple with the plot sizes in inches
         :type figure_size: numpy.ndarray, list, tuple, optional
+
         :param dpi: dots per inch to be used in plots, default is 300
         :type dpi: int, optional
+
         :param parallel: Run in parallel, defaults to False
         :type parallel: bool, optional
 
@@ -80,78 +96,90 @@ class AstrohackHologFile(AstrohackBaseFile):
         key_order = ["ant", "ddi", "map"]
         compute_graph(self, _calibration_plot_chunk, param_dict, key_order, parallel)
 
-    #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_lm_sky_coverage(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     map_id: Union[int, List[int]] = "all",
-    #     angle_unit: str = "deg",
-    #     time_unit: str = "hour",
-    #     plot_correlation: Union[str, List[str]] = None,
-    #     complex_split: str = "polar",
-    #     phase_unit: str = "deg",
-    #     display: bool = False,
-    #     figure_size: Union[Tuple, List[float], np.array] = None,
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Plot directional cosine coverage.
-    #
-    #     :param destination: Name of the destination folder to contain plots
-    #     :type destination: str
-    #     :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
-    #     configuration,  defaults to "all" when None, ex. 0
-    #     :type map_id: list or int, optional
-    #     :param angle_unit: Unit for L and M axes in plots, default is 'deg'.
-    #     :type angle_unit: str, optional
-    #     :param time_unit: Unit for time axis in plots, default is 'hour'.
-    #     :type time_unit: str, optional
-    #     :param plot_correlation: Which correlation to plot against L and M, default is None (no correlation plots).
-    #     :type plot_correlation: str, list, optional
-    #     :param complex_split: How to split complex data, cartesian (real + imaginary) or polar (amplitude + phase), \
-    #     default is polar
-    #     :type complex_split: str, optional
-    #     :param phase_unit: Unit for phase in 'polar' plots, default is 'deg'.
-    #     :type phase_unit: str
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #     :param parallel: Run in parallel, defaults to False
-    #     :type parallel: bool, optional
-    #
-    #     **Additional Information**
-    #     The visibilities extracted by extract_holog are complex due to the nature of interferometric measurements. To
-    #     ease the visualization of the complex data it can be split into real and imaginary parts (cartesian) or in
-    #     amplitude and phase (polar).
-    #
-    #     .. rubric:: Available complex splitting possibilities:
-    #     - *cartesian*: Split is done to a real part and an imaginary part in the plots
-    #     - *polar*:     Split is done to an amplitude and a phase in the plots
-    #
-    #     .. rubric:: Plotting correlations:
-    #     - *RR, RL, LR, LL*: Are available for circular systems
-    #     - *XX, XY, YX, YY*: Are available for linear systems
-    #     - *all*: Plot all correlations in dataset
-    #
-    #     """
-    #
-    #     param_dict = locals()
-    #     param_dict["map"] = map_id
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     key_order = ["ddi", "map", "ant"]
-    #     compute_graph(self, plot_lm_coverage, param_dict, key_order, parallel)
-    #     return
+    def plot_lm_sky_coverage(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        map_id: Union[int, List[int]] = "all",
+        angle_unit: str = "deg",
+        time_unit: str = "hour",
+        plot_correlation: Union[str, List[str]] = None,
+        complex_split: str = "polar",
+        phase_unit: str = "deg",
+        display: bool = False,
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """ Plot directional cosine coverage.
+
+        :param destination: Name of the destination folder to contain plots
+        :type destination: str
+
+        :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param map_id: map ID to use in subselection. This relates to which antenna are in the mapping vs. scanning \
+        configuration,  defaults to "all" when None, ex. 0
+        :type map_id: list or int, optional
+
+        :param angle_unit: Unit for L and M axes in plots, default is 'deg'.
+        :type angle_unit: str, optional
+
+        :param time_unit: Unit for time axis in plots, default is 'hour'.
+        :type time_unit: str, optional
+
+        :param plot_correlation: Which correlation to plot against L and M, default is None (no correlation plots).
+        :type plot_correlation: str, list, optional
+
+        :param complex_split: How to split complex data, cartesian (real + imaginary) or polar (amplitude + phase), \
+        default is polar
+        :type complex_split: str, optional
+
+        :param phase_unit: Unit for phase in 'polar' plots, default is 'deg'.
+        :type phase_unit: str
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        :param parallel: Run in parallel, defaults to False
+        :type parallel: bool, optional
+
+        **Additional Information**
+        The visibilities extracted by extract_holog are complex due to the nature of interferometric measurements. To
+        ease the visualization of the complex data it can be split into real and imaginary parts (cartesian) or in
+        amplitude and phase (polar).
+
+        .. rubric:: Available complex splitting possibilities:
+        - *cartesian*: Split is done to a real part and an imaginary part in the plots
+        - *polar*:     Split is done to an amplitude and a phase in the plots
+
+        .. rubric:: Plotting correlations:
+        - *RR, RL, LR, LL*: Are available for circular systems
+        - *XX, XY, YX, YY*: Are available for linear systems
+        - *all*: Plot all correlations in dataset
+
+        """
+
+        param_dict = locals()
+        param_dict["map"] = map_id
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        key_order = ["ant", "ddi", "map"]
+        compute_graph(self, _plot_lm_coverage_chunk, param_dict, key_order, parallel)
+        return
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     # def export_to_aips(
@@ -348,7 +376,7 @@ def _calibration_plot_chunk(param_dict):
     )
 
     fig.suptitle(
-        f'Data Calibration Check: [{param_dict["this_ddi"]}, {param_dict["this_map"]}, {param_dict["this_ant"]}]',
+        f'Data Calibration Check: [{param_dict["this_ant"]}, {param_dict["this_ddi"]}, {param_dict["this_map"]}]',
         ha="center",
         va="center",
         x=0.5,
@@ -361,3 +389,201 @@ def _calibration_plot_chunk(param_dict):
         f'{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
     )
     close_figure(fig, None, plotfile, dpi, display, tight_layout=False)
+
+
+def _plot_lm_coverage_chunk(param_dict):
+    xdt_data = param_dict["xdt_data"]
+    angle_fact = convert_unit("rad", param_dict["angle_unit"], "trigonometric")
+    real_lm = xdt_data["DIRECTIONAL_COSINES"] * angle_fact
+    ideal_lm = xdt_data["IDEAL_DIRECTIONAL_COSINES"] * angle_fact
+    time = xdt_data.time.values
+    time -= time[0]
+    time *= convert_unit("sec", param_dict["time_unit"], "time")
+    param_dict["l_label"] = f'L [{param_dict["angle_unit"]}]'
+    param_dict["m_label"] = f'M [{param_dict["angle_unit"]}]'
+    param_dict["time_label"] = (
+        f'Time from observation start [{param_dict["time_unit"]}]'
+    )
+
+    param_dict["marker"] = "."
+    param_dict["linestyle"] = "-"
+    param_dict["color"] = "blue"
+
+    _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict)
+
+    if (
+        param_dict["plot_correlation"] is None
+        or param_dict["plot_correlation"] == "None"
+    ):
+        pass
+    else:
+        param_dict["linestyle"] = ""
+        visi = np.average(xdt_data["VIS"].values, axis=1)
+        weights = np.average(xdt_data["WEIGHT"].values, axis=1)
+        pol_axis = xdt_data.pol.values
+        if isinstance(param_dict["plot_correlation"], (list, tuple)):
+            for correlation in param_dict["plot_correlation"]:
+                _plot_correlation_sub(
+                    visi, weights, correlation, pol_axis, time, real_lm, param_dict
+                )
+        else:
+            if param_dict["plot_correlation"] == "all":
+                for correlation in pol_axis:
+                    _plot_correlation_sub(
+                        visi, weights, correlation, pol_axis, time, real_lm, param_dict
+                    )
+            else:
+                _plot_correlation_sub(
+                    visi,
+                    weights,
+                    param_dict["plot_correlation"],
+                    pol_axis,
+                    time,
+                    real_lm,
+                    param_dict,
+                )
+
+
+def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
+    fig, ax = create_figure_and_axes(param_dict["figure_size"], [2, 2])
+    scatter_plot(
+        ax[0, 0],
+        time,
+        param_dict["time_label"],
+        real_lm[:, 0],
+        param_dict["l_label"],
+        "Time vs Real L",
+        data_marker=param_dict["marker"],
+        data_linestyle=param_dict["linestyle"],
+        data_color=param_dict["color"],
+        add_legend=False,
+    )
+    scatter_plot(
+        ax[0, 1],
+        time,
+        param_dict["time_label"],
+        real_lm[:, 1],
+        param_dict["m_label"],
+        "Time vs Real M",
+        data_marker=param_dict["marker"],
+        data_linestyle=param_dict["linestyle"],
+        data_color=param_dict["color"],
+        add_legend=False,
+    )
+    scatter_plot(
+        ax[1, 0],
+        real_lm[:, 0],
+        param_dict["l_label"],
+        real_lm[:, 1],
+        param_dict["m_label"],
+        "Real L and M",
+        data_marker=param_dict["marker"],
+        data_linestyle=param_dict["linestyle"],
+        data_color=param_dict["color"],
+        add_legend=False,
+    )
+    scatter_plot(
+        ax[1, 1],
+        ideal_lm[:, 0],
+        param_dict["l_label"],
+        ideal_lm[:, 1],
+        param_dict["m_label"],
+        "Ideal L and M",
+        data_marker=param_dict["marker"],
+        data_linestyle=param_dict["linestyle"],
+        data_color=param_dict["color"],
+        add_legend=False,
+    )
+    plotfile = (
+        f'{param_dict["destination"]}/holog_directional_cosines_'
+        f'{param_dict["this_ant"]}_{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
+    )
+    close_figure(
+        fig, "Directional Cosines", plotfile, param_dict["dpi"], param_dict["display"]
+    )
+
+
+def _plot_correlation_sub(visi, weights, correlation, pol_axis, time, lm, param_dict):
+    if correlation in pol_axis:
+        ipol = pol_axis == correlation
+        loc_vis = visi[:, ipol]
+        loc_wei = weights[:, ipol]
+        if param_dict["complex_split"] == "polar":
+            y_data = [np.absolute(loc_vis)]
+            y_label = [f"{correlation} Amplitude [arb. units]"]
+            title = ["Amplitude"]
+            y_data.append(
+                np.angle(loc_vis)
+                * convert_unit("rad", param_dict["phase_unit"], "trigonometric")
+            )
+            y_label.append(f'{correlation} Phase [{param_dict["phase_unit"]}]')
+            title.append("Phase")
+        else:
+            y_data = [loc_vis.real]
+            y_label = [f"Real {correlation} [arb. units]"]
+            title = ["real part"]
+            y_data.append(loc_vis.imag)
+            y_label.append(f"Imaginary {correlation} [arb. units]")
+            title.append("imaginary part")
+
+        y_data.append(loc_wei)
+        y_label.append(f"{correlation} weights [arb. units]")
+        title.append("weights")
+
+        fig, ax = create_figure_and_axes(param_dict["figure_size"], [3, 3])
+        for isplit in range(3):
+            scatter_plot(
+                ax[isplit, 0],
+                time,
+                param_dict["time_label"],
+                y_data[isplit],
+                y_label[isplit],
+                f"Time vs {correlation} {title[isplit]}",
+                data_marker=param_dict["marker"],
+                data_linestyle=param_dict["linestyle"],
+                data_color=param_dict["color"],
+                add_legend=False,
+            )
+            scatter_plot(
+                ax[isplit, 1],
+                lm[:, 0],
+                param_dict["l_label"],
+                y_data[isplit],
+                y_label[isplit],
+                f"L vs {correlation} {title[isplit]}",
+                data_marker=param_dict["marker"],
+                data_linestyle=param_dict["linestyle"],
+                data_color=param_dict["color"],
+                add_legend=False,
+            )
+            scatter_plot(
+                ax[isplit, 2],
+                lm[:, 1],
+                param_dict["m_label"],
+                y_data[isplit],
+                y_label[isplit],
+                f"M vs {correlation} {title[isplit]}",
+                data_marker=param_dict["marker"],
+                data_linestyle=param_dict["linestyle"],
+                data_color=param_dict["color"],
+                add_legend=False,
+            )
+
+        plotfile = (
+            f'{param_dict["destination"]}/holog_directional_cosines_{correlation}_'
+            f'{param_dict["this_ant"]}_{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
+        )
+        close_figure(
+            fig,
+            f"Channel averaged {correlation} vs Directional Cosines",
+            plotfile,
+            param_dict["dpi"],
+            param_dict["display"],
+        )
+    else:
+
+        logger.warning(
+            f'Correlation {correlation} is not present for {param_dict["this_ant"]} {param_dict["this_ddi"]} '
+            f'{param_dict["this_map"]}, skipping...'
+        )
+    return

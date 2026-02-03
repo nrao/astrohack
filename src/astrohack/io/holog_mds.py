@@ -21,6 +21,10 @@ from astrohack.visualization.textual_data import generate_observation_summary
 
 
 class AstrohackHologFile(AstrohackBaseFile):
+    """Data class for holog data.
+
+    Data within an object of this class can be selected for further inspection, plotted or produce a report
+    """
 
     def __init__(self, file: str):
         """Initialize an AstrohackHologFile object.

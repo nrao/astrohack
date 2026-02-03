@@ -29,6 +29,10 @@ from astrohack.utils.validation import custom_unit_checker
 
 
 class AstrohackPositionFile(AstrohackBaseFile):
+    """Data class for position data.
+
+    Data within an object of this class can be selected for further inspection, plotted or produce a report
+    """
 
     def __init__(self, file: str):
         """Initialize an AstrohackPositionFile object.

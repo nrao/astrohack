@@ -13,6 +13,10 @@ from astrohack.io.base_mds import AstrohackBaseFile
 
 
 class AstrohackPointFile(AstrohackBaseFile):
+    """Data class for point data.
+
+    Data within an object of this class can be selected for further inspection, plotted or produce a report
+    """
 
     def __init__(self, file: str):
         """Initialize an AstrohackPointFile object.

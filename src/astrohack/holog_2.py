@@ -176,12 +176,12 @@ def holog(
         process_holog_chunk,
         holog_params,
         ["ant", "ddi"],
-        holog_mds,
+        image_mds,
     )
 
     if executed_graph:
-        holog_mds.write(mode="a")
-        return holog_mds
+        image_mds.write(mode="a")
+        return image_mds
     else:
         logger.warning("No data to process")
         return None

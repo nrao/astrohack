@@ -98,7 +98,7 @@ class AstrohackPointFile(AstrohackBaseFile):
         stations: bool = True,
         zoff: bool = False,
         unit: str = "m",
-        box_size: Union[int, float] = 5000,
+        box_size: Union[int, float] = None,
         figure_size: Union[Tuple, List[float], np.array] = None,
         display: bool = False,
         dpi: int = 300,
@@ -117,7 +117,8 @@ class AstrohackPointFile(AstrohackBaseFile):
         :param unit: Unit for the plot, valid values are length units, default is km
         :type unit: str, optional
 
-        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
+        :param box_size: Size of the box for plotting the inner part of the array in unit, when none the box size is \
+        20% of the total size of the array, default is None
         :type box_size: int, float, optional
 
         :param display: Display plots inline or suppress, defaults to True

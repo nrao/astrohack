@@ -72,7 +72,6 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         lockoptions={"option": "usernoread"},
         ack=False,
     )
-
     # Scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
     obs_modes = ctb.getcol("OBS_MODE")
     ctb.close()
@@ -141,13 +140,15 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
             scans = map_data["scans"]
             if len(scans) > 1:
                 logger.info(
-                    "Processing ddi: {ddi}, scans: [{min} ... {max}]".format(
+                    "Pre-processing ddi: {ddi}, scans: [{min} ... {max}]".format(
                         ddi=ddi, min=scans[0], max=scans[-1]
                     )
                 )
             else:
                 logger.info(
-                    "Processing ddi: {ddi}, scan: {scan}".format(ddi=ddi, scan=scans)
+                    "Pre-processing ddi: {ddi}, scan: {scan}".format(
+                        ddi=ddi, scan=scans
+                    )
                 )
 
             if len(list(map_data["ant"].keys())) != 0:
@@ -205,7 +206,6 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
 
     spw_ctb.close()
     pol_ctb.close()
-    obs_ctb.close()
 
     return looping_dict, holog_obs_dict
 
@@ -850,8 +850,9 @@ def _create_observation_summary(
     valid_data,
     map_ref_dict,
 ):
-    antenna_name = pnt_map_xds.attrs["ant_name"]
-    station = pnt_map_xds.attrs["ant_station"]
+    antenna_info = pnt_map_xds.attrs["antenna_info"]
+    antenna_name = antenna_info["name"]
+    station = antenna_info["station"]
     spw_info = _get_freq_summary(chan_axis)
     obs_info["az el info"] = _get_az_el_characteristics(pnt_map_xds, valid_data)
     obs_info["reference antennas"] = map_ref_dict[antenna_name]

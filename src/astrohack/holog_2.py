@@ -1,24 +1,20 @@
-import json
-import pathlib
 import numpy as np
 
-import toolviper.utils.logger as logger
-import toolviper
-
-from numbers import Number
 from typing import List, Union, NewType, Tuple
 
-from astrohack.utils.graph import compute_graph
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-from astrohack.utils.data import write_meta_data
-from astrohack.core.holog import process_holog_chunk
+import toolviper.utils.logger as logger
+
+from astrohack import open_holog
+from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.file import overwrite_file
+from astrohack.core.holog_2 import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
-from astrohack.io.mds import AstrohackImageFile
+from astrohack.io.image_mds import AstrohackImageFile
 
 Array = NewType("Array", Union[np.array, List[int], List[float]])
 
 
-@toolviper.utils.parameter.validate()
+# @toolviper.utils.parameter.validate()
 def holog(
     holog_name: str,
     grid_size: Union[int, Array, List] = None,
@@ -160,8 +156,6 @@ def holog(
 
     """
 
-    check_if_file_can_be_opened(holog_name, "0.7.2")
-
     # Doing this here allows it to get captured by locals()
     if image_name is None:
         image_name = get_default_file_name(
@@ -170,61 +164,24 @@ def holog(
 
     holog_params = locals()
 
-    input_params = holog_params.copy()
-    assert pathlib.Path(holog_params["holog_name"]).exists() is True, logger.error(
-        f'File {holog_params["holog_name"]} does not exists.'
+    holog_mds = open_holog(holog_name)
+
+    overwrite_file(image_name, overwrite)
+    image_mds = AstrohackImageFile.create_from_input_parameters(
+        image_name, holog_params
     )
 
-    overwrite_file(holog_params["image_name"], holog_params["overwrite"])
+    executed_graph = compute_graph_to_mds_tree(
+        holog_mds,
+        process_holog_chunk,
+        holog_params,
+        ["ant", "ddi"],
+        holog_mds,
+    )
 
-    json_data = "/".join((holog_params["holog_name"], ".holog_json"))
-
-    with open(json_data, "r") as json_file:
-        holog_json = json.load(json_file)
-
-    if compute_graph(
-        holog_json, process_holog_chunk, holog_params, ["ant", "ddi"], parallel=parallel
-    ):
-
-        output_attr_file = "{name}/{ext}".format(
-            name=holog_params["image_name"], ext=".image_attr"
-        )
-        write_meta_data(output_attr_file, holog_params)
-
-        output_attr_file = "{name}/{ext}".format(
-            name=holog_params["image_name"], ext=".image_input"
-        )
-        write_meta_data(output_attr_file, input_params)
-
-        image_mds = AstrohackImageFile(holog_params["image_name"])
-        image_mds.open()
-
-        logger.info("Finished processing")
-
-        return image_mds
-
+    if executed_graph:
+        holog_mds.write(mode="a")
+        return holog_mds
     else:
         logger.warning("No data to process")
         return None
-
-
-def _convert_gridding_parameter(
-    gridding_parameter: Union[List, Array], reflect_on_axis=False
-) -> np.ndarray:
-    if isinstance(gridding_parameter, Number):
-        gridding_parameter = np.array(
-            [np.power(-1, reflect_on_axis) * gridding_parameter, gridding_parameter]
-        )
-
-    elif isinstance(gridding_parameter, list):
-        gridding_parameter = np.array(gridding_parameter)
-
-    elif isinstance(gridding_parameter, np.ndarray):
-        pass
-
-    else:
-        logger.error(
-            "Unknown dtype for gridding parameter: {}".format(gridding_parameter)
-        )
-
-    return gridding_parameter

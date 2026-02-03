@@ -289,42 +289,44 @@ class AstrohackImageFile(AstrohackBaseFile):
             self, _export_phase_fit_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
-    #
     # @toolviper.utils.parameter.validate()
-    # def export_zernike_fit_results(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """Export Zernike coefficients from the data in an AstrohackImageFIle object to ASCII files.
-    #
-    #     :param destination: Name of the destination folder to contain ASCII files
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Export Zernike coefficients from the AstrohackImageFile object obtained during processing in \
-    #     ``astrohack.holog`` for analysis.
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self,
-    #         export_zernike_fit_chunk,
-    #         param_dict,
-    #         ["ant", "ddi"],
-    #         parallel=parallel,
-    #     )
-    #
+    def export_zernike_fit_results(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        parallel: bool = False,
+    ) -> None:
+        """Export Zernike coefficients from the data in an AstrohackImageFIle object to ASCII files.
+
+        :param destination: Name of the destination folder to contain ASCII files
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Export Zernike coefficients from the AstrohackImageFile object obtained during processing in \
+        ``astrohack.holog`` for analysis.
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self,
+            _export_zernike_fit_chunk,
+            param_dict,
+            ["ant", "ddi"],
+            parallel=parallel,
+        )
+
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     # def plot_zernike_model(
     #     self,
@@ -814,3 +816,41 @@ def _export_phase_fit_chunk(parm_dict):
                 outstr += table.get_string() + "\n\n"
 
     string_to_ascii_file(outstr, f"{destination}/image_phase_fit_{antenna}_{ddi}.txt")
+
+
+def _export_zernike_fit_chunk(parm_dict):
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    xdt_data = parm_dict["xdt_data"]
+    zernike_coeffs = xdt_data["ZERNIKE_COEFFICIENTS"].values
+    rms = xdt_data["ZERNIKE_FIT_RMS"].values
+    corr_axis = xdt_data.orig_pol.values
+    freq_axis = xdt_data.chan.values
+    ntime = zernike_coeffs.shape[0]
+    osa_indices = xdt_data.osa.values
+    destination = parm_dict["destination"]
+
+    field_names = ["Indices", "Real", "Imaginary"]
+    alignment = ["l", "c", "c"]
+    outstr = ""
+
+    for itime in range(ntime):
+        for ichan, freq in enumerate(freq_axis):
+            for icorr, corr in enumerate(corr_axis):
+                outstr += f"* map {itime}, Frequency {format_frequency(freq)}, Correlation {corr}:\n"
+                outstr += (
+                    f"   Fit RMS = {rms[itime, ichan, icorr].real:.8f} + {rms[itime, ichan, icorr].imag:.8f}*i"
+                    f"\n\n"
+                )
+                table = create_pretty_table(field_names, alignment)
+                for icoeff, coeff in enumerate(zernike_coeffs[itime, ichan, icorr]):
+                    row = [
+                        osa_indices[icoeff],
+                        f"{coeff.real:.8f}",
+                        f"{coeff.imag:.8f}",
+                    ]
+                    table.add_row(row)
+
+                outstr += table.get_string() + "\n\n"
+
+    string_to_ascii_file(outstr, f"{destination}/image_zernike_fit_{antenna}_{ddi}.txt")

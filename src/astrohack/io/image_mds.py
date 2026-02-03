@@ -1,10 +1,11 @@
 import pathlib
 import numpy as np
 
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import toolviper.utils.logger as logger
 
+from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.graph import compute_graph
 from astrohack.utils.constants import clight
@@ -89,72 +90,87 @@ class AstrohackImageFile(AstrohackBaseFile):
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_apertures(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     polarization_state: Union[str, List[str]] = "I",
-    #     plot_screws: bool = False,
-    #     amplitude_limits: Union[List[float], Tuple, np.array] = None,
-    #     phase_unit: str = "deg",
-    #     phase_limits: Union[List[float], Tuple, np.array] = None,
-    #     deviation_unit: str = "mm",
-    #     deviation_limits: Union[List[float], Tuple, np.array] = None,
-    #     panel_labels: bool = False,
-    #     display: bool = False,
-    #     colormap: str = "viridis",
-    #     figure_size: Union[Tuple, List[float], np.array] = None,
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Aperture amplitude and phase plots from the data in an AstrohackImageFIle object.
-    #
-    #     :param destination: Name of the destination folder to contain plots
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param polarization_state: List of polarization states/ polarization state to be plotted, defaults to "I"
-    #     :type polarization_state: list or str, optional
-    #     :param plot_screws: Add screw positions to plot, default is False
-    #     :type plot_screws: bool, optional
-    #     :param amplitude_limits: Lower than Upper limit for amplitude in volts default is None (Guess from data)
-    #     :type amplitude_limits: numpy.ndarray, list, tuple, optional
-    #     :param phase_unit: Unit for phase plots, defaults is 'deg'
-    #     :type phase_unit: str, optional
-    #     :param phase_limits: Lower than Upper limit for phase, value in phase_unit, default is None (Guess from data)
-    #     :type phase_limits: numpy.ndarray, list, tuple, optional
-    #     :param deviation_unit: Unit for deviation plots, defaults is 'mm'
-    #     :type deviation_unit: str, optional
-    #     :param deviation_limits: Lower than Upper limit for deviation, value in deviation_unit, default is None (Guess\
-    #      from data)
-    #     :type deviation_limits: numpy.ndarray, list, tuple, optional
-    #     :param panel_labels: Add panel labels to antenna surface plots, default is False
-    #     :type panel_labels: bool, optional
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param colormap: Colormap for plots, default is viridis
-    #     :type colormap: str, optional
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #     :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Produce plots from ``astrohack.holog`` results for analysis
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self, plot_aperture_chunk, param_dict, ["ant", "ddi"], parallel=parallel
-    #     )
-    #
+    def plot_apertures(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        polarization_state: Union[str, List[str]] = "I",
+        plot_screws: bool = False,
+        amplitude_limits: Union[List[float], Tuple, np.array] = None,
+        phase_unit: str = "deg",
+        phase_limits: Union[List[float], Tuple, np.array] = None,
+        deviation_unit: str = "mm",
+        deviation_limits: Union[List[float], Tuple, np.array] = None,
+        panel_labels: bool = False,
+        display: bool = False,
+        colormap: str = "viridis",
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """ Aperture amplitude and phase plots from the data in an AstrohackImageFIle object.
+
+        :param destination: Name of the destination folder to contain plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param polarization_state: List of polarization states/ polarization state to be plotted, defaults to "I"
+        :type polarization_state: list or str, optional
+
+        :param plot_screws: Add screw positions to plot, default is False
+        :type plot_screws: bool, optional
+
+        :param amplitude_limits: Lower than Upper limit for amplitude in volts default is None (Guess from data)
+        :type amplitude_limits: numpy.ndarray, list, tuple, optional
+
+        :param phase_unit: Unit for phase plots, defaults is 'deg'
+        :type phase_unit: str, optional
+
+        :param phase_limits: Lower than Upper limit for phase, value in phase_unit, default is None (Guess from data)
+        :type phase_limits: numpy.ndarray, list, tuple, optional
+
+        :param deviation_unit: Unit for deviation plots, defaults is 'mm'
+        :type deviation_unit: str, optional
+
+        :param deviation_limits: Lower than Upper limit for deviation, value in deviation_unit, default is None (Guess\
+         from data)
+        :type deviation_limits: numpy.ndarray, list, tuple, optional
+
+        :param panel_labels: Add panel labels to antenna surface plots, default is False
+        :type panel_labels: bool, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param colormap: Colormap for plots, default is viridis
+        :type colormap: str, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Produce plots from ``astrohack.holog`` results for analysis
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self, _plot_aperture_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     # def plot_beams(
     #     self,
@@ -555,3 +571,45 @@ def _export_to_fits_chunk(param_dict):
         "image",
     )
     return
+
+
+def _plot_aperture_chunk(parm_dict):
+    """
+    Chunk function for the user facing function plot_apertures
+    Args:
+        parm_dict: parameter dictionary
+    """
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    input_xds = parm_dict["xdt_data"]
+    input_xds.attrs["AIPS"] = False
+
+    asked_pol_states = parm_dict["polarization_state"]
+    avail_pol_states = input_xds.pol.values
+    if asked_pol_states == "all":
+        plot_pol_states = avail_pol_states
+    elif type(asked_pol_states) is str:
+        plot_pol_states = [asked_pol_states]
+    elif type(asked_pol_states) is list:
+        plot_pol_states = asked_pol_states
+    else:
+        msg = f"Uncomprehensible polarization state: {asked_pol_states}"
+        logger.error(msg)
+        raise Exception(msg)
+
+    for pol_state in plot_pol_states:
+        if pol_state in avail_pol_states:
+            surface = AntennaSurface(
+                input_xds.dataset,
+                nan_out_of_bounds=False,
+                pol_state=str(pol_state),
+                clip_type="absolute",
+                clip_level=0,
+            )
+            basename = f"{destination}/{antenna}_{ddi}_pol_{pol_state}"
+            surface.plot_phase(basename, "image_aperture", parm_dict)
+            surface.plot_deviation(basename, "image_aperture", parm_dict)
+            surface.plot_amplitude(basename, "image_aperture", parm_dict)
+        else:
+            logger.warning(f"Polarization state {pol_state} not available in data")

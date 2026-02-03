@@ -355,6 +355,7 @@ def _export_to_xds(
     xds.attrs["phase_fitting"] = phase_fit_results
     xds.attrs["zernike_N_order"] = zernike_n_order
     xds.attrs["summary"] = summary
+    xds.attrs["ddi"] = ddi_key
 
     coords = {
         "orig_pol": orig_pol_axis,

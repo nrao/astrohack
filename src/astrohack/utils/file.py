@@ -79,9 +79,11 @@ def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
     if origin_info["origin"] != "astrohack":
         raise ValueError(f"{filename} was not created by astrohack")
 
-    if origin_info["creator_function"] != file_creator:
+    if not isinstance(file_creator, list):
+        file_creator = [file_creator]
+    if origin_info["creator_function"] not in file_creator:
         raise ValueError(
-            f'{filename} was created by {origin_info["creator_function"]} but {file_creator} was expected'
+            f'{filename} was created by {origin_info["creator_function"]} but {" or ".join(file_creator)} was expected'
         )
 
     file_version = origin_info["version"]

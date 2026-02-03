@@ -11,7 +11,7 @@ from astrohack.utils.file import (
     check_if_file_can_be_opened,
     check_if_file_can_be_opened_2,
 )
-from astrohack.io.mds import AstrohackImageFile
+from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.io.mds import AstrohackPanelFile
 from astrohack.io.point_mds import AstrohackPointFile
@@ -84,17 +84,17 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
     .. parsed-literal::
         holog_mds =
             {
-                ddi_0:{
-                    map_0:{
-                         ant_0: holog_ds,
+                ant_0:{
+                    ddi_0:{
+                         map_0: holog_ds,
                              ⋮
-                         ant_n: holog_ds
+                         map_n: holog_ds
                     },
                     ⋮
-                    map_p: …
+                    ddi_p: …
                 },
             ⋮
-            ddi_m: …
+            ant_m: …
             }
     """
     check_if_file_can_be_opened_2(file, "extract_holog", "0.10.1")
@@ -136,7 +136,7 @@ def open_image(file: str) -> Union[AstrohackImageFile, None]:
            }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened_2(file, ["holog", "combine"], "0.10.1")
     _data_file = AstrohackImageFile(file=file)
 
     if _data_file.open():

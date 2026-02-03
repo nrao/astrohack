@@ -257,14 +257,14 @@ def generate_observation_summary(parm_dict):
         map_id = None
         is_holog_zarr = False
 
-    xds = parm_dict["xds_data"]
+    xds = parm_dict["xdt_data"]
     obs_sum = xds.attrs["summary"]
 
     tab_size = parm_dict["tab_size"]
     tab_count = 1
 
     if is_holog_zarr:
-        header = f"{ddi}, {map_id}, {antenna}"
+        header = f"{antenna}, {ddi}, {map_id}"
     else:
         header = f"{antenna}, {ddi}"
 

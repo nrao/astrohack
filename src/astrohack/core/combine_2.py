@@ -34,9 +34,11 @@ def process_combine_chunk(combine_chunk_params, output_mds):
             logger.info(
                 f"{dataset_label} has a single ddi to be combined, data copied from input file"
             )
-            # Dataset already has the propper name!
+            ddi_xdt = xr.DataTree(
+                name=f"{ant_key}-{ddi_key}", dataset=ant_xdt[ddi_key].dataset
+            )
             output_mds.add_node_to_tree(
-                ant_xdt[ddi_key],
+                ddi_xdt,
                 dump_to_disk=True,
                 running_in_parallel=combine_chunk_params["parallel"],
             )

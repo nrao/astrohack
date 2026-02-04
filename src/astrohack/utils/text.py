@@ -350,7 +350,7 @@ def print_dict_table(
     print(table)
 
 
-def print_dict_types(le_dict, ident=0, show_values=False):
+def print_dict_types(le_dict, ident=4, show_values=False):
     spc = " "
     for key, value in le_dict.items():
         if isinstance(value, dict):

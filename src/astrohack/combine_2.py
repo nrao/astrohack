@@ -1,21 +1,17 @@
-import pathlib
+from typing import Union, List
+
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
-from typing import Union, List
-
 from astrohack import open_image
-from astrohack.core.combine import process_combine_chunk
-
+from astrohack.core.combine_2 import process_combine_chunk
 from astrohack.utils.graph import compute_graph_to_mds_tree
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.data import write_meta_data
 from astrohack.utils.text import get_default_file_name
-
 from astrohack.io.image_mds import AstrohackImageFile
 
 
-@toolviper.utils.parameter.validate()
+# @toolviper.utils.parameter.validate()
 def combine(
     image_name: str,
     combine_name: str = None,
@@ -53,6 +49,13 @@ def combine(
     :rtype: AstrohackImageFile
 
     .. _Description:
+    **combine**
+
+    Combine combines the amplitude and corrected_phase members of the selected DDIs in the input image file. Currently, \
+    combine only supports the combination of these two quantities to avoid long regridding times. Hence, the output \
+    image file (.combine.zarr file name) contains the combined amplitude and corrected_phase images, but the aperture \
+    and beam images present in this file will be those present in the DDI with the lowest frequency.
+
     **AstrohackImageFile**
 
     Image object allows the user to access image data via compound dictionary keys with values, in order of depth, \
@@ -106,8 +109,8 @@ def combine(
     )
 
     if executed_graph:
-        image_mds.write(mode="a")
-        return image_mds
+        combine_mds.write(mode="a")
+        return combine_mds
     else:
         logger.warning("No data to process")
         return None

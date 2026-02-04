@@ -7,6 +7,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.utils.conversion import convert_5d_grid_from_stokes
 from astrohack.utils.graph import compute_graph
 from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
@@ -328,51 +329,59 @@ class AstrohackImageFile(AstrohackBaseFile):
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_zernike_model(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     display: bool = False,
-    #     colormap: str = "viridis",
-    #     figure_size: Union[Tuple, List[float], np.array] = (16, 9),
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """Plot Zernike models from the data in an AstrohackImageFile object.
-    #
-    #     :param destination: Name of the destination folder to contain the model plots
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param colormap: Colormap for plots, default is viridis
-    #     :type colormap: str, optional
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #     :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Export Zernike coefficients from the AstrohackImageFile object obtained during processing in \
-    #     ``astrohack.holog`` for analysis.
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self,
-    #         plot_zernike_model_chunk,
-    #         param_dict,
-    #         ["ant", "ddi"],
-    #         parallel=parallel,
-    #     )
+    def plot_zernike_model(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        display: bool = False,
+        colormap: str = "viridis",
+        figure_size: Union[Tuple, List[float], np.array] = (16, 9),
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """Plot Zernike models from the data in an AstrohackImageFile object.
+
+        :param destination: Name of the destination folder to contain the model plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param colormap: Colormap for plots, default is viridis
+        :type colormap: str, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Export Zernike coefficients from the AstrohackImageFile object obtained during processing in \
+        ``astrohack.holog`` for analysis.
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        compute_graph(
+            self,
+            plot_zernike_model_chunk,
+            param_dict,
+            ["ant", "ddi"],
+            parallel=parallel,
+        )
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     # def observation_summary(
@@ -854,3 +863,131 @@ def _export_zernike_fit_chunk(parm_dict):
                 outstr += table.get_string() + "\n\n"
 
     string_to_ascii_file(outstr, f"{destination}/image_zernike_fit_{antenna}_{ddi}.txt")
+
+
+def plot_zernike_model_chunk(parm_dict):
+    """
+    Chunk function for the user facing function plot_zernike_model
+    Args:
+        parm_dict: the parameter dict containing the parameters for the plot and the data.
+
+    Returns:
+        Plots of the Zernike models along with residuals in png files inside destination.
+    """
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    input_xds = parm_dict["xdt_data"]
+
+    if input_xds.sizes["chan"] != 1:
+        raise Exception("Only single channel holographies supported")
+
+    if input_xds.sizes["time"] != 1:
+        raise Exception("Only single mapping holographies supported")
+
+    # Data retrieval
+    u_axis = input_xds.u.values
+    v_axis = input_xds.v.values
+    pol_axis = input_xds.pol.values
+    corr_axis = input_xds.orig_pol.values
+    zernike_model = input_xds.ZERNIKE_MODEL.isel(time=0, chan=0).values
+    aperture = input_xds.APERTURE.values
+    zernike_n_order = input_xds.attrs["zernike_N_order"]
+    corr_aperture = convert_5d_grid_from_stokes(aperture, pol_axis, corr_axis)[
+        0, 0, :, :, :
+    ]
+    suptitle = (
+        f"Zernike model with N<={zernike_n_order} for {create_dataset_label(antenna, ddi, ',')} "
+        f"correlation: "
+    )
+
+    for icorr, corr in enumerate(corr_axis):
+        filename = f"{destination}/image_zernike_model_{antenna}_{ddi}_corr_{corr}.png"
+        _plot_zernike_aperture_model(
+            suptitle + f"{corr}",
+            corr_aperture[icorr],
+            u_axis,
+            v_axis,
+            zernike_model[icorr],
+            filename,
+            parm_dict,
+        )
+
+    return
+
+
+def _plot_zernike_cartesian_component(
+    ax, fig, aperture, model, u_axis, v_axis, colormap, comp_label
+):
+    maxabs = np.nanmax(np.abs(aperture))
+    zlim = [-maxabs, maxabs]
+    residuals = aperture - model
+    nvalid = np.sum(np.isfinite(model))
+    rms = np.sqrt(np.nansum(residuals**2)) / nvalid
+    simple_imshow_map_plot(
+        ax[0],
+        fig,
+        u_axis,
+        v_axis,
+        aperture,
+        f"Aperture {comp_label} part",
+        colormap,
+        zlim,
+        z_label="EM intensity",
+    )
+    simple_imshow_map_plot(
+        ax[1],
+        fig,
+        u_axis,
+        v_axis,
+        model,
+        f"Model {comp_label} part",
+        colormap,
+        zlim,
+        z_label="EM intensity",
+    )
+    simple_imshow_map_plot(
+        ax[2],
+        fig,
+        u_axis,
+        v_axis,
+        residuals,
+        f"Residuals {comp_label} part, RMS={rms:.5f}",
+        colormap,
+        zlim,
+        z_label="EM intensity",
+    )
+
+
+def _plot_zernike_aperture_model(
+    suptitle, aperture, u_axis, v_axis, model_aperture, filename, parm_dict
+):
+    fig, ax = create_figure_and_axes(parm_dict["figure_size"], [2, 3])
+    _plot_zernike_cartesian_component(
+        ax[0],
+        fig,
+        aperture.real,
+        model_aperture.real,
+        u_axis,
+        v_axis,
+        parm_dict["colormap"],
+        "real",
+    )
+    _plot_zernike_cartesian_component(
+        ax[1],
+        fig,
+        aperture.imag,
+        model_aperture.imag,
+        u_axis,
+        v_axis,
+        parm_dict["colormap"],
+        "imaginary",
+    )
+    close_figure(
+        fig,
+        suptitle,
+        filename,
+        parm_dict["dpi"],
+        parm_dict["display"],
+        tight_layout=True,
+    )

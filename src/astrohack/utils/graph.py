@@ -144,9 +144,10 @@ def compute_graph_to_mds_tree(
 
     if len(delayed_list) == 0:
         logger.warning(f"List of delayed processing jobs is empty: No data to process")
-
-        return False, None
-
+        if fetch_returns:
+            return False, None
+        else:
+            return False
     else:
         if parallel:
             return_list = dask.compute(delayed_list)[0]
@@ -155,6 +156,12 @@ def compute_graph_to_mds_tree(
             for function, args in delayed_list:
                 return_list.append(function(*args))
 
+        if len(output_mds.keys()) == 0:
+            logger.warning("Processing did not yield any data")
+            if fetch_returns:
+                return False, None
+            else:
+                return False
         if fetch_returns:
             return True, return_list
         else:

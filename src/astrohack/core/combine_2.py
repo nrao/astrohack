@@ -4,12 +4,9 @@ import numpy as np
 import xarray as xr
 
 import toolviper.utils.logger as logger
-from imageio.config.plugins import summary
 
-from astrohack.utils import create_dataset_label
-from astrohack.utils.file import load_image_xds
+from astrohack.utils import create_dataset_label, clight
 from scipy.interpolate import griddata
-from astrohack.utils.constants import clight
 from astrohack.utils.text import param_to_list
 
 
@@ -33,12 +30,10 @@ def process_combine_chunk(combine_chunk_params, output_mds):
         return
     elif nddi == 1:
         ddi_key = ddi_list[0]
-
         if ddi_key in list(ant_xdt.keys()):
             logger.info(
                 f"{dataset_label} has a single ddi to be combined, data copied from input file"
             )
-
             # Dataset already has the propper name!
             output_mds.add_node_to_tree(
                 ant_xdt[ddi_key],
@@ -58,24 +53,42 @@ def process_combine_chunk(combine_chunk_params, output_mds):
                 f"{dataset_label} has no valid DDI in user selection (ddi = {user_ddi_sel})"
             )
             return
-        ddi_ref_key = ddi_list[ddi_present_list.index(True)]
+
+        min_freq = 1e34
+        ddi_ref_key = None
+        summary_dict = {}
+        for i_ddi, ddi_key in enumerate(ddi_list):
+            if not ddi_present_list[i_ddi]:
+                continue
+            summary = ant_xdt[ddi_key].attrs["summary"]
+            summary_dict[ddi_key] = summary
+            rep_freq = summary["spectral"]["rep. frequency"]
+            if rep_freq < min_freq:
+                min_freq = rep_freq
+                ddi_ref_key = ddi_key
 
         out_xds = deepcopy(ant_xdt[ddi_ref_key].dataset)
-        nddi = len(ddi_list)
         shape = list(out_xds["CORRECTED_PHASE"].values.shape)
         if out_xds.sizes["chan"] != 1:
             msg = f"Only single channel holographies supported"
             logger.error(msg)
-            raise Exception(msg)
+            raise RuntimeError(msg)
+
+        nmap = shape[0]
+        if nmap != 1:
+            msg = f"Only single mapping holographies supported"
+            logger.error(msg)
+            raise RuntimeError(msg)
+
         npol = shape[2]
         npoints = shape[3] * shape[4]
         amp_sum = np.zeros((npol, npoints))
         pha_sum = np.zeros((npol, npoints))
 
-        u, v = np.meshgrid(out_xds.u_prime.values, out_xds.v_prime.values)
-        dest_u_axis = u.ravel()
-        dest_v_axis = v.ravel()
-        summary_list = []
+        u_mesh, v_mesh = np.meshgrid(out_xds.u_prime.values, out_xds.v_prime.values)
+        dest_u_axis = u_mesh.ravel()
+        dest_v_axis = v_mesh.ravel()
+
         for i_ddi, ddi_key in enumerate(ddi_list):
             this_dataset_label = create_dataset_label(ant_key, ddi_key)
             if not ddi_present_list[i_ddi]:
@@ -83,42 +96,69 @@ def process_combine_chunk(combine_chunk_params, output_mds):
                     f"{this_dataset_label} does not exist in input mds, skipping"
                 )
                 continue
-
-            logger.info(f"Regridding {this_dataset_label}")
             this_xds = ant_xdt[ddi_key].dataset
-            summary_list.append(this_xds.attrs["summary"])
-            u, v = np.meshgrid(
+
+            u_mesh, v_mesh = np.meshgrid(
                 this_xds.u_prime.values,
                 this_xds.v_prime.values,
             )
-            loca_u_axis = u.ravel()
-            loca_v_axis = v.ravel()
-            for ipol in range(npol):
-                thispha = this_xds["CORRECTED_PHASE"].values[0, 0, ipol, :, :].ravel()
-                thisamp = this_xds["AMPLITUDE"].values[0, 0, ipol, :, :].ravel()
-                repha = griddata(
-                    (loca_u_axis, loca_v_axis),
-                    thispha,
-                    (dest_u_axis, dest_v_axis),
-                    method="linear",
-                )
-                reamp = griddata(
-                    (loca_u_axis, loca_v_axis),
-                    thisamp,
-                    (dest_u_axis, dest_v_axis),
-                    method="linear",
-                )
-                amp_sum[ipol, :] += reamp
-                if combine_chunk_params["weighted"]:
-                    pha_sum[ipol, :] += repha * reamp
-                else:
-                    pha_sum[ipol, :] += repha
+            loca_u_axis = u_mesh.ravel()
+            loca_v_axis = v_mesh.ravel()
 
+            if loca_u_axis.shape[0] == dest_u_axis.shape[0]:
+                resample_needed = not (
+                    np.allclose(loca_u_axis, dest_u_axis, rtol=1e-6)
+                    and np.allclose(loca_v_axis, dest_v_axis, rtol=1e-6)
+                )
+            else:
+                resample_needed = True
+
+            if resample_needed:
+                logger.info(f"Regridding {this_dataset_label}")
+                for ipol in range(npol):
+                    thispha = (
+                        this_xds["CORRECTED_PHASE"].values[0, 0, ipol, :, :].ravel()
+                    )
+                    thisamp = this_xds["AMPLITUDE"].values[0, 0, ipol, :, :].ravel()
+
+                    repha = griddata(
+                        (loca_u_axis, loca_v_axis),
+                        thispha,
+                        (dest_u_axis, dest_v_axis),
+                        method="linear",
+                    )
+                    reamp = griddata(
+                        (loca_u_axis, loca_v_axis),
+                        thisamp,
+                        (dest_u_axis, dest_v_axis),
+                        method="linear",
+                    )
+                    amp_sum[ipol, :] += reamp
+                    if combine_chunk_params["weighted"]:
+                        pha_sum[ipol, :] += repha * reamp
+                    else:
+                        pha_sum[ipol, :] += repha
+            else:
+                logger.info(
+                    f"{this_dataset_label} already has the proper sampling, simple addition"
+                )
+                for ipol in range(npol):
+                    thispha = (
+                        this_xds["CORRECTED_PHASE"].values[0, 0, ipol, :, :].ravel()
+                    )
+                    thisamp = this_xds["AMPLITUDE"].values[0, 0, ipol, :, :].ravel()
+                    amp_sum[ipol, :] += thisamp
+                    if combine_chunk_params["weighted"]:
+                        pha_sum[ipol, :] += thispha * thisamp
+                    else:
+                        pha_sum[ipol, :] += thispha
+
+        n_used_ddi = np.sum(ddi_present_list)
         if combine_chunk_params["weighted"]:
             phase = pha_sum / amp_sum
         else:
-            phase = pha_sum / nddi
-        amplitude = amp_sum / nddi
+            phase = pha_sum / n_used_ddi
+        amplitude = amp_sum / n_used_ddi
 
         out_xds["AMPLITUDE"] = xr.DataArray(
             amplitude.reshape(shape), dims=["time", "chan", "pol", "u_prime", "v_prime"]
@@ -127,9 +167,54 @@ def process_combine_chunk(combine_chunk_params, output_mds):
             phase.reshape(shape), dims=["time", "chan", "pol", "u_prime", "v_prime"]
         )
 
-        out_dataset_name = f"{ant_key}-ddi_99"
+        out_ddi_key = "ddi_99"
+        out_xds.attrs["ddi"] = out_ddi_key
+        out_xds.attrs["summary"] = _merge_summary_dict(summary_dict, ddi_ref_key)
+        out_dataset_name = f"{ant_key}-{out_ddi_key}"
         output_mds.add_node_to_tree(
             xr.DataTree(name=out_dataset_name, dataset=out_xds),
             dump_to_disk=True,
             running_in_parallel=combine_chunk_params["parallel"],
         )
+
+
+def _merge_summary_dict(summary_dict, ddi_ref_key):
+    out_summary = deepcopy(summary_dict[ddi_ref_key])
+
+    aperture_resolution = out_summary["aperture"]["resolution"]
+    frequency_range = out_summary["spectral"]["frequency range"]
+
+    channel_width = 0.0
+    rep_freq = 0.0
+
+    n_used_ddi = 0
+    for ddi_key, ddi_summary in summary_dict.items():
+        # Spectral part
+        n_used_ddi += 1
+        channel_width += ddi_summary["spectral"]["channel width"]
+        rep_freq += ddi_summary["spectral"]["rep. frequency"]
+        frequency_range[0] = float(
+            np.min([frequency_range[0], ddi_summary["spectral"]["frequency range"][0]])
+        )
+        frequency_range[1] = float(
+            np.max([frequency_range[1], ddi_summary["spectral"]["frequency range"][1]])
+        )
+        for i_coord in range(2):
+            aperture_resolution[i_coord] = float(
+                np.max(
+                    [
+                        aperture_resolution[i_coord],
+                        ddi_summary["aperture"]["resolution"][i_coord],
+                    ]
+                )
+            )
+
+    rep_freq /= n_used_ddi
+
+    out_summary["aperture"]["resolution"] = aperture_resolution
+    out_summary["spectral"]["frequency range"] = frequency_range
+    out_summary["spectral"]["rep. frequency"] = rep_freq
+    out_summary["spectral"]["channel width"] = channel_width
+    out_summary["spectral"]["rep. wavelength"] = clight / rep_freq
+
+    return out_summary

@@ -108,5 +108,4 @@ def extract_pointing(
         point_mds.write(mode="a")
         return point_mds
     else:
-        logger.warning("No data to process")
         return None

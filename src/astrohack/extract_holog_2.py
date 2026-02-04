@@ -254,7 +254,6 @@ def extract_holog(
         holog_mds.write(mode="a")
         return holog_mds
     else:
-        logger.warning("No data to process")
         return None
 
 

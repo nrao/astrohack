@@ -183,5 +183,4 @@ def holog(
         image_mds.write(mode="a")
         return image_mds
     else:
-        logger.warning("No data to process")
         return None

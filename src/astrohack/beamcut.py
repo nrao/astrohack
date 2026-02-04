@@ -153,5 +153,4 @@ def beamcut(
         beamcut_mds.write(mode="a")
         return beamcut_mds
     else:
-        logger.warning("No data to process")
         return None

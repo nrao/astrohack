@@ -112,5 +112,4 @@ def combine(
         combine_mds.write(mode="a")
         return combine_mds
     else:
-        logger.warning("No data to process")
         return None

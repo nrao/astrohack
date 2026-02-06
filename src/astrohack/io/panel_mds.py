@@ -1,3 +1,4 @@
+from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 
 
@@ -17,3 +18,336 @@ class AstrohackPanelFile(AstrohackBaseFile):
         :rtype: AstrohackPanelFile
         """
         super().__init__(file=file)
+
+    # @toolviper.utils.parameter.validate()
+    def get_antenna(self, ant: str, ddi: int) -> AntennaSurface:
+        """Retrieve an AntennaSurface object for interaction
+
+        :param ant: Antenna to be retrieved, ex. ea25.
+        :type ant: str
+
+        :param ddi: DDI to be retrieved for ant_id, ex. 0
+        :type ddi: int
+
+        :return: AntennaSurface object describing for further interaction
+        :rtype: AntennaSurface
+        """
+        ant = "ant_" + ant
+        ddi = f"ddi_{ddi}"
+        xds = self[ant][ddi].dataset
+        return AntennaSurface(xds, reread=True)
+
+    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    # def export_screws(
+    #     self,
+    #     destination: str,
+    #     ant: Union[str, List[str]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
+    #     unit: str = "mm",
+    #     threshold: float = None,
+    #     panel_labels: bool = True,
+    #     display: bool = False,
+    #     colormap: str = "RdBu_r",
+    #     figure_size: Union[Tuple, List[float], np.array] = None,
+    #     dpi: int = 300,
+    # ) -> None:
+    #     """ Export screw adjustments to text files and optionally plots.
+    #
+    #     :param destination: Name of the destination folder to contain exported screw adjustments
+    #     :type destination: str
+    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+    #     :type ant: list or str, optional
+    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+    #     :type ddi: list or int, optional
+    #     :param unit: Unit for screws adjustments, most length units supported, defaults to "mm"
+    #     :type unit: str, optional
+    #     :param threshold: Threshold below which data is considered negligible, value is assumed to be in the same unit\
+    #      as the plot, if not given defaults to 10% of the maximal deviation
+    #     :type threshold: float, optional
+    #     :param panel_labels: Add panel labels to antenna surface plots, default is True
+    #     :type panel_labels: bool, optional
+    #     :param display: Display plots inline or suppress, defaults to True
+    #     :type display: bool, optional
+    #     :param colormap: Colormap for screw adjustment map, default is RdBu_r
+    #     :type colormap: str, optional
+    #     :param figure_size: 2 element array/list/tuple with the screw adjustment map size in inches
+    #     :type figure_size: numpy.ndarray, list, tuple, optional
+    #     :param dpi: Screw adjustment map resolution in pixels per inch, default is 300
+    #     :type dpi: int, optional
+    #
+    #     .. _Description:
+    #
+    #     Produce the screw adjustments from ``astrohack.panel`` results to be used at the antenna site to improve \
+    #     the antenna surface
+    #
+    #     """
+    #     param_dict = locals()
+    #
+    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+    #     compute_graph(
+    #         self, export_screws_chunk, param_dict, ["ant", "ddi"], parallel=False
+    #     )
+    #
+    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    # def plot_antennas(
+    #     self,
+    #     destination: str,
+    #     ant: Union[str, List[str]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
+    #     plot_type: str = "deviation",
+    #     plot_screws: bool = False,
+    #     amplitude_limits: Union[Tuple, List[float], np.array] = None,
+    #     phase_unit: str = "deg",
+    #     phase_limits: Union[Tuple, List[float], np.array] = None,
+    #     deviation_unit: str = "mm",
+    #     deviation_limits: Union[Tuple, List[float], np.array] = None,
+    #     panel_labels: bool = False,
+    #     display: bool = False,
+    #     colormap: str = "viridis",
+    #     figure_size: Union[Tuple, List[float], np.array] = (8.0, 6.4),
+    #     dpi: int = 300,
+    #     parallel: bool = False,
+    # ) -> None:
+    #     """ Create diagnostic plots of antenna surfaces from panel data file.
+    #
+    #     :param destination: Name of the destination folder to contain plots
+    #     :type destination: str
+    #
+    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+    #     :type ant: list or str, optional
+    #
+    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+    #     :type ddi: list or int, optional
+    #
+    #     :param plot_type: type of plot to be produced, deviation, phase, ancillary or all, default is deviation
+    #     :type plot_type: str, optional
+    #
+    #     :param plot_screws: Add screw positions to plot
+    #     :type plot_screws: bool, optional
+    #
+    #     :param amplitude_limits: Lower than Upper limit for amplitude in volts default is None (Guess from data)
+    #     :type amplitude_limits: numpy.ndarray, list, tuple, optional
+    #
+    #     :param phase_unit: Unit for phase plots, defaults is 'deg'
+    #     :type phase_unit: str, optional
+    #
+    #     :param phase_limits: Lower than Upper limit for phase, value in phase_unit, default is None (Guess from data)
+    #     :type phase_limits: numpy.ndarray, list, tuple, optional
+    #
+    #     :param deviation_unit: Unit for deviation plots, defaults is 'mm'
+    #     :type deviation_unit: str, optional
+    #
+    #     :param deviation_limits: Lower than Upper limit for deviation, value in deviation_unit, default is None (Guess \
+    #     from data)
+    #     :type deviation_limits: numpy.ndarray, list, tuple, optional
+    #
+    #     :param panel_labels: Add panel labels to antenna surface plots, default is False
+    #     :type panel_labels: bool, optional
+    #
+    #     :param display: Display plots inline or suppress, defaults to True
+    #     :type display: bool, optional
+    #
+    #     :param colormap: Colormap for plots, default is viridis
+    #     :type colormap: str, optional
+    #
+    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+    #     :type figure_size: numpy.ndarray, list, tuple, optional
+    #
+    #     :param dpi: dots per inch to be used in plots, default is 300
+    #     :type dpi: int, optional
+    #
+    #     :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+    #     :type parallel: bool, optional
+    #
+    #     .. _Description:
+    #
+    #     Produce plots from ``astrohack.panel`` results to be analyzed to judge the quality of the results
+    #
+    #     **Additional Information**
+    #     .. rubric:: Available plot types:
+    #     - *deviation*: Surface deviation estimated from phase and wavelength, three plots are produced for each antenna \
+    #                    and ddi combination, surface before correction, the corrections applied and the corrected \
+    #                    surface, most length units available
+    #     - *phase*: Phase deviations over the surface, three plots are produced for each antenna and ddi combination, \
+    #                phase before correction, the corrections applied and the corrected phase, deg and rad available as \
+    #                units
+    #     - *ancillary*: Two ancillary plots with useful information: The mask used to select data to be fitted, the \
+    #                    amplitude data used to derive the mask, units are irrelevant for these plots
+    #     - *all*: All the plots listed above. In this case the unit parameter is taken to mean the deviation unit, the \
+    #              phase unit is set to degrees
+    #     """
+    #
+    #     param_dict = locals()
+    #
+    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+    #     compute_graph(
+    #         self, plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+    #     )
+    #
+    # @toolviper.utils.parameter.validate()
+    # def export_to_fits(
+    #     self,
+    #     destination: str,
+    #     ant: Union[str, List[str]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
+    #     parallel: bool = False,
+    # ) -> None:
+    #     """Export contents of an Astrohack MDS file to several FITS files in the destination folder
+    #
+    #     :param destination: Name of the destination folder to contain plots
+    #     :type destination: str
+    #
+    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+    #     :type ant: list or str, optional
+    #
+    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+    #     :type ddi: list or int, optional
+    #
+    #     :param parallel: If True will use an existing astrohack client to export FITS in parallel, default is False
+    #     :type parallel: bool, optional
+    #
+    #     .. _Description:
+    #     Export the products from the panel mds onto FITS files to be read by other software packages
+    #
+    #     **Additional Information**
+    #
+    #     The FITS fils produced by this method have been tested and are known to work with CARTA and DS9
+    #     """
+    #
+    #     param_dict = locals()
+    #
+    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+    #     compute_graph(
+    #         self,
+    #         export_to_fits_panel_chunk,
+    #         param_dict,
+    #         ["ant", "ddi"],
+    #         parallel=parallel,
+    #     )
+    #
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    # def export_gain_tables(
+    #     self,
+    #     destination: str,
+    #     ant: Union[str, List[str]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
+    #     wavelengths: Union[float, List[float]] = None,
+    #     wavelength_unit: str = "cm",
+    #     frequencies: Union[float, List[float]] = None,
+    #     frequency_unit: str = "GHz",
+    #     rms_unit: str = "mm",
+    #     parallel: bool = False,
+    # ) -> None:
+    #     """ Compute estimated antenna gains in dB and saves them to ASCII files.
+    #
+    #     :param destination: Name of the destination folder to contain ASCII files
+    #     :type destination: str
+    #
+    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+    #     :type ant: list or str, optional
+    #
+    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+    #     :type ddi: list or int, optional
+    #
+    #     :param wavelengths: List of wavelengths at which to compute the gains.
+    #     :type wavelengths: list or float, optional
+    #
+    #     :param wavelength_unit: Unit for the wavelengths being used, default is cm.
+    #     :type wavelength_unit: str, optional
+    #
+    #     :param frequencies: List of frequencies at which to compute the gains.
+    #     :type frequencies: list or float, optional
+    #
+    #     :param frequency_unit: Unit for the frequencies being used, default is GHz.
+    #     :type frequency_unit: str, optional
+    #
+    #     :param rms_unit: Unit for the Antenna surface RMS, default is mm.
+    #     :type rms_unit: str, optional
+    #
+    #     :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
+    #     :type parallel: bool, optional
+    #
+    #     .. _Description:
+    #
+    #     Export antenna gains in dB from ``astrohack.panel`` for analysis.
+    #
+    #     **Additional Information**
+    #
+    #     .. rubric:: Selecting frequencies and wavelengths:
+    #
+    #     If neither a frequency list nor a wavelength list is provided, ``export_gains_table`` will try to use a\
+    #     predefined list set for the telescope associated with the dataset. If both are provided, ``export_gains_table``\
+    #     will combine both lists.
+    #     """
+    #
+    #     param_dict = locals()
+    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+    #     compute_graph(
+    #         self,
+    #         export_gains_table_chunk,
+    #         param_dict,
+    #         ["ant", "ddi"],
+    #         parallel=parallel,
+    #     )
+    #
+    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    # def observation_summary(
+    #     self,
+    #     summary_file: str,
+    #     ant: Union[str, List[str]] = "all",
+    #     ddi: Union[str, int, List[int]] = "all",
+    #     az_el_key: str = "center",
+    #     phase_center_unit: str = "radec",
+    #     az_el_unit: str = "deg",
+    #     time_format: str = "%d %h %Y, %H:%M:%S",
+    #     tab_size: int = 3,
+    #     print_summary: bool = True,
+    #     parallel: bool = False,
+    # ) -> None:
+    #     """ Create a Summary of observation information
+    #
+    #     :param summary_file: Text file to put the observation summary
+    #     :type summary_file: str
+    #     :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
+    #     :type ant: list or str, optional
+    #     :param ddi: data description ID to use in subselection, defaults to "all" when None, ex. 0
+    #     :type ddi: list or int, optional
+    #     :param az_el_key: What type of Azimuth & Elevation information to print, 'mean', 'median' or 'center', default\
+    #     is 'center'
+    #     :type az_el_key: str, optional
+    #     :param phase_center_unit: What unit to display phase center coordinates, 'radec' and angle units supported, \
+    #     default is 'radec'
+    #     :type phase_center_unit: str, optional
+    #     :param az_el_unit: Angle unit used to display Azimuth & Elevation information, default is 'deg'
+    #     :type az_el_unit: str, optional
+    #     :param time_format: datetime time format for the start and end dates of observation, default is \
+    #     "%d %h %Y, %H:%M:%S"
+    #     :type time_format: str, optional
+    #     :param tab_size: Number of spaces in the tab levels, default is 3
+    #     :type tab_size: int, optional
+    #     :param print_summary: Print the summary at the end of execution, default is True
+    #     :type print_summary: bool, optional
+    #     :param parallel: Run in parallel, defaults to False
+    #     :type parallel: bool, optional
+    #
+    #     **Additional Information**
+    #
+    #     This method produces a summary of the data in the AstrohackPanelFile displaying general information,
+    #     spectral information, beam image characteristics and aperture image characteristics.
+    #     """
+    #
+    #     param_dict = locals()
+    #     key_order = ["ant", "ddi"]
+    #     execution, summary = compute_graph(
+    #         self,
+    #         generate_observation_summary,
+    #         param_dict,
+    #         key_order,
+    #         parallel,
+    #         fetch_returns=True,
+    #     )
+    #     summary = "".join(summary)
+    #     with open(summary_file, "w") as output_file:
+    #         output_file.write(summary)
+    #     if print_summary:
+    #         print(summary)

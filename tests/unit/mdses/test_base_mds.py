@@ -42,7 +42,7 @@ class TestBaseMds:
         base_mds = AstrohackBaseFile(self.silly_name)
 
         assert (
-            base_mds.file == self.silly_name
+            base_mds.filename == self.silly_name
         ), "base mds file name should be the same as the one given as argument to __init__"
 
         assert not base_mds.is_open, "base mds file should not be opened yet"
@@ -60,7 +60,7 @@ class TestBaseMds:
             base_mds.is_open
         ), "is_open property needs to return True now that the file has been opened"
         assert (
-            base_mds.file == self.beamcut_file_name
+            base_mds.filename == self.beamcut_file_name
         ), ".file attribute should now be set to the name of the given file."
 
         return

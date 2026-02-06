@@ -29,7 +29,7 @@ class AstrohackBaseFile:
         :return: AstrohackBaseFile object
         :rtype: AstrohackBaseFile
         """
-        self.file = file
+        self.filename = file
         self._file_is_open = False
         self.root = None
 
@@ -128,19 +128,25 @@ class AstrohackBaseFile:
         """
 
         if file is None:
-            file = self.file
+            file = self.filename
 
         try:
             # Chunks='auto' means lazy dask loading with automatic choice of chunk size
             # chunks=None is direct opening.
-            self.root = xr.open_datatree(file, engine="zarr", chunks="auto")
+            self.root = xr.open_datatree(file, engine="zarr")  # , chunks="auto")
 
             self._file_is_open = True
-            self.file = file
+            self.filename = file
+
+        except FileNotFoundError:
+            self._file_is_open = False
+            msg = f"File not found at {self.filename}"
 
         except Exception as error:
-            logger.error(f"There was an exception opening the file: {error}")
             self._file_is_open = False
+            msg = f"There was an exception opening the file: {error}"
+            logger.error(msg)
+            raise RuntimeError(msg)
 
         return self._file_is_open
 
@@ -151,7 +157,7 @@ class AstrohackBaseFile:
         :param mode: File mode
         :type mode: str
         """
-        self.root.to_zarr(self.file, mode=mode, consolidated=True)
+        self.root.to_zarr(self.filename, mode=mode, consolidated=True)
 
     def summary(self) -> None:
         """
@@ -160,7 +166,7 @@ class AstrohackBaseFile:
         :return: None
         :rtype: NoneType
         """
-        outstr = get_summary_header(self.file)
+        outstr = get_summary_header(self.filename)
         outstr += get_property_string(self.root.attrs)
         outstr += get_method_list_string(self)
         outstr += get_data_content_string(self.root)
@@ -254,6 +260,6 @@ class AstrohackBaseFile:
         :return: Print contents
         """
         outstr = f"<{type(self).__name__}>{lnbr}"
-        outstr += f"File on disk: {self.file}{lnbr}"
+        outstr += f"File on disk: {self.filename}{lnbr}"
         outstr += f"Data tree: {lnbr}{self.root.__repr__()}"
         return outstr

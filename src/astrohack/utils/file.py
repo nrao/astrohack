@@ -580,10 +580,10 @@ def mds_equality_test(mds_a, mds_b):
 
     metadata_different, msg = _is_mds_metadata_different(mds_a, mds_b)
     if metadata_different:
-        return False, f"{mds_a.file} and {mds_b.file} {msg}."
+        return False, f"{mds_a.filename} and {mds_b.filename} {msg}."
 
     data_dicts_different, msg = _are_data_dicts_different(mds_a, mds_b)
     if data_dicts_different:
-        return False, f"{mds_a.file} and {mds_b.file} {msg}."
+        return False, f"{mds_a.filename} and {mds_b.filename} {msg}."
 
-    return True, f"{mds_a.file} and {mds_b.file} are equal"
+    return True, f"{mds_a.filename} and {mds_b.filename} are equal"

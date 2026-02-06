@@ -13,7 +13,7 @@ from astrohack.utils.file import (
 )
 from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.io.holog_mds import AstrohackHologFile
-from astrohack.io.mds import AstrohackPanelFile
+from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
@@ -102,7 +102,6 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 
@@ -141,7 +140,6 @@ def open_image(file: str) -> Union[AstrohackImageFile, None]:
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 
@@ -175,12 +173,11 @@ def open_panel(file: str) -> Union[AstrohackPanelFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened_2(file, "panel", "0.10.1")
     _data_file = AstrohackPanelFile(file=file)
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 

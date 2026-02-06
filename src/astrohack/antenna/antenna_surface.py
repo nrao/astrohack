@@ -663,8 +663,8 @@ class AntennaSurface:
 
         nscrews = self.panels[0].screws.shape[0]
 
-        self.panel_labels = np.ndarray([npanels], dtype=object)
-        self.panel_model_array = np.ndarray([npanels], dtype=object)
+        self.panel_labels = np.ndarray([npanels], dtype="U22")
+        self.panel_model_array = np.ndarray([npanels], dtype="U22")
         self.panel_pars = np.full((npanels, max_par), np.nan, dtype=float)
         self.screw_adjustments = np.ndarray((npanels, nscrews), dtype=float)
         self.panel_fallback = np.ndarray([npanels], dtype=bool)

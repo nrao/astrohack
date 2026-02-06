@@ -132,7 +132,7 @@ def extract_pointing_preprocessing(input_params):
     return ant_dist_matrix, looping_dict, pnt_params, mapping_state_ids
 
 
-def make_ant_pnt_chunk(pnt_params, output_mds):
+def extract_pointing_chunk(pnt_params, output_mds):
     """Extract subset of pointing table data into a dictionary of xarray data arrays. This is written to disk as a
     zarr file. This function processes a chunk the overall data and is managed by Dask.
 
@@ -304,132 +304,6 @@ def make_ant_pnt_chunk(pnt_params, output_mds):
         dump_to_disk=True,
         running_in_parallel=pnt_params["parallel"],
     )
-
-
-def _create_pointing_figure(input_params):
-    y_labels = ["azimuth", "elevation"]
-    fig, axes = create_figure_and_axes(input_params["figure_size"], [2, 1])
-    return fig, axes, y_labels
-
-
-def _finalize_pointing_figure(
-    input_params, target_column, ant_label, y_labels, axes, fig
-):
-    title = f"Pointing [{target_column}] data for: {ant_label}"
-    filename = f"{input_params['destination']}/point_{target_column.lower()}_"
-    if len(ant_label.split(",")) > 1:
-        filename += "combined.png"
-    else:
-        filename += f"ant_{ant_label}.png"
-    for i_coord, y_label in enumerate(y_labels):
-        axes[i_coord].set_ylabel(
-            f"{y_label.capitalize()} [{input_params["azel_unit"]}]"
-        )
-        if y_label == "Azimuth":
-
-            if input_params["az_scale"] is not None:
-                axes[i_coord].set_ylim(input_params["az_scale"])
-
-        else:
-            if input_params["el_scale"] is not None:
-                axes[i_coord].set_ylim(input_params["el_scale"])
-        if input_params["time_scale"] is not None:
-            axes[i_coord].set_xlim(input_params["time_scale"])
-        axes[i_coord].set_xlabel(
-            f"Time Since Observation start [{input_params["time_unit"]}]"
-        )
-        axes[i_coord].legend()
-    close_figure(fig, title, filename, input_params["dpi"], input_params["display"])
-
-
-def _plot_one_pnt_xds(
-    time_fac, ang_fac, ant_name, pnt_xds, target_column, y_labels, axes
-):
-    time_ax = pnt_xds.coords["time"].values
-    # Set time from obs start
-    time_ax -= time_ax[0]
-    plot_data = pnt_xds[target_column].values
-    for i_coord, y_label in enumerate(y_labels):
-        axes[i_coord].plot(
-            time_fac * time_ax,
-            ang_fac * plot_data[:, i_coord],
-            label=ant_name,
-            ls="",
-            marker="o",
-            ms=5,
-        )
-
-
-def _get_plot_configuration(input_params, point_mds):
-    ant_list = param_to_list(input_params["ant"], point_mds, "ant")
-    time_fac = convert_unit("sec", input_params["time_unit"], "time")
-    ang_fac = convert_unit("rad", input_params["azel_unit"], "trigonometric")
-    target_column = input_params["pointing_key"].upper()
-    return ant_list, time_fac, ang_fac, target_column
-
-
-def plot_pointing_in_time_separately(input_params, point_mds):
-    ant_list, time_fac, ang_fac, target_column = _get_plot_configuration(
-        input_params, point_mds
-    )
-
-    n_use_ants = 0
-    for ant_key in ant_list:
-        ant_name = ant_key.split("_")[1]
-        if ant_key in point_mds.keys():
-            n_use_ants = n_use_ants + 1
-            fig, axes, y_labels = _create_pointing_figure(input_params)
-            _plot_one_pnt_xds(
-                time_fac,
-                ang_fac,
-                ant_name,
-                point_mds[ant_key].dataset,
-                target_column,
-                y_labels,
-                axes,
-            )
-            _finalize_pointing_figure(
-                input_params, target_column, ant_name, y_labels, axes, fig
-            )
-        else:
-            logger.warning(f"Antenna {ant_name} not found in dataset")
-
-    if n_use_ants <= 0:
-        logger.warning(f"No valid antennas selected, no plot produced.")
-    return
-
-
-def plot_pointing_in_time_together(input_params, point_mds):
-    ant_list, time_fac, ang_fac, target_column = _get_plot_configuration(
-        input_params, point_mds
-    )
-    fig, axes, y_labels = _create_pointing_figure(input_params)
-
-    n_use_ants = 0
-    for ant_key in ant_list:
-        ant_name = ant_key.split("_")[1]
-        if ant_key in point_mds.keys():
-            n_use_ants = n_use_ants + 1
-            _plot_one_pnt_xds(
-                time_fac,
-                ang_fac,
-                ant_name,
-                point_mds[ant_key].dataset,
-                target_column,
-                y_labels,
-                axes,
-            )
-        else:
-            logger.warning(f"Antenna {ant_name} not found in dataset")
-
-    if n_use_ants > 0:
-        simple_ant_list = [ant_key.split("_")[1] for ant_key in ant_list]
-        _finalize_pointing_figure(
-            input_params, target_column, ", ".join(simple_ant_list), y_labels, axes, fig
-        )
-    else:
-        logger.warning(f"No valid antennas selected, no plot produced.")
-    return
 
 
 def _extract_scan_time_dict(time, scan_ids, state_ids, ddi_ids, mapping_state_ids):

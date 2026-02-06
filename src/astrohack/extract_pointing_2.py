@@ -8,7 +8,7 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
 from astrohack.core.extract_pointing_2 import (
     extract_pointing_preprocessing,
-    make_ant_pnt_chunk,
+    extract_pointing_chunk,
 )
 from astrohack.io.point_mds import AstrohackPointFile
 
@@ -98,7 +98,7 @@ def extract_pointing(
 
     executed_graph = create_and_execute_graph_from_dict(
         looping_dict=looping_dict,
-        chunk_function=make_ant_pnt_chunk,
+        chunk_function=extract_pointing_chunk,
         param_dict=pnt_params,
         key_order=["ant"],
         output_mds=point_mds,

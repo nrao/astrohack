@@ -24,7 +24,7 @@ from astrohack.utils import (
     add_prefix,
     string_to_ascii_file,
 )
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.validation import custom_unit_checker
 
 
@@ -308,15 +308,19 @@ class AstrohackPositionFile(AstrohackBaseFile):
         param_dict["combined"] = self.root.attrs["combined"]
 
         if self.root.attrs["combined"]:
-            compute_graph(
-                self, plot_sky_coverage_chunk, param_dict, ["ant"], parallel=parallel
+            create_and_execute_graph_from_dict(
+                looping_dict=self,
+                chunk_function=plot_sky_coverage_chunk,
+                param_dict=param_dict,
+                key_order=["ant"],
+                parallel=parallel,
             )
         else:
-            compute_graph(
-                self,
-                plot_sky_coverage_chunk,
-                param_dict,
-                ["ant", "ddi"],
+            create_and_execute_graph_from_dict(
+                looping_dict=self,
+                chunk_function=plot_sky_coverage_chunk,
+                param_dict=param_dict,
+                key_order=["ant", "ddi"],
                 parallel=parallel,
             )
 
@@ -389,11 +393,15 @@ class AstrohackPositionFile(AstrohackBaseFile):
         param_dict["combined"] = self.root.attrs["combined"]
         param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
         if self.root.attrs["combined"]:
-            compute_graph(
-                self, plot_delays_chunk, param_dict, ["ant"], parallel=parallel
+            create_and_execute_graph_from_dict(
+                looping_dict=self,
+                chunk_function=plot_delays_chunk,
+                param_dict=param_dict,
+                key_order=["ant"],
+                parallel=parallel,
             )
         else:
-            compute_graph(
+            create_and_execute_graph_from_dict(
                 self, plot_delays_chunk, param_dict, ["ant", "ddi"], parallel=parallel
             )
 

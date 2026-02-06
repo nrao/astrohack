@@ -28,7 +28,7 @@ from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.extract_pointing import extract_pointing
 from astrohack.core.holog_obs_dict import HologObsDict
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
 from typing import Union, List
 
@@ -240,12 +240,12 @@ def extract_holog(
 
     extract_holog_params["pnt_mds"] = pnt_mds
 
-    executed_graph = compute_graph_to_mds_tree(
-        looping_dict,
-        process_extract_holog_chunk,
-        extract_holog_params,
-        ["ddi", "map"],
-        holog_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=looping_dict,
+        chunk_function=process_extract_holog_chunk,
+        param_dict=extract_holog_params,
+        key_order=["ddi", "map"],
+        output_mds=holog_mds,
     )
 
     holog_mds.root.attrs["holog_obs_dict"] = used_holog_obs_dict

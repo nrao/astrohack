@@ -5,7 +5,7 @@ from typing import List, Union, NewType, Tuple
 import toolviper.utils.logger as logger
 
 from astrohack import open_holog
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
 from astrohack.core.holog_2 import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
@@ -171,12 +171,12 @@ def holog(
         image_name, holog_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        holog_mds,
-        process_holog_chunk,
-        holog_params,
-        ["ant", "ddi"],
-        image_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=holog_mds,
+        chunk_function=process_holog_chunk,
+        param_dict=holog_params,
+        key_order=["ant", "ddi"],
+        output_mds=image_mds,
     )
 
     if executed_graph:

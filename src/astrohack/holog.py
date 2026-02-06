@@ -8,7 +8,7 @@ import toolviper
 from numbers import Number
 from typing import List, Union, NewType, Tuple
 
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.data import write_meta_data
 from astrohack.core.holog import process_holog_chunk
@@ -182,8 +182,12 @@ def holog(
     with open(json_data, "r") as json_file:
         holog_json = json.load(json_file)
 
-    if compute_graph(
-        holog_json, process_holog_chunk, holog_params, ["ant", "ddi"], parallel=parallel
+    if create_and_execute_graph_from_dict(
+        looping_dict=holog_json,
+        chunk_function=process_holog_chunk,
+        param_dict=holog_params,
+        key_order=["ant", "ddi"],
+        parallel=parallel,
     ):
 
         output_attr_file = "{name}/{ext}".format(

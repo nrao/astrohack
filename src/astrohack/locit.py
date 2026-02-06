@@ -3,7 +3,7 @@ import pathlib
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened_2
 from astrohack.core.locit import (
     locit_separated_chunk,
@@ -188,12 +188,12 @@ def locit(
         locit_params["position_name"], locit_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        locit_mds,
-        function,
-        locit_params,
-        key_order,
-        position_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=locit_mds,
+        chunk_function=function,
+        param_dict=locit_params,
+        key_order=key_order,
+        output_mds=position_mds,
         parallel=parallel,
     )
     if executed_graph:

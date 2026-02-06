@@ -6,7 +6,7 @@ from typing import Union, List
 
 from astrohack.core.combine import process_combine_chunk
 
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
 from astrohack.utils.data import write_meta_data
 from astrohack.utils.text import get_default_file_name
@@ -102,8 +102,12 @@ def combine(
     combine_params["image_mds"] = image_mds
     image_attr = image_mds._meta_data
 
-    if compute_graph(
-        image_mds, process_combine_chunk, combine_params, ["ant"], parallel=parallel
+    if create_and_execute_graph_from_dict(
+        looping_dict=image_mds,
+        chunk_function=process_combine_chunk,
+        param_dict=combine_params,
+        key_order=["ant"],
+        parallel=parallel,
     ):
         logger.info("Finished processing")
 

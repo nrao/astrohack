@@ -15,7 +15,7 @@ from astrohack.core.beamcut import (
 from astrohack.visualization.textual_data import (
     generate_observation_summary_for_beamcut,
 )
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
@@ -97,12 +97,12 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
-        execution, summary_list = compute_graph(
-            self,
-            generate_observation_summary_for_beamcut,
-            param_dict,
-            key_order,
-            parallel,
+        execution, summary_list = create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=generate_observation_summary_for_beamcut,
+            param_dict=param_dict,
+            key_order=key_order,
+            parallel=parallel,
             fetch_returns=True,
         )
         full_summary = "".join(summary_list)
@@ -161,11 +161,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_beamcut_in_amplitude_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=plot_beamcut_in_amplitude_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -220,11 +220,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_beamcut_in_attenuation_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=plot_beamcut_in_attenuation_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -275,11 +275,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_cuts_in_lm_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=plot_cuts_in_lm_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -322,7 +322,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self, create_report_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=create_report_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
         return

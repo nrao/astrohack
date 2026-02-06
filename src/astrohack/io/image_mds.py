@@ -8,7 +8,7 @@ import toolviper.utils.logger as logger
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_5d_grid_from_stokes
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.phase_fitting import aips_par_names
@@ -98,11 +98,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         param_dict["input_params"] = self.root.attrs["input_parameters"]
-        compute_graph(
-            self,
-            _export_to_fits_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_export_to_fits_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
 
@@ -184,8 +184,12 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self, _plot_aperture_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_aperture_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -246,8 +250,12 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self, _plot_beam_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_beam_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -287,8 +295,12 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self, _export_phase_fit_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_export_phase_fit_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
 
     # @toolviper.utils.parameter.validate()
@@ -321,11 +333,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            _export_zernike_fit_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_export_zernike_fit_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
 
@@ -375,11 +387,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_zernike_model_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=plot_zernike_model_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
 
@@ -441,12 +453,12 @@ class AstrohackImageFile(AstrohackBaseFile):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
-        execution, summary = compute_graph(
-            self,
-            generate_observation_summary,
-            param_dict,
-            key_order,
-            parallel,
+        execution, summary = create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=generate_observation_summary,
+            param_dict=param_dict,
+            key_order=key_order,
+            parallel=parallel,
             fetch_returns=True,
         )
         summary = "".join(summary)

@@ -5,7 +5,7 @@ import toolviper.utils.logger as logger
 
 from astrohack import open_image
 from astrohack.core.combine_2 import process_combine_chunk
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.image_mds import AstrohackImageFile
@@ -100,12 +100,12 @@ def combine(
         combine_name, combine_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        image_mds,
-        process_combine_chunk,
-        combine_params,
-        ["ant"],
-        combine_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=image_mds,
+        chunk_function=process_combine_chunk,
+        param_dict=combine_params,
+        key_order=["ant"],
+        output_mds=combine_mds,
     )
 
     if executed_graph:

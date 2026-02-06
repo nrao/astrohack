@@ -10,7 +10,7 @@ from astrohack.utils.data import write_meta_data
 from astrohack.core.panel import process_panel_chunk
 from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
 from astrohack.io.mds import AstrohackPanelFile, AstrohackImageFile
 
@@ -237,11 +237,11 @@ def panel(
     else:
         panel_params["origin"] = "astrohack"
         panel_params["version"] = image_mds._input_pars["version"]
-        if compute_graph(
-            image_mds,
-            process_panel_chunk,
-            panel_params,
-            ["ant", "ddi"],
+        if create_and_execute_graph_from_dict(
+            looping_dict=image_mds,
+            chunk_function=process_panel_chunk,
+            param_dict=panel_params,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         ):
             logger.info("Finished processing")

@@ -10,7 +10,7 @@ from astrohack.utils.data import write_meta_data
 from astrohack.core.panel_2 import process_panel_chunk
 from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
 from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.io.dio import open_image
@@ -219,12 +219,12 @@ def panel(
         panel_name, panel_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        image_mds,
-        process_panel_chunk,
-        panel_params,
-        ["ant", "ddi"],
-        panel_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=image_mds,
+        chunk_function=process_panel_chunk,
+        param_dict=panel_params,
+        key_order=["ant", "ddi"],
+        output_mds=panel_mds,
     )
 
     if executed_graph:

@@ -10,7 +10,7 @@ from astrohack.utils.validation import custom_plots_checker
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.validation import custom_split_checker
 
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
 from astrohack.visualization.diagnostics import (
     calibration_plot_chunk,
@@ -260,7 +260,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         param_dict["metadata"] = self._meta_data
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self,
             export_to_fits_holog_chunk,
             param_dict,
@@ -331,7 +331,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self, plot_aperture_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
@@ -383,7 +383,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self, plot_beam_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
@@ -419,7 +419,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self, export_phase_fit_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
@@ -450,7 +450,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self,
             export_zernike_fit_chunk,
             param_dict,
@@ -497,7 +497,7 @@ class AstrohackImageFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self,
             plot_zernike_model_chunk,
             param_dict,
@@ -553,7 +553,7 @@ class AstrohackImageFile(dict):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
-        execution, summary = compute_graph(
+        execution, summary = create_and_execute_graph_from_dict(
             self,
             generate_observation_summary,
             param_dict,
@@ -727,7 +727,9 @@ class AstrohackHologFile(dict):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ddi", "map", "ant"]
-        compute_graph(self, calibration_plot_chunk, param_dict, key_order, parallel)
+        create_and_execute_graph_from_dict(
+            self, calibration_plot_chunk, param_dict, key_order, parallel
+        )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_lm_sky_coverage(
@@ -798,7 +800,9 @@ class AstrohackHologFile(dict):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ddi", "map", "ant"]
-        compute_graph(self, plot_lm_coverage, param_dict, key_order, parallel)
+        create_and_execute_graph_from_dict(
+            self, plot_lm_coverage, param_dict, key_order, parallel
+        )
         return
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -834,7 +838,9 @@ class AstrohackHologFile(dict):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ddi", "map", "ant"]
-        compute_graph(self, export_to_aips, param_dict, key_order, parallel)
+        create_and_execute_graph_from_dict(
+            self, export_to_aips, param_dict, key_order, parallel
+        )
         return
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -890,7 +896,7 @@ class AstrohackHologFile(dict):
         param_dict = locals()
         param_dict["map"] = map_id
         key_order = ["ddi", "map", "ant"]
-        execution, summary = compute_graph(
+        execution, summary = create_and_execute_graph_from_dict(
             self,
             generate_observation_summary,
             param_dict,
@@ -1045,7 +1051,7 @@ class AstrohackPanelFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self, export_screws_chunk, param_dict, ["ant", "ddi"], parallel=False
         )
 
@@ -1141,7 +1147,7 @@ class AstrohackPanelFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self, plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
@@ -1178,7 +1184,7 @@ class AstrohackPanelFile(dict):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self,
             export_to_fits_panel_chunk,
             param_dict,
@@ -1243,7 +1249,7 @@ class AstrohackPanelFile(dict):
 
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
+        create_and_execute_graph_from_dict(
             self,
             export_gains_table_chunk,
             param_dict,
@@ -1299,7 +1305,7 @@ class AstrohackPanelFile(dict):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
-        execution, summary = compute_graph(
+        execution, summary = create_and_execute_graph_from_dict(
             self,
             generate_observation_summary,
             param_dict,

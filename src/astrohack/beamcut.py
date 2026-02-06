@@ -1,15 +1,14 @@
 import pathlib
 import json
-import xarray as xr
 
 import toolviper.utils.logger as logger
 
 from toolviper.utils.parameter import validate
 
 from astrohack.core.beamcut import process_beamcut_chunk
-from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
+from astrohack.utils import get_default_file_name
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-from astrohack.utils.graph import compute_graph, compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.utils.validation import custom_plots_checker
 
@@ -140,12 +139,12 @@ def beamcut(
         beamcut_params["beamcut_name"], beamcut_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        holog_json,
-        process_beamcut_chunk,
-        beamcut_params,
-        ["ant", "ddi"],
-        beamcut_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=holog_json,
+        chunk_function=process_beamcut_chunk,
+        param_dict=beamcut_params,
+        key_order=["ant", "ddi"],
+        output_mds=beamcut_mds,
         parallel=parallel,
     )
 

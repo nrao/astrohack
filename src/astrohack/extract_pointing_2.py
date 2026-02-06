@@ -3,7 +3,7 @@ import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
 from astrohack.utils import print_dict_types
-from astrohack.utils.graph import compute_graph_to_mds_tree
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
 from astrohack.core.extract_pointing_2 import (
@@ -96,12 +96,12 @@ def extract_pointing(
     point_mds.root.attrs["antenna_stations"] = pnt_params.pop("antenna_stations")
     point_mds.root.attrs["telescope_name"] = pnt_params.pop("telescope_name")
 
-    executed_graph = compute_graph_to_mds_tree(
-        looping_dict,
-        make_ant_pnt_chunk,
-        pnt_params,
-        ["ant"],
-        point_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=looping_dict,
+        chunk_function=make_ant_pnt_chunk,
+        param_dict=pnt_params,
+        key_order=["ant"],
+        output_mds=point_mds,
     )
 
     if executed_graph:

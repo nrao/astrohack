@@ -4,6 +4,7 @@ import pathlib
 from typing import Union, List, Tuple
 
 from astrohack.antenna.antenna_surface import AntennaSurface
+from astrohack.utils.constants import plot_types
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 
@@ -107,102 +108,102 @@ class AstrohackPanelFile(AstrohackBaseFile):
             parallel=False,
         )
 
-    #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def plot_antennas(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     plot_type: str = "deviation",
-    #     plot_screws: bool = False,
-    #     amplitude_limits: Union[Tuple, List[float], np.array] = None,
-    #     phase_unit: str = "deg",
-    #     phase_limits: Union[Tuple, List[float], np.array] = None,
-    #     deviation_unit: str = "mm",
-    #     deviation_limits: Union[Tuple, List[float], np.array] = None,
-    #     panel_labels: bool = False,
-    #     display: bool = False,
-    #     colormap: str = "viridis",
-    #     figure_size: Union[Tuple, List[float], np.array] = (8.0, 6.4),
-    #     dpi: int = 300,
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Create diagnostic plots of antenna surfaces from panel data file.
-    #
-    #     :param destination: Name of the destination folder to contain plots
-    #     :type destination: str
-    #
-    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #
-    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #
-    #     :param plot_type: type of plot to be produced, deviation, phase, ancillary or all, default is deviation
-    #     :type plot_type: str, optional
-    #
-    #     :param plot_screws: Add screw positions to plot
-    #     :type plot_screws: bool, optional
-    #
-    #     :param amplitude_limits: Lower than Upper limit for amplitude in volts default is None (Guess from data)
-    #     :type amplitude_limits: numpy.ndarray, list, tuple, optional
-    #
-    #     :param phase_unit: Unit for phase plots, defaults is 'deg'
-    #     :type phase_unit: str, optional
-    #
-    #     :param phase_limits: Lower than Upper limit for phase, value in phase_unit, default is None (Guess from data)
-    #     :type phase_limits: numpy.ndarray, list, tuple, optional
-    #
-    #     :param deviation_unit: Unit for deviation plots, defaults is 'mm'
-    #     :type deviation_unit: str, optional
-    #
-    #     :param deviation_limits: Lower than Upper limit for deviation, value in deviation_unit, default is None (Guess \
-    #     from data)
-    #     :type deviation_limits: numpy.ndarray, list, tuple, optional
-    #
-    #     :param panel_labels: Add panel labels to antenna surface plots, default is False
-    #     :type panel_labels: bool, optional
-    #
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #
-    #     :param colormap: Colormap for plots, default is viridis
-    #     :type colormap: str, optional
-    #
-    #     :param figure_size: 2 element array/list/tuple with the plot sizes in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #
-    #     :param dpi: dots per inch to be used in plots, default is 300
-    #     :type dpi: int, optional
-    #
-    #     :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Produce plots from ``astrohack.panel`` results to be analyzed to judge the quality of the results
-    #
-    #     **Additional Information**
-    #     .. rubric:: Available plot types:
-    #     - *deviation*: Surface deviation estimated from phase and wavelength, three plots are produced for each antenna \
-    #                    and ddi combination, surface before correction, the corrections applied and the corrected \
-    #                    surface, most length units available
-    #     - *phase*: Phase deviations over the surface, three plots are produced for each antenna and ddi combination, \
-    #                phase before correction, the corrections applied and the corrected phase, deg and rad available as \
-    #                units
-    #     - *ancillary*: Two ancillary plots with useful information: The mask used to select data to be fitted, the \
-    #                    amplitude data used to derive the mask, units are irrelevant for these plots
-    #     - *all*: All the plots listed above. In this case the unit parameter is taken to mean the deviation unit, the \
-    #              phase unit is set to degrees
-    #     """
-    #
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     create_and_execute_graph_from_dict(
-    #         self, plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
-    #     )
+    def plot_antennas(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        plot_type: str = "deviation",
+        plot_screws: bool = False,
+        amplitude_limits: Union[Tuple, List[float], np.array] = None,
+        phase_unit: str = "deg",
+        phase_limits: Union[Tuple, List[float], np.array] = None,
+        deviation_unit: str = "mm",
+        deviation_limits: Union[Tuple, List[float], np.array] = None,
+        panel_labels: bool = False,
+        display: bool = False,
+        colormap: str = "viridis",
+        figure_size: Union[Tuple, List[float], np.array] = (8.0, 6.4),
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """ Create diagnostic plots of antenna surfaces from panel data file.
+
+        :param destination: Name of the destination folder to contain plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param plot_type: type of plot to be produced, deviation, phase, ancillary or all, default is deviation
+        :type plot_type: str, optional
+
+        :param plot_screws: Add screw positions to plot
+        :type plot_screws: bool, optional
+
+        :param amplitude_limits: Lower than Upper limit for amplitude in volts default is None (Guess from data)
+        :type amplitude_limits: numpy.ndarray, list, tuple, optional
+
+        :param phase_unit: Unit for phase plots, defaults is 'deg'
+        :type phase_unit: str, optional
+
+        :param phase_limits: Lower than Upper limit for phase, value in phase_unit, default is None (Guess from data)
+        :type phase_limits: numpy.ndarray, list, tuple, optional
+
+        :param deviation_unit: Unit for deviation plots, defaults is 'mm'
+        :type deviation_unit: str, optional
+
+        :param deviation_limits: Lower than Upper limit for deviation, value in deviation_unit, default is None (Guess \
+        from data)
+        :type deviation_limits: numpy.ndarray, list, tuple, optional
+
+        :param panel_labels: Add panel labels to antenna surface plots, default is False
+        :type panel_labels: bool, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param colormap: Colormap for plots, default is viridis
+        :type colormap: str, optional
+
+        :param figure_size: 2 element array/list/tuple with the plot sizes in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: dots per inch to be used in plots, default is 300
+        :type dpi: int, optional
+
+        :param parallel: If True will use an existing astrohack client to produce plots in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Produce plots from ``astrohack.panel`` results to be analyzed to judge the quality of the results
+
+        **Additional Information**
+        .. rubric:: Available plot types:
+        - *deviation*: Surface deviation estimated from phase and wavelength, three plots are produced for each antenna \
+                       and ddi combination, surface before correction, the corrections applied and the corrected \
+                       surface, most length units available
+        - *phase*: Phase deviations over the surface, three plots are produced for each antenna and ddi combination, \
+                   phase before correction, the corrections applied and the corrected phase, deg and rad available as \
+                   units
+        - *ancillary*: Two ancillary plots with useful information: The mask used to select data to be fitted, the \
+                       amplitude data used to derive the mask, units are irrelevant for these plots
+        - *all*: All the plots listed above. In this case the unit parameter is taken to mean the deviation unit, the \
+                 phase unit is set to degrees
+        """
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        create_and_execute_graph_from_dict(
+            self, _plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        )
+
     #
     # @toolviper.utils.parameter.validate()
     # def export_to_fits(
@@ -386,3 +387,30 @@ def _export_screws_chunk(parm_dict):
     surface = AntennaSurface(xds, reread=True)
     surface.export_screws(export_name + "txt", unit=parm_dict["unit"])
     surface.plot_screw_adjustments(export_name + "png", parm_dict)
+
+
+def _plot_antenna_chunk(parm_dict):
+    """
+    Chunk function for the user facing function plot_antenna
+    Args:
+        parm_dict: parameter dictionary
+    """
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    plot_type = parm_dict["plot_type"]
+    basename = f"{destination}/{antenna}_{ddi}"
+    xds = parm_dict["xdt_data"]
+    surface = AntennaSurface(xds, reread=True)
+    if plot_type == plot_types[0]:  # deviation plot
+        surface.plot_deviation(basename, "panel", parm_dict)
+    elif plot_type == plot_types[1]:  # phase plot
+        surface.plot_phase(basename, "panel", parm_dict)
+    elif plot_type == plot_types[2]:  # Ancillary plot
+        surface.plot_mask(basename, "panel", parm_dict)
+        surface.plot_amplitude(basename, "panel", parm_dict)
+    else:  # all plots
+        surface.plot_deviation(basename, "panel", parm_dict)
+        surface.plot_phase(basename, "panel", parm_dict)
+        surface.plot_mask(basename, "panel", parm_dict)
+        surface.plot_amplitude(basename, "panel", parm_dict)

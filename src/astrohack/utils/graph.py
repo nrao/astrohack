@@ -42,7 +42,6 @@ def _construct_general_graph_recursively(
         white_list = [key for key in exec_list if approve_prefix(key)]
 
         for item in white_list:
-            print(item)
             this_param_dict = copy.deepcopy(param_dict)
             this_param_dict[f"this_{key}"] = item
 
@@ -75,7 +74,6 @@ def create_and_execute_graph_from_dict(
     fetch_returns=False,
 ):
     def _factorized_return(status, ret_list, fetch_ret):
-        print(status, len(ret_list), fetch_ret)
         if fetch_ret:
             if status:
                 return status, ret_list

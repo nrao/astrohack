@@ -103,7 +103,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         key_order = ["ant", "ddi", "map"]
         create_and_execute_graph_from_dict(
             looping_dict=self,
-            chunk_function=_calibration_plot_chunk,
+            chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,
             key_order=key_order,
             parallel=parallel,
@@ -192,7 +192,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         key_order = ["ant", "ddi", "map"]
         create_and_execute_graph_from_dict(
             looping_dict=self,
-            chunk_function=_plot_lm_coverage_chunk,
+            chunk_function=_plot_lm_sky_coverage_chunk,
             param_dict=param_dict,
             key_order=key_order,
             parallel=parallel,
@@ -337,7 +337,7 @@ def _extract_indices(laxis, maxis, squared_radius):
     return np.array(indices)
 
 
-def _calibration_plot_chunk(param_dict):
+def _plot_diagnostics_chunk(param_dict):
     xds_data = param_dict["xdt_data"].dataset
     delta = param_dict["delta"]
     complex_split = param_dict["complex_split"]
@@ -430,7 +430,7 @@ def _calibration_plot_chunk(param_dict):
     close_figure(fig, None, plotfile, dpi, display, tight_layout=False)
 
 
-def _plot_lm_coverage_chunk(param_dict):
+def _plot_lm_sky_coverage_chunk(param_dict):
     xdt_data = param_dict["xdt_data"]
     angle_fact = convert_unit("rad", param_dict["angle_unit"], "trigonometric")
     real_lm = xdt_data["DIRECTIONAL_COSINES"] * angle_fact

@@ -13,7 +13,7 @@ from astrohack.core.beamcut import (
     plot_cuts_in_lm_chunk,
 )
 from astrohack.visualization.textual_data import (
-    generate_observation_summary_for_beamcut,
+    generate_observation_summary,
 )
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
@@ -97,9 +97,10 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
+        param_dict["dtype"] = "beamcut"
         execution, summary_list = create_and_execute_graph_from_dict(
             looping_dict=self,
-            chunk_function=generate_observation_summary_for_beamcut,
+            chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,
             parallel=parallel,

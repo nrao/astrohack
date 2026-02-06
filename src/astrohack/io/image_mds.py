@@ -453,6 +453,7 @@ class AstrohackImageFile(AstrohackBaseFile):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
+        param_dict["dtype"] = "image"
         execution, summary = create_and_execute_graph_from_dict(
             looping_dict=self,
             chunk_function=generate_observation_summary,

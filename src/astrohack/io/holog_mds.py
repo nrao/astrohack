@@ -307,6 +307,7 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         param_dict = locals()
         param_dict["map"] = map_id
+        param_dict["dtype"] = "holog"
         key_order = ["ant", "ddi", "map"]
         execution, summary = create_and_execute_graph_from_dict(
             looping_dict=self,

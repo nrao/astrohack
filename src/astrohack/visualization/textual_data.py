@@ -250,20 +250,16 @@ def create_fits_comparison_rms_table(parameters, xdt):
 def generate_observation_summary(parm_dict):
     antenna = parm_dict["this_ant"]
     ddi = parm_dict["this_ddi"]
-    try:
-        map_id = parm_dict["this_map"]
-        is_holog_zarr = True
-    except KeyError:
-        map_id = None
-        is_holog_zarr = False
-
+    data_type = parm_dict["dtype"]
     xds = parm_dict["xdt_data"]
     obs_sum = xds.attrs["summary"]
-
     tab_size = parm_dict["tab_size"]
-    tab_count = 1
 
-    if is_holog_zarr:
+    tab_count = 1
+    spc = " "
+
+    if data_type == "holog":
+        map_id = parm_dict["this_map"]
         header = f"{antenna}, {ddi}, {map_id}"
     else:
         header = f"{antenna}, {ddi}"
@@ -283,35 +279,9 @@ def generate_observation_summary(parm_dict):
         + "\n"
     )
 
-    return outstr
-
-
-def generate_observation_summary_for_beamcut(parm_dict):
-    xdt = parm_dict["xdt_data"]
-    antenna = parm_dict["this_ant"]
-    ddi = parm_dict["this_ddi"]
-    obs_sum = xdt.attrs["summary"]
-
-    tab_size = parm_dict["tab_size"]
-    tab_count = 1
-    header = f"{antenna}, {ddi}"
-    outstr = make_header(header, "#", 60, 3)
-    spc = " "
-
-    outstr += (
-        format_observation_summary(
-            obs_sum,
-            tab_size,
-            tab_count,
-            az_el_key=parm_dict["az_el_key"],
-            phase_center_unit=parm_dict["phase_center_unit"],
-            az_el_unit=parm_dict["az_el_unit"],
-            time_format=parm_dict["time_format"],
-        )
-        + "\n"
-    )
-    for cut in xdt.children.values():
-        outstr += f"{tab_count*tab_size*spc}{cut.name}:\n"
-        outstr += f'{(tab_count+1)*tab_size*spc}{cut.attrs["direction"]} at {cut.attrs["time_string"]} UTC\n\n'
+    if data_type == "beamcut":
+        for cut in xds.children.values():
+            outstr += f"{tab_count*tab_size*spc}{cut.name}:\n"
+            outstr += f'{(tab_count+1)*tab_size*spc}{cut.attrs["direction"]} at {cut.attrs["time_string"]} UTC\n\n'
 
     return outstr

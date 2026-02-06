@@ -133,7 +133,7 @@ class AstrohackBaseFile:
         try:
             # Chunks='auto' means lazy dask loading with automatic choice of chunk size
             # chunks=None is direct opening.
-            self.root = xr.open_datatree(file, engine="zarr")  # , chunks="auto")
+            self.root = xr.open_datatree(file, engine="zarr", chunks="auto")
 
             self._file_is_open = True
             self.filename = file

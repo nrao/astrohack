@@ -1,5 +1,11 @@
+import numpy as np
+import pathlib
+
+from typing import Union, List, Tuple
+
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
 
 class AstrohackPanelFile(AstrohackBaseFile):
@@ -38,55 +44,69 @@ class AstrohackPanelFile(AstrohackBaseFile):
         return AntennaSurface(xds, reread=True)
 
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
-    # def export_screws(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     unit: str = "mm",
-    #     threshold: float = None,
-    #     panel_labels: bool = True,
-    #     display: bool = False,
-    #     colormap: str = "RdBu_r",
-    #     figure_size: Union[Tuple, List[float], np.array] = None,
-    #     dpi: int = 300,
-    # ) -> None:
-    #     """ Export screw adjustments to text files and optionally plots.
-    #
-    #     :param destination: Name of the destination folder to contain exported screw adjustments
-    #     :type destination: str
-    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #     :param unit: Unit for screws adjustments, most length units supported, defaults to "mm"
-    #     :type unit: str, optional
-    #     :param threshold: Threshold below which data is considered negligible, value is assumed to be in the same unit\
-    #      as the plot, if not given defaults to 10% of the maximal deviation
-    #     :type threshold: float, optional
-    #     :param panel_labels: Add panel labels to antenna surface plots, default is True
-    #     :type panel_labels: bool, optional
-    #     :param display: Display plots inline or suppress, defaults to True
-    #     :type display: bool, optional
-    #     :param colormap: Colormap for screw adjustment map, default is RdBu_r
-    #     :type colormap: str, optional
-    #     :param figure_size: 2 element array/list/tuple with the screw adjustment map size in inches
-    #     :type figure_size: numpy.ndarray, list, tuple, optional
-    #     :param dpi: Screw adjustment map resolution in pixels per inch, default is 300
-    #     :type dpi: int, optional
-    #
-    #     .. _Description:
-    #
-    #     Produce the screw adjustments from ``astrohack.panel`` results to be used at the antenna site to improve \
-    #     the antenna surface
-    #
-    #     """
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
-    #         self, export_screws_chunk, param_dict, ["ant", "ddi"], parallel=False
-    #     )
+    def export_screws(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        unit: str = "mm",
+        threshold: float = None,
+        panel_labels: bool = True,
+        display: bool = False,
+        colormap: str = "RdBu_r",
+        figure_size: Union[Tuple, List[float], np.array] = None,
+        dpi: int = 300,
+    ) -> None:
+        """ Export screw adjustments to text files and optionally plots.
+
+        :param destination: Name of the destination folder to contain exported screw adjustments
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param unit: Unit for screws adjustments, most length units supported, defaults to "mm"
+        :type unit: str, optional
+
+        :param threshold: Threshold below which data is considered negligible, value is assumed to be in the same unit\
+         as the plot, if not given defaults to 10% of the maximal deviation
+        :type threshold: float, optional
+
+        :param panel_labels: Add panel labels to antenna surface plots, default is True
+        :type panel_labels: bool, optional
+
+        :param display: Display plots inline or suppress, defaults to True
+        :type display: bool, optional
+
+        :param colormap: Colormap for screw adjustment map, default is RdBu_r
+        :type colormap: str, optional
+
+        :param figure_size: 2 element array/list/tuple with the screw adjustment map size in inches
+        :type figure_size: numpy.ndarray, list, tuple, optional
+
+        :param dpi: Screw adjustment map resolution in pixels per inch, default is 300
+        :type dpi: int, optional
+
+        .. _Description:
+
+        Produce the screw adjustments from ``astrohack.panel`` results to be used at the antenna site to improve \
+        the antenna surface
+
+        """
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_export_screws_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=False,
+        )
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     # def plot_antennas(
@@ -180,7 +200,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
     #     param_dict = locals()
     #
     #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
+    #     create_and_execute_graph_from_dict(
     #         self, plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
     #     )
     #
@@ -217,7 +237,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
     #     param_dict = locals()
     #
     #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
+    #     create_and_execute_graph_from_dict(
     #         self,
     #         export_to_fits_panel_chunk,
     #         param_dict,
@@ -282,7 +302,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
     #
     #     param_dict = locals()
     #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     compute_graph(
+    #     create_and_execute_graph_from_dict(
     #         self,
     #         export_gains_table_chunk,
     #         param_dict,
@@ -338,7 +358,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
     #
     #     param_dict = locals()
     #     key_order = ["ant", "ddi"]
-    #     execution, summary = compute_graph(
+    #     execution, summary = create_and_execute_graph_from_dict(
     #         self,
     #         generate_observation_summary,
     #         param_dict,
@@ -351,3 +371,18 @@ class AstrohackPanelFile(AstrohackBaseFile):
     #         output_file.write(summary)
     #     if print_summary:
     #         print(summary)
+
+
+def _export_screws_chunk(parm_dict):
+    """
+    Chunk function for the user facing function export_screws
+    Args:
+        parm_dict: parameter dictionary
+    """
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    export_name = parm_dict["destination"] + f"/panel_screws_{antenna}_{ddi}."
+    xds = parm_dict["xdt_data"]
+    surface = AntennaSurface(xds, reread=True)
+    surface.export_screws(export_name + "txt", unit=parm_dict["unit"])
+    surface.plot_screw_adjustments(export_name + "png", parm_dict)

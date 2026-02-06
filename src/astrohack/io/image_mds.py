@@ -389,7 +389,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graph_from_dict(
             looping_dict=self,
-            chunk_function=plot_zernike_model_chunk,
+            chunk_function=_plot_zernike_model_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
             parallel=parallel,
@@ -887,7 +887,7 @@ def _export_zernike_fit_chunk(parm_dict):
     string_to_ascii_file(outstr, f"{destination}/image_zernike_fit_{antenna}_{ddi}.txt")
 
 
-def plot_zernike_model_chunk(parm_dict):
+def _plot_zernike_model_chunk(parm_dict):
     """
     Chunk function for the user facing function plot_zernike_model
     Args:

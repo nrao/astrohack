@@ -3,6 +3,8 @@ import pathlib
 
 from typing import Union, List, Tuple
 
+import toolviper.utils.logger as logger
+
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.constants import plot_types
 from astrohack.io.base_mds import AstrohackBaseFile
@@ -204,47 +206,47 @@ class AstrohackPanelFile(AstrohackBaseFile):
             self, _plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
         )
 
-    #
     # @toolviper.utils.parameter.validate()
-    # def export_to_fits(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """Export contents of an Astrohack MDS file to several FITS files in the destination folder
-    #
-    #     :param destination: Name of the destination folder to contain plots
-    #     :type destination: str
-    #
-    #     :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #
-    #     :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #
-    #     :param parallel: If True will use an existing astrohack client to export FITS in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #     Export the products from the panel mds onto FITS files to be read by other software packages
-    #
-    #     **Additional Information**
-    #
-    #     The FITS fils produced by this method have been tested and are known to work with CARTA and DS9
-    #     """
-    #
-    #     param_dict = locals()
-    #
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     create_and_execute_graph_from_dict(
-    #         self,
-    #         export_to_fits_panel_chunk,
-    #         param_dict,
-    #         ["ant", "ddi"],
-    #         parallel=parallel,
-    #     )
+    def export_to_fits(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        parallel: bool = False,
+    ) -> None:
+        """Export contents of an Astrohack MDS file to several FITS files in the destination folder
+
+        :param destination: Name of the destination folder to contain plots
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be plotted, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be plotted, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param parallel: If True will use an existing astrohack client to export FITS in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+        Export the products from the panel mds onto FITS files to be read by other software packages
+
+        **Additional Information**
+
+        The FITS fils produced by this method have been tested and are known to work with CARTA and DS9
+        """
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        create_and_execute_graph_from_dict(
+            self,
+            _export_to_fits_chunk,
+            param_dict,
+            ["ant", "ddi"],
+            parallel=parallel,
+        )
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     # def export_gain_tables(
@@ -414,3 +416,23 @@ def _plot_antenna_chunk(parm_dict):
         surface.plot_phase(basename, "panel", parm_dict)
         surface.plot_mask(basename, "panel", parm_dict)
         surface.plot_amplitude(basename, "panel", parm_dict)
+
+
+def _export_to_fits_chunk(parm_dict):
+    """
+    Panel side chunk function for the user facing function export_to_fits
+    Args:
+        parm_dict: parameter dictionary
+    """
+
+    antenna = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    destination = parm_dict["destination"]
+    logger.info(
+        f"Exporting panel contents of {antenna} {ddi} to FITS files in {destination}"
+    )
+    xds = parm_dict["xdt_data"]
+    surface = AntennaSurface(xds, reread=True)
+    basename = f"{destination}/{antenna}_{ddi}"
+    surface.export_to_fits(basename)
+    return

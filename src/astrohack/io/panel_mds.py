@@ -9,6 +9,15 @@ from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.constants import plot_types
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.conversion import convert_unit
+from astrohack.utils.constants import clight
+from astrohack.utils.text import (
+    format_frequency,
+    format_wavelength,
+    create_pretty_table,
+    string_to_ascii_file,
+    format_value_unit,
+)
 
 
 class AstrohackPanelFile(AstrohackBaseFile):
@@ -203,7 +212,11 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graph_from_dict(
-            self, _plot_antenna_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+            looping_dict=self,
+            chunk_function=_plot_antenna_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
 
     # @toolviper.utils.parameter.validate()
@@ -240,78 +253,78 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graph_from_dict(
-            self,
-            _export_to_fits_chunk,
-            param_dict,
-            ["ant", "ddi"],
+            looping_dict=self,
+            chunk_function=_export_to_fits_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
 
-    #
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
-    # def export_gain_tables(
-    #     self,
-    #     destination: str,
-    #     ant: Union[str, List[str]] = "all",
-    #     ddi: Union[str, int, List[int]] = "all",
-    #     wavelengths: Union[float, List[float]] = None,
-    #     wavelength_unit: str = "cm",
-    #     frequencies: Union[float, List[float]] = None,
-    #     frequency_unit: str = "GHz",
-    #     rms_unit: str = "mm",
-    #     parallel: bool = False,
-    # ) -> None:
-    #     """ Compute estimated antenna gains in dB and saves them to ASCII files.
-    #
-    #     :param destination: Name of the destination folder to contain ASCII files
-    #     :type destination: str
-    #
-    #     :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
-    #     :type ant: list or str, optional
-    #
-    #     :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
-    #     :type ddi: list or int, optional
-    #
-    #     :param wavelengths: List of wavelengths at which to compute the gains.
-    #     :type wavelengths: list or float, optional
-    #
-    #     :param wavelength_unit: Unit for the wavelengths being used, default is cm.
-    #     :type wavelength_unit: str, optional
-    #
-    #     :param frequencies: List of frequencies at which to compute the gains.
-    #     :type frequencies: list or float, optional
-    #
-    #     :param frequency_unit: Unit for the frequencies being used, default is GHz.
-    #     :type frequency_unit: str, optional
-    #
-    #     :param rms_unit: Unit for the Antenna surface RMS, default is mm.
-    #     :type rms_unit: str, optional
-    #
-    #     :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
-    #     :type parallel: bool, optional
-    #
-    #     .. _Description:
-    #
-    #     Export antenna gains in dB from ``astrohack.panel`` for analysis.
-    #
-    #     **Additional Information**
-    #
-    #     .. rubric:: Selecting frequencies and wavelengths:
-    #
-    #     If neither a frequency list nor a wavelength list is provided, ``export_gains_table`` will try to use a\
-    #     predefined list set for the telescope associated with the dataset. If both are provided, ``export_gains_table``\
-    #     will combine both lists.
-    #     """
-    #
-    #     param_dict = locals()
-    #     pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-    #     create_and_execute_graph_from_dict(
-    #         self,
-    #         export_gains_table_chunk,
-    #         param_dict,
-    #         ["ant", "ddi"],
-    #         parallel=parallel,
-    #     )
+    def export_gain_tables(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        wavelengths: Union[float, List[float]] = None,
+        wavelength_unit: str = "cm",
+        frequencies: Union[float, List[float]] = None,
+        frequency_unit: str = "GHz",
+        rms_unit: str = "mm",
+        parallel: bool = False,
+    ) -> None:
+        """ Compute estimated antenna gains in dB and saves them to ASCII files.
+
+        :param destination: Name of the destination folder to contain ASCII files
+        :type destination: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param wavelengths: List of wavelengths at which to compute the gains.
+        :type wavelengths: list or float, optional
+
+        :param wavelength_unit: Unit for the wavelengths being used, default is cm.
+        :type wavelength_unit: str, optional
+
+        :param frequencies: List of frequencies at which to compute the gains.
+        :type frequencies: list or float, optional
+
+        :param frequency_unit: Unit for the frequencies being used, default is GHz.
+        :type frequency_unit: str, optional
+
+        :param rms_unit: Unit for the Antenna surface RMS, default is mm.
+        :type rms_unit: str, optional
+
+        :param parallel: If True will use an existing astrohack client to produce ASCII files in parallel, default is False
+        :type parallel: bool, optional
+
+        .. _Description:
+
+        Export antenna gains in dB from ``astrohack.panel`` for analysis.
+
+        **Additional Information**
+
+        .. rubric:: Selecting frequencies and wavelengths:
+
+        If neither a frequency list nor a wavelength list is provided, ``export_gains_table`` will try to use a\
+        predefined list set for the telescope associated with the dataset. If both are provided, ``export_gains_table``\
+        will combine both lists.
+        """
+
+        param_dict = locals()
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_export_gain_tables_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
+        )
+
     #
     # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     # def observation_summary(
@@ -436,3 +449,74 @@ def _export_to_fits_chunk(parm_dict):
     basename = f"{destination}/{antenna}_{ddi}"
     surface.export_to_fits(basename)
     return
+
+
+def _export_gain_tables_chunk(parm_dict):
+    in_waves = parm_dict["wavelengths"]
+    in_freqs = parm_dict["frequencies"]
+    ant = parm_dict["this_ant"]
+    ddi = parm_dict["this_ddi"]
+    xds = parm_dict["xdt_data"]
+    antenna = AntennaSurface(xds, reread=True)
+    frequency = clight / antenna.wavelength
+
+    if in_waves is None and in_freqs is None:
+        try:
+            wavelengths = antenna.telescope.gain_wavelengths
+        except AttributeError:
+            msg = f"Telescope {antenna.telescope.name} has no predefined list of wavelengths to compute gains"
+            logger.error(msg)
+            logger.info("Please provide one in the arguments")
+            raise Exception(msg)
+    else:
+        wave_fac = convert_unit(parm_dict["wavelength_unit"], "m", "length")
+        freq_fac = convert_unit(parm_dict["frequency_unit"], "Hz", "frequency")
+        wavelengths = []
+        if in_waves is not None:
+            if isinstance(in_waves, float) or isinstance(in_waves, int):
+                in_waves = [in_waves]
+            for in_wave in in_waves:
+                wavelengths.append(wave_fac * in_wave)
+        if in_freqs is not None:
+            if isinstance(in_freqs, float) or isinstance(in_freqs, int):
+                in_freqs = [in_freqs]
+            for in_freq in in_freqs:
+                wavelengths.append(clight / freq_fac / in_freq)
+
+    db = "dB"
+    rmsunit = parm_dict["rms_unit"]
+    rmses = antenna.get_rms(rmsunit)
+
+    field_names = [
+        "Frequency",
+        "Wavelength",
+        "Before panel",
+        "After panel",
+        "Theoretical Max.",
+    ]
+    table = create_pretty_table(field_names)
+
+    outstr = (
+        f'# Gain estimates for {antenna.telescope.name} antenna {ant.split("_")[1]}\n'
+    )
+    outstr += f"# Based on a measurement at {format_frequency(frequency)}, {format_wavelength(antenna.wavelength)}\n"
+    outstr += f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], rmsunit)}\n"
+    outstr += f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], rmsunit)}\n"
+    outstr += 1 * "\n"
+
+    for wavelength in wavelengths:
+        prior, theo = antenna.gain_at_wavelength(False, wavelength)
+        after, _ = antenna.gain_at_wavelength(True, wavelength)
+        row = [
+            format_frequency(clight / wavelength),
+            format_wavelength(wavelength),
+            format_value_unit(prior, db),
+            format_value_unit(after, db),
+            format_value_unit(theo, db),
+        ]
+        table.add_row(row)
+
+    outstr += table.get_string()
+    string_to_ascii_file(
+        outstr, parm_dict["destination"] + f"/panel_gains_{ant}_{ddi}.txt"
+    )

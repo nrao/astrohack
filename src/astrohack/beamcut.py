@@ -1,13 +1,10 @@
 import pathlib
-import json
-
-import toolviper.utils.logger as logger
 
 from toolviper.utils.parameter import validate
 
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
+from astrohack.utils.file import overwrite_file
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.dio import open_holog

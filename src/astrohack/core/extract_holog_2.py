@@ -189,7 +189,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
                         ref_ant_per_map_ant_name_list
                     ),
                     "map_ant_name_tuple": tuple(map_ant_name_list),
-                    "ref_ant_stations": tuple(ref_ant_stations_list),
+                    "ant_stations": ant_stations,
                     "scans": scans,
                     "sel_state_ids": state_ids,
                     "ant_names": ant_names,
@@ -227,7 +227,7 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
     holog_name = extract_holog_params["holog_name"]
 
     pnt_mds = extract_holog_params["pnt_mds"]
-    inp_data_dict = extract_holog_params["data_dict"]
+    inp_data_dict = extract_holog_params["dic_data"]
 
     ddi_key = extract_holog_params["this_ddi"]
     map_key = extract_holog_params["this_map"]
@@ -236,7 +236,7 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
 
     scans = inp_data_dict["scans"]
     ant_names = inp_data_dict["ant_names"]
-    ant_stations = inp_data_dict["ref_ant_stations"]
+    ant_stations = inp_data_dict["ant_stations"]
     ref_ant_per_map_ant_tuple = inp_data_dict["ref_ant_per_map_ant_tuple"]
     map_ant_tuple = inp_data_dict["map_ant_tuple"]
     map_ant_name_tuple = inp_data_dict["map_ant_name_tuple"]

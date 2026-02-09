@@ -140,7 +140,7 @@ def extract_pointing_chunk(pnt_params, output_mds):
         pnt_params(dict): extract_pointing parameters
         output_mds: Output AstrohackPointFile
     """
-    data_dict = pnt_params["data_dict"]
+    data_dict = pnt_params["dic_data"]
     ms_name = pnt_params["ms_name"]
     scan_time_dict = pnt_params["scan_time_dict"]
 

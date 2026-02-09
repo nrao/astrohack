@@ -14,6 +14,8 @@ from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
 from astrohack.utils import (
     create_dataset_label,
+    print_dict_types,
+    tuple_inspect,
 )
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters
@@ -297,7 +299,6 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
     map_ref_dict = _get_map_ref_dict(
         map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
-
     (
         time_vis,
         vis_map_dict,
@@ -319,7 +320,6 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
         time_interval,
         scan_list,
     )
-
     del vis_data, weight, ant1, ant2, time_vis_row, flag, flag_row, field_ids, scan_list
 
     map_ant_name_list = list(map(str, map_ant_name_tuple))
@@ -414,7 +414,7 @@ def _get_time_intervals(time_vis_row, scan_list, time_interval):
     return time_samples, scan_time_ranges, unq_scans
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=True, nogil=True)
 def _extract_holog_chunk_jit(
     vis_data,
     weight,
@@ -484,7 +484,7 @@ def _extract_holog_chunk_jit(
 
     time_index = 0
     for row in range(n_row):
-        if np.all(flag_row == False):
+        if flag_row is False:
             continue
 
         # Find index of time_vis_row[row] in time_samples, assumes time_vis_row is ordered in time
@@ -631,7 +631,7 @@ def _create_holog_file(
 
     for map_ant_index in vis_map_dict.keys():
         dataset_label = create_dataset_label(
-            ant_names[map_ant_index], ddi_key.split("_")[0]
+            ant_names[map_ant_index], ddi_key.split("_")[1]
         )
         if map_ant_index not in flagged_mapping_antennas:
             map_ant_key = f"ant_{ant_names[map_ant_index]}"
@@ -753,7 +753,7 @@ def _extract_pointing_chunk(
     return pnt_map_dict
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=True, nogil=True)
 def _get_time_index(data_time, i_time, time_axis, half_int):
     if i_time == time_axis.shape[0]:
         return -1

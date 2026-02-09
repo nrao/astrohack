@@ -10,6 +10,7 @@ from astrohack.utils import get_default_file_name
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.dio import open_holog
 from astrohack.utils.validation import custom_plots_checker
 
 from typing import Union, List
@@ -112,42 +113,31 @@ def beamcut(
         )
     """
 
-    check_if_file_can_be_opened(holog_name, "0.9.5")
-
     if beamcut_name is None:
         beamcut_name = get_default_file_name(
             input_file=holog_name, output_type=".beamcut.zarr"
         )
 
+    beamcut_params = locals()
+
     if destination is not None:
         pathlib.Path(destination).mkdir(exist_ok=True)
 
-    beamcut_params = locals()
+    overwrite_file(beamcut_name, overwrite)
 
-    input_params = beamcut_params.copy()
-    assert pathlib.Path(beamcut_params["holog_name"]).exists() is True, logger.error(
-        f"File {beamcut_params['holog_name']} does not exists."
-    )
-
-    json_data = "/".join((beamcut_params["holog_name"], ".holog_json"))
-
-    with open(json_data, "r") as json_file:
-        holog_json = json.load(json_file)
-
-    overwrite_file(beamcut_params["beamcut_name"], beamcut_params["overwrite"])
     beamcut_mds = AstrohackBeamcutFile.create_from_input_parameters(
         beamcut_params["beamcut_name"], beamcut_params
     )
 
+    holog_mds = open_holog(holog_name)
     executed_graph = create_and_execute_graph_from_dict(
-        looping_dict=holog_json,
+        looping_dict=holog_mds,
         chunk_function=process_beamcut_chunk,
         param_dict=beamcut_params,
         key_order=["ant", "ddi"],
         output_mds=beamcut_mds,
         parallel=parallel,
     )
-
     if executed_graph:
         beamcut_mds.write(mode="a")
         return beamcut_mds

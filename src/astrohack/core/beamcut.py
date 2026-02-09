@@ -44,16 +44,11 @@ def process_beamcut_chunk(beamcut_chunk_params, output_mds):
     """
     ddi = beamcut_chunk_params["this_ddi"]
     antenna = beamcut_chunk_params["this_ant"]
+    xdt_data = beamcut_chunk_params["xdt_data"]
 
-    _, ant_data_dict = load_holog_file(
-        beamcut_chunk_params["holog_name"],
-        dask_load=False,
-        load_pnt_dict=False,
-        ant_id=antenna,
-        ddi_id=ddi,
-    )
     # This assumes that there will be no more than one mapping
-    input_xds = ant_data_dict[ddi]["map_0"]
+    input_xds = xdt_data["map_0"]
+
     datalabel = create_dataset_label(antenna, ddi)
     logger.info(f"processing {datalabel}")
 

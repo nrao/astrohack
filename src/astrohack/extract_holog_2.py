@@ -261,7 +261,7 @@ def generate_holog_obs_dict(
     point_name: str,
     baseline_average_distance: str = "all",
     baseline_average_nearest: str = "all",
-    write=True,
+    exclude_antennas: Union[list[str], str] = None,
     parallel: bool = False,
 ) -> HologObsDict:
     """
@@ -283,9 +283,10 @@ def generate_holog_obs_dict(
     baseline_average_nearest can not be used together.
     :type baseline_average_nearest: int, optional
 
-    :param write: Write file flag.
-    :type point_name: bool, optional
-
+    :param exclude_antennas: If an antenna is given for exclusion it will not be processed as a reference or a \
+    mapping antenna. This can be used to exclude antennas that have bad data for whatever reason. Default is None, \
+    meaning no antenna is excluded.
+    :type exclude_antennas: str | list, optional
 
     :param parallel: Boolean for whether to process in parallel. Defaults to False
     :type parallel: bool, optional
@@ -365,20 +366,19 @@ def generate_holog_obs_dict(
             }
 
     """
-    extract_holog_params = locals()
+    holog_dict_params = locals()
 
     assert pathlib.Path(point_name).exists() is True, logger.error(
         f"File {point_name} does not exists."
     )
 
-    pnt_mds = AstrohackPointFile(extract_holog_params["point_name"])
-    pnt_mds.open()
+    pnt_mds = open_pointing(holog_dict_params["point_name"])
 
     holog_obs_dict = HologObsDict.create_from_ms_info(
         pnt_mds=pnt_mds,
-        exclude_antennas=extract_holog_params["exclude_antennas"],
-        baseline_average_distance=extract_holog_params["baseline_average_distance"],
-        baseline_average_nearest=extract_holog_params["baseline_average_nearest"],
+        exclude_antennas=holog_dict_params["exclude_antennas"],
+        baseline_average_distance=holog_dict_params["baseline_average_distance"],
+        baseline_average_nearest=holog_dict_params["baseline_average_nearest"],
     )
 
     return holog_obs_dict

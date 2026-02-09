@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy
 import toolviper.utils.logger as logger
 import numpy as np
@@ -8,7 +10,6 @@ import astropy
 import xarray as xr
 
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils.file import load_holog_file
 from astrohack.utils import (
     create_dataset_label,
     convert_unit,
@@ -288,7 +289,10 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
     cut_xdtree = xr.DataTree(name=f"{antenna}-{ddi}")
     scan_time_ranges = input_xds.attrs["scan_time_ranges"]
     scan_list = input_xds.attrs["scan_list"]
-    cut_xdtree.attrs["summary"] = input_xds.attrs["summary"]
+    obs_summ = deepcopy(input_xds.attrs["summary"])
+    obs_summ["spectral"]["channel width"] *= obs_summ["spectral"]["number of channels"]
+    obs_summ["spectral"]["number of channels"] = 1
+    cut_xdtree.attrs["summary"] = obs_summ
 
     lm_offsets = input_xds.DIRECTIONAL_COSINES.values
     time_axis = input_xds.time.values

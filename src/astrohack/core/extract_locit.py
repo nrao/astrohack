@@ -9,12 +9,7 @@ from astropy.coordinates import SkyCoord, CIRS
 from astropy.time import Time
 
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
-from astrohack.utils.constants import figsize, twopi
-from astrohack.visualization.plot_tools import (
-    create_figure_and_axes,
-    close_figure,
-    scatter_plot,
-)
+from astrohack.utils.constants import twopi
 
 
 def extract_antenna_data(extract_locit_parms, locit_mds):
@@ -333,73 +328,4 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
 
     used_sources = np.unique(np.array(used_sources)).tolist()
     locit_mds.root.attrs["used_sources"] = used_sources
-    return
-
-
-def plot_source_table(
-    filename,
-    src_dict,
-    label=True,
-    precessed=False,
-    obs_midpoint=None,
-    display=True,
-    figure_size=figsize,
-    dpi=300,
-):
-    """Backend function for plotting the source table
-    Args:
-        filename: Name for the png plot file
-        src_dict: The dictionary containing the observed sources
-        label: Add source labels
-        precessed: Plot sources with precessed coordinates
-        obs_midpoint: Time to which precesses the coordiantes
-        display: Display plots in matplotlib
-        figure_size: plot dimensions in inches
-        dpi: Dots per inch (plot resolution)
-    """
-
-    n_src = len(src_dict)
-    radec = np.ndarray((n_src, 2))
-    name = []
-    if precessed:
-        if obs_midpoint is None:
-            msg = "Observation midpoint is missing"
-            logger.error(msg)
-            raise Exception(msg)
-        coorkey = "precessed"
-        time = Time(obs_midpoint, format="mjd")
-        title = f"Coordinates precessed to {time.iso}"
-    else:
-        coorkey = "fk5"
-        title = "FK5 reference frame"
-
-    for i_src, src in src_dict.items():
-        radec[int(i_src)] = src[coorkey]
-        name.append(src["name"])
-
-    fig, ax = create_figure_and_axes(figure_size, [1, 1])
-    radec[:, 0] *= convert_unit("rad", "hour", "trigonometric")
-    radec[:, 1] *= convert_unit("rad", "deg", "trigonometric")
-
-    xlabel = "Right Ascension [h]"
-    ylabel = "Declination [\u00b0]"
-    if label:
-        labels = name
-    else:
-        labels = None
-
-    scatter_plot(
-        ax,
-        radec[:, 0],
-        xlabel,
-        radec[:, 1],
-        ylabel,
-        title=None,
-        labels=labels,
-        xlim=[-0.5, 24.5],
-        ylim=[-95, 95],
-        add_legend=False,
-    )
-
-    close_figure(fig, title, filename, dpi, display)
     return

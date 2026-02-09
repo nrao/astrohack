@@ -2,6 +2,7 @@ import json
 import inspect
 import textwrap
 
+import numba.typed.typeddict
 import numpy as np
 import xarray
 from astropy.time import Time
@@ -74,6 +75,25 @@ def print_array(array, columns, indent=4):
         str_line += ", ".join(temp)
 
     print(str_line)
+
+
+def tuple_inspect(param_tuple):
+    outstr = ""
+    for idx, item in enumerate(param_tuple):
+        # print(idx, type(item))
+        outstr += f"{idx:3d} => "
+        if isinstance(item, (list, tuple)):
+            outstr += f"{len(item)} = {item}"
+        elif isinstance(item, np.ndarray):
+            outstr += f"{item.shape} sum = {np.sum(item)}"
+        elif isinstance(item, numba.typed.typeddict.Dict):
+            outstr += f"dict = {dict(item).keys()}"
+        elif isinstance(item, dict):
+            outstr += f"dict = {item.keys()}"
+        else:
+            outstr += f"{item}"
+        outstr += lnbr
+    return outstr
 
 
 def approve_prefix(key):

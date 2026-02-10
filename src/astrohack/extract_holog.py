@@ -14,7 +14,7 @@ import toolviper.utils.logger as logger
 from rich.console import Console
 from rich.table import Table
 
-from astrohack import open_pointing, open_holog
+from astrohack.io.dio import open_pointing, open_holog
 
 from astrohack.utils.file import (
     overwrite_file,

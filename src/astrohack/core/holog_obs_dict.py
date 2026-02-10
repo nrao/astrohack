@@ -6,7 +6,7 @@ import toolviper.utils.logger as logger
 
 from typing import Union, List, Any
 from rich.console import Console
-from astrohack import open_holog
+from astrohack.io.dio import open_holog
 
 
 def _add_prefix_to_keys(prefix, key_list):

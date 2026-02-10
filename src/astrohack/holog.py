@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import List, Union, NewType, Tuple
 
-import toolviper.utils.logger as logger
+import toolviper.utils.parameter
 
 from astrohack.io.dio import open_holog
 from astrohack.utils.graph import create_and_execute_graph_from_dict
@@ -14,7 +14,7 @@ from astrohack.io.image_mds import AstrohackImageFile
 Array = NewType("Array", Union[np.array, List[int], List[float]])
 
 
-# @toolviper.utils.parameter.validate()
+@toolviper.utils.parameter.validate()
 def holog(
     holog_name: str,
     image_name: str = None,

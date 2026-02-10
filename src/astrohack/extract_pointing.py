@@ -15,7 +15,7 @@ from astrohack.io.point_mds import AstrohackPointFile
 from typing import List, Union
 
 
-# @toolviper.utils.parameter.validate()
+@toolviper.utils.parameter.validate()
 def extract_pointing(
     ms_name: str,
     point_name: str = None,

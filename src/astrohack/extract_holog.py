@@ -25,7 +25,6 @@ from astrohack.core.extract_holog import (
 from astrohack.core.extract_holog import process_extract_holog_chunk
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.holog_mds import AstrohackHologFile
-from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.extract_pointing import extract_pointing
 from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.utils.graph import create_and_execute_graph_from_dict
@@ -33,7 +32,7 @@ from astrohack.utils.graph import create_and_execute_graph_from_dict
 from typing import Union, List
 
 
-# @toolviper.utils.parameter.validate(add_data_type=HologObsDict)
+@toolviper.utils.parameter.validate(add_data_type=HologObsDict)
 def extract_holog(
     ms_name: str,
     point_name: str,

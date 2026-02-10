@@ -6,6 +6,7 @@ from astropy.time import Time
 from typing import Union, Tuple, List
 
 from toolviper.utils import logger as logger
+import toolviper.utils.parameter
 
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.constants import fontsize, markersize
@@ -18,6 +19,7 @@ from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
 from astrohack.visualization.textual_data import generate_observation_summary
+from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
 class AstrohackHologFile(AstrohackBaseFile):
@@ -37,7 +39,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_diagnostics(
         self,
         destination: str,
@@ -109,7 +111,7 @@ class AstrohackHologFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_lm_sky_coverage(
         self,
         destination: str,
@@ -199,7 +201,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         )
         return
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def export_to_aips(
         self,
         destination: str,
@@ -245,7 +247,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         )
         return
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def observation_summary(
         self,
         summary_file: str,

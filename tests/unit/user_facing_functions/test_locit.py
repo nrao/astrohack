@@ -7,7 +7,7 @@ import numpy as np
 
 from astrohack.locit import locit
 from astrohack.extract_locit import extract_locit
-from astrohack.utils.validation import are_lists_equal
+from astrohack.utils.verification_tools import are_lists_equal
 
 
 def relative_difference(result, expected):

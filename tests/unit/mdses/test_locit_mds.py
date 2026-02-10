@@ -4,9 +4,9 @@ import pytest
 from toolviper.utils import data
 
 from astrohack import AstrohackLocitFile, extract_locit, open_locit
-from astrohack.utils.validation import (
-    are_png_files_equal,
+from astrohack.utils.verification_tools import (
     are_lists_equal,
+    are_png_files_equal,
     is_captured_output_equal_to_txt_reference,
 )
 

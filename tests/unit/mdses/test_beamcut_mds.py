@@ -5,7 +5,7 @@ import os
 from toolviper.utils import data
 
 from astrohack import open_beamcut, AstrohackBeamcutFile
-from astrohack.utils.validation import (
+from astrohack.utils.verification_tools import (
     are_png_files_equal,
     capture_prints_from_function,
     are_txt_files_equal,

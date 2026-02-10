@@ -7,8 +7,7 @@ import pytest
 from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
-from astrohack.utils.file import mds_equality_test
-from astrohack.utils.validation import are_lists_equal
+from astrohack.utils.verification_tools import are_lists_equal, mds_equality_test
 
 
 def retrieve_data_from_report(report):

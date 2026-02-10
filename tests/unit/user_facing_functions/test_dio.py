@@ -14,7 +14,7 @@ from astrohack.extract_pointing import extract_pointing
 from astrohack import locit, extract_locit
 from astrohack.panel import panel
 from astrohack.beamcut import beamcut
-from astrohack.utils.file import mds_equality_test
+from astrohack.utils.verification_tools import mds_equality_test
 
 
 @pytest.mark.skip(reason="Fix later")

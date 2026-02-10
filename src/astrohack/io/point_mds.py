@@ -4,12 +4,14 @@ import pathlib
 from typing import Union, List, Tuple
 
 import toolviper.utils.logger as logger
+import toolviper.utils.parameter
 
 from astrohack.visualization.diagnostics import plot_array_configuration
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils import param_to_list
+from astrohack.utils.validation import custom_unit_checker
 
 
 class AstrohackPointFile(AstrohackBaseFile):
@@ -29,6 +31,7 @@ class AstrohackPointFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_pointing_in_time(
         self,
         destination: str,
@@ -170,6 +173,7 @@ class AstrohackPointFile(AstrohackBaseFile):
             logger.warning(f"No valid antennas selected, no plot produced.")
         return
 
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_array_configuration(
         self,
         destination: str,

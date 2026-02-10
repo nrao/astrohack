@@ -1,5 +1,4 @@
 import os
-import json
 
 import numpy as np
 import xarray as xr
@@ -11,39 +10,243 @@ from numba.core import types
 
 from casacore import tables as ctables
 
+from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
-from astrohack.utils import create_dataset_label
+from astrohack.utils import (
+    create_dataset_label,
+    print_dict_types,
+    tuple_inspect,
+)
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters
 from astrohack.utils.conversion import casa_time_to_mjd
 from astrohack.utils.constants import twopi, clight
 from astrohack.utils.gridding import grid_1d_data
+from astrohack.utils.constants import pol_str
+from astrohack.core.holog_obs_dict import HologObsDict
 
-from astrohack.utils.file import load_point_file
+
+def extract_holog_preprocessing(extract_holog_params, pnt_mds):
+    holog_obs_dict = extract_holog_params["holog_obs_dict"]
+
+    # Get spectral windows
+    ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "DATA_DESCRIPTION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    ddi_spw = ctb.getcol("SPECTRAL_WINDOW_ID")
+    ddpol_indexol = ctb.getcol("POLARIZATION_ID")
+    ctb.close()
+
+    ant_names = pnt_mds.root.attrs["antenna_names"]
+    ant_ids = pnt_mds.root.attrs["antenna_ids"]
+    ant_stations = pnt_mds.root.attrs["antenna_stations"]
+
+    # Create holog_obs_dict or modify user supplied holog_obs_dict.
+    if holog_obs_dict is None:
+        holog_obs_dict = HologObsDict.create_from_ms_info(
+            pnt_mds=pnt_mds,
+            exclude_antennas=extract_holog_params["exclude_antennas"],
+            baseline_average_distance=extract_holog_params["baseline_average_distance"],
+            baseline_average_nearest=extract_holog_params["baseline_average_nearest"],
+        )
+
+    user_ddi_sel = extract_holog_params["ddi"]
+    if isinstance(user_ddi_sel, int):
+        user_ddi_sel = [user_ddi_sel]
+
+    if user_ddi_sel != "all":
+        holog_obs_dict.select("ddi", user_ddi_sel)
+
+    user_ant_sel = extract_holog_params["ant"]
+    if isinstance(user_ant_sel, int):
+        user_ant_sel = [user_ant_sel]
+
+    if user_ant_sel != "all":
+        holog_obs_dict.select("antenna", user_ant_sel)
+
+    ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "STATE"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+    # Scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
+    obs_modes = ctb.getcol("OBS_MODE")
+    ctb.close()
+
+    state_ids = get_valid_state_ids(obs_modes)
+
+    spw_ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "SPECTRAL_WINDOW"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+    pol_ctb = ctables.table(
+        os.path.join(extract_holog_params["ms_name"], "POLARIZATION"),
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+
+    telescope_name = pnt_mds.root.attrs["telescope_name"]
+    # start_time_unix = obs_ctb.getcol('TIME_RANGE')[0][0] - 3506716800.0
+    # time = Time(start_time_unix, format='unix').jyear
+
+    # If we have an EVLA run from before 2023 the pointing table needs to be fixed.
+    if telescope_name == "EVLA":  # and time < 2023:
+        n_mapping = 0
+        for ddi_key, ddi_dict in holog_obs_dict.items():
+            n_map_ddi = 0
+            for map_dict in ddi_dict.values():
+                n_map_ddi += len(map_dict["ant"])
+            if n_map_ddi == 0:
+                logger.warning(f"DDI {ddi_key} has 0 mapping antennas")
+            n_mapping += n_map_ddi
+
+        if n_mapping == 0:
+            msg = "No mapping antennas to process, maybe you need to fix the pointing table?"
+            logger.error(msg)
+            raise Exception(msg)
+
+    looping_dict = {}
+    for ddi_key in holog_obs_dict.keys():
+        ddi = int(ddi_key.replace("ddi_", ""))
+        spw_setup_id = ddi_spw[ddi]
+        pol_setup_id = ddpol_indexol[ddi]
+
+        chan_freq = spw_ctb.getcol("CHAN_FREQ", startrow=spw_setup_id, nrow=1)[0, :]
+        chan_width = spw_ctb.getcol("CHAN_WIDTH", startrow=spw_setup_id, nrow=1)[0, :]
+        eff_bw = spw_ctb.getcol("EFFECTIVE_BW", startrow=spw_setup_id, nrow=1)[0, :]
+        ref_freq = spw_ctb.getcol("REF_FREQUENCY", startrow=spw_setup_id, nrow=1)[0]
+        total_bw = spw_ctb.getcol("TOTAL_BANDWIDTH", startrow=spw_setup_id, nrow=1)[0]
+        chan_setup = {
+            "chan_freq": chan_freq,
+            "chan_width": chan_width,
+            "eff_bw": eff_bw,
+            "ref_freq": ref_freq,
+            "total_bw": total_bw,
+        }
+        pol_setup = {
+            "pol": pol_str[
+                pol_ctb.getcol("CORR_TYPE", startrow=pol_setup_id, nrow=1)[0, :]
+            ]
+        }
+
+        ddi_dict = {}
+        for map_key, map_data in holog_obs_dict[ddi_key].items():
+            scans = map_data["scans"]
+            if len(scans) > 1:
+                logger.info(
+                    "Pre-processing ddi: {ddi}, scans: [{min} ... {max}]".format(
+                        ddi=ddi, min=scans[0], max=scans[-1]
+                    )
+                )
+            else:
+                logger.info(
+                    "Pre-processing ddi: {ddi}, scan: {scan}".format(
+                        ddi=ddi, scan=scans
+                    )
+                )
+
+            if len(list(map_data["ant"].keys())) != 0:
+                map_ant_list = []
+                ref_ant_per_map_ant_list = []
+
+                map_ant_name_list = []
+                ref_ant_per_map_ant_name_list = []
+                ref_ant_stations_list = []
+                for map_ant_name, ref_ant_name_list in map_data["ant"].items():
+
+                    ref_ant_ids = _convert_ant_name_to_id(
+                        ref_ant_name_list,
+                        ant_names,
+                        ant_ids,
+                    )
+
+                    map_ant_id = _convert_ant_name_to_id(
+                        map_ant_name, ant_names, ant_ids
+                    )[0]
+
+                    ref_ant_per_map_ant_list.append(ref_ant_ids)
+                    map_ant_list.append(map_ant_id)
+
+                    ref_ant_per_map_ant_name_list.append(
+                        list(map_data["ant"][map_ant_name])
+                    )
+                    ref_ant_stations = _convert_ant_name_to_id(
+                        ref_ant_name_list, ant_names, ant_stations
+                    )
+                    ref_ant_stations_list.append(ref_ant_stations)
+                    map_ant_name_list.append(map_ant_name)
+
+                map_dict = {
+                    "ref_ant_per_map_ant_tuple": tuple(ref_ant_per_map_ant_list),
+                    "map_ant_tuple": tuple(map_ant_list),
+                    "ref_ant_per_map_ant_name_tuple": tuple(
+                        ref_ant_per_map_ant_name_list
+                    ),
+                    "map_ant_name_tuple": tuple(map_ant_name_list),
+                    "ant_stations": ant_stations,
+                    "scans": scans,
+                    "sel_state_ids": state_ids,
+                    "ant_names": ant_names,
+                    "chan_setup": chan_setup,
+                    "pol_setup": pol_setup,
+                }
+                ddi_dict[map_key] = map_dict
+
+            else:
+                logger.warning(
+                    f"{create_dataset_label(ddi_key, map_key)} has no holography data to extract."
+                )
+        looping_dict[ddi_key] = ddi_dict
+
+    spw_ctb.close()
+    pol_ctb.close()
+
+    return looping_dict, holog_obs_dict
 
 
-def process_extract_holog_chunk(extract_holog_params):
+def process_extract_holog_chunk(extract_holog_params, holog_mds):
     """Perform data query on holography data chunk and get unique time and state_ids/
 
     Args:
-        extract_holog_params: parameters controlling work to be done on this chunk
+        extract_holog_params (dict): parameters controlling work to be done on this chunk
+        holog_mds (AstrohackHologFile): Output holog mds file
     """
 
     ms_name = extract_holog_params["ms_name"]
-    pnt_name = extract_holog_params["point_name"]
     data_column = extract_holog_params["data_column"]
-    ddi = extract_holog_params["ddi"]
-    scans = extract_holog_params["scans"]
-    ant_names = extract_holog_params["ant_names"]
-    ant_station = extract_holog_params["ant_station"]
-    ref_ant_per_map_ant_tuple = extract_holog_params["ref_ant_per_map_ant_tuple"]
-    map_ant_tuple = extract_holog_params["map_ant_tuple"]
-    map_ant_name_tuple = extract_holog_params["map_ant_name_tuple"]
-    holog_map_key = extract_holog_params["holog_map_key"]
     time_interval = extract_holog_params["time_smoothing_interval"]
     pointing_interpolation_method = extract_holog_params[
         "pointing_interpolation_method"
     ]
+    holog_name = extract_holog_params["holog_name"]
+
+    pnt_mds = extract_holog_params["pnt_mds"]
+    inp_data_dict = extract_holog_params["dic_data"]
+
+    ddi_key = extract_holog_params["this_ddi"]
+    map_key = extract_holog_params["this_map"]
+
+    ddi_id = int(ddi_key.replace("ddi_", ""))
+
+    scans = inp_data_dict["scans"]
+    ant_names = inp_data_dict["ant_names"]
+    ant_stations = inp_data_dict["ant_stations"]
+    ref_ant_per_map_ant_tuple = inp_data_dict["ref_ant_per_map_ant_tuple"]
+    map_ant_tuple = inp_data_dict["map_ant_tuple"]
+    map_ant_name_tuple = inp_data_dict["map_ant_name_tuple"]
+    sel_state_ids = inp_data_dict["sel_state_ids"]
+    chan_setup = inp_data_dict["chan_setup"]
+    pol = inp_data_dict["pol_setup"]["pol"]
+
+    chan_freq = chan_setup["chan_freq"]
 
     # This piece of information is no longer used leaving them here commented out for completeness
     # ref_ant_per_map_ant_name_tuple = extract_holog_params["ref_ant_per_map_ant_name_tuple"]
@@ -56,12 +259,6 @@ def process_extract_holog_chunk(extract_holog_params):
             "Inconsistancy between antenna list length, see error above for more info."
         )
 
-    sel_state_ids = extract_holog_params["sel_state_ids"]
-    holog_name = extract_holog_params["holog_name"]
-
-    chan_freq = extract_holog_params["chan_setup"]["chan_freq"]
-    pol = extract_holog_params["pol_setup"]["pol"]
-
     table_obj = ctables.table(
         ms_name, readonly=True, lockoptions={"option": "usernoread"}, ack=False
     )
@@ -70,13 +267,13 @@ def process_extract_holog_chunk(extract_holog_params):
         ctb = ctables.taql(
             "select %s, SCAN_NUMBER, ANTENNA1, ANTENNA2, TIME, TIME_CENTROID, WEIGHT, FLAG_ROW, FLAG, FIELD_ID from "
             "$table_obj WHERE DATA_DESC_ID == %s AND SCAN_NUMBER in %s AND STATE_ID in %s"
-            % (data_column, ddi, scans, list(sel_state_ids))
+            % (data_column, ddi_id, scans, list(sel_state_ids))
         )
     else:
         ctb = ctables.taql(
             "select %s, SCAN_NUMBER, ANTENNA1, ANTENNA2, TIME, TIME_CENTROID, WEIGHT, FLAG_ROW, FLAG, FIELD_ID from "
             "$table_obj WHERE DATA_DESC_ID == %s AND SCAN_NUMBER in %s"
-            % (data_column, ddi, scans)
+            % (data_column, ddi_id, scans)
         )
     vis_data = ctb.getcol(data_column)
     weight = ctb.getcol("WEIGHT")
@@ -100,9 +297,8 @@ def process_extract_holog_chunk(extract_holog_params):
     table_obj.close()
 
     map_ref_dict = _get_map_ref_dict(
-        map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_station
+        map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
-
     (
         time_vis,
         vis_map_dict,
@@ -124,16 +320,14 @@ def process_extract_holog_chunk(extract_holog_params):
         time_interval,
         scan_list,
     )
-
     del vis_data, weight, ant1, ant2, time_vis_row, flag, flag_row, field_ids, scan_list
 
     map_ant_name_list = list(map(str, map_ant_name_tuple))
 
     map_ant_name_list = ["_".join(("ant", i)) for i in map_ant_name_list]
 
-    pnt_ant_dict = load_point_file(pnt_name, map_ant_name_list, dask_load=False)
     pnt_map_dict = _extract_pointing_chunk(
-        map_ant_name_list, time_vis, pnt_ant_dict, pointing_interpolation_method
+        map_ant_name_list, time_vis, pnt_mds, pointing_interpolation_method
     )
 
     grid_params = {}
@@ -144,9 +338,8 @@ def process_extract_holog_chunk(extract_holog_params):
         antenna_name = "_".join(("ant", ant_names[ant_index]))
         telescope = get_proper_telescope(gen_info["telescope name"], antenna_name)
         n_pix, cell_size = calculate_optimal_grid_parameters(
-            pnt_map_dict, antenna_name, telescope.diameter, chan_freq, ddi
+            pnt_map_dict, antenna_name, telescope.diameter, chan_freq, ddi_id
         )
-
         grid_params[antenna_name] = {"n_pix": n_pix, "cell_size": cell_size}
 
     # ## To DO: ################## Average multiple repeated samples over_flow_protector_constant = float("%.5g" %
@@ -165,33 +358,32 @@ def process_extract_holog_chunk(extract_holog_params):
         chan_freq,
         pol,
         flagged_mapping_antennas,
-        holog_map_key,
-        ddi,
+        map_key,
+        ddi_key,
         ms_name,
         ant_names,
-        ant_station,
         grid_params,
         time_interval,
         gen_info,
         map_ref_dict,
         scan_time_ranges,
         unq_scans,
+        holog_mds,
+        extract_holog_params["parallel"],
     )
 
-    logger.info(
-        "Finished extracting holography chunk for ddi: {ddi} holog_map_key: {holog_map_key}".format(
-            ddi=ddi, holog_map_key=holog_map_key
-        )
-    )
+    logger.info(f"Finished extracting holography chunk for DDI {ddi_id}, {map_key}.")
 
 
-def _get_map_ref_dict(map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_station):
+def _get_map_ref_dict(
+    map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
+):
     map_dict = {}
     for ii, map_id in enumerate(map_ant_tuple):
         map_name = ant_names[map_id]
         ref_list = []
         for ref_id in ref_ant_per_map_ant_tuple[ii]:
-            ref_list.append(f"{ant_names[ref_id]} @ {ant_station[ref_id]}")
+            ref_list.append(f"{ant_names[ref_id]} @ {ant_stations[ref_id]}")
         map_dict[map_name] = ref_list
     return map_dict
 
@@ -222,7 +414,7 @@ def _get_time_intervals(time_vis_row, scan_list, time_interval):
     return time_samples, scan_time_ranges, unq_scans
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=True, nogil=True)
 def _extract_holog_chunk_jit(
     vis_data,
     weight,
@@ -278,6 +470,16 @@ def _extract_holog_chunk_jit(
             (n_time, n_chan, n_pol),
             dtype=types.float64,
         )
+
+        # This code here is to uncommented and the snippet above commited for this function to work outside jit
+        # vis_map_dict[antenna_id] = np.zeros(
+        #     (n_time, n_chan, n_pol),
+        #     dtype=np.complex128,
+        # )
+        # sum_weight_map_dict[antenna_id] = np.zeros(
+        #     (n_time, n_chan, n_pol),
+        #     dtype=np.float64,
+        # )
         used_samples_dict[antenna_id] = np.full(n_time, False, dtype=bool)
 
     time_index = 0
@@ -286,7 +488,6 @@ def _extract_holog_chunk_jit(
             continue
 
         # Find index of time_vis_row[row] in time_samples, assumes time_vis_row is ordered in time
-
         if time_vis_row[row] < time_samples[time_index] - half_int:
             continue
         else:
@@ -395,17 +596,18 @@ def _create_holog_file(
     chan,
     pol,
     flagged_mapping_antennas,
-    holog_map_key,
-    ddi,
+    map_key,
+    ddi_key,
     ms_name,
     ant_names,
-    ant_station,
     grid_params,
     time_interval,
     gen_info,
     map_ref_dict,
     scan_time_ranges,
     unq_scans,
+    holog_mds,
+    parallel,
 ):
     """Create holog-structured, formatted output file and save to zarr.
 
@@ -419,8 +621,8 @@ def _create_holog_file(
         chan (numpy.ndarray): channel values
         pol (numpy.ndarray): polarization values
         flagged_mapping_antennas (numpy.ndarray): list of mapping antennas that have been flagged.
-        holog_map_key(string): holog map id string
-        ddi (numpy.ndarray): data description id; a combination of polarization and spectral window
+        map_key(string): holog map id string
+        ddi_key (string): data description id; a combination of polarization and spectral window
     """
 
     ctb = ctables.table("/".join((ms_name, "ANTENNA")), ack=False)
@@ -428,21 +630,24 @@ def _create_holog_file(
     ctb.close()
 
     for map_ant_index in vis_map_dict.keys():
+        dataset_label = create_dataset_label(
+            ant_names[map_ant_index], ddi_key.split("_")[1]
+        )
         if map_ant_index not in flagged_mapping_antennas:
+            map_ant_key = f"ant_{ant_names[map_ant_index]}"
+            pnt_xds = pnt_map_dict[map_ant_key]
+            vis_data = vis_map_dict[map_ant_index]
+            wei_data = weight_map_dict[map_ant_index]
             valid_data = used_samples_dict[map_ant_index] == 1.0
-
             ant_time_vis = time_vis[valid_data]
 
             time_vis_days = ant_time_vis / (3600 * 24)
             astro_time_vis = astropy.time.Time(time_vis_days, format="mjd")
             time_samples, indicies = _get_time_samples(astro_time_vis)
             coords = {"time": ant_time_vis, "chan": chan, "pol": pol}
-            map_ant_tag = (
-                "ant_" + ant_names[map_ant_index]
-            )  # 'ant_' + str(map_ant_index)
 
             direction = np.take(
-                pnt_map_dict[map_ant_tag]["DIRECTIONAL_COSINES"].values,
+                pnt_xds["DIRECTIONAL_COSINES"].values,
                 indicies,
                 axis=0,
             )
@@ -456,242 +661,52 @@ def _create_holog_file(
             xds = xr.Dataset()
             xds = xds.assign_coords(coords)
             xds["VIS"] = xr.DataArray(
-                vis_map_dict[map_ant_index][valid_data, ...],
+                vis_data[valid_data, ...],
                 dims=["time", "chan", "pol"],
             )
 
             xds["WEIGHT"] = xr.DataArray(
-                weight_map_dict[map_ant_index][valid_data, ...],
+                wei_data[valid_data, ...],
                 dims=["time", "chan", "pol"],
             )
 
             xds["DIRECTIONAL_COSINES"] = xr.DataArray(
-                pnt_map_dict[map_ant_tag]["DIRECTIONAL_COSINES"].values[
-                    valid_data, ...
-                ],
+                pnt_xds["DIRECTIONAL_COSINES"].values[valid_data, ...],
                 dims=["time", "lm"],
             )
 
             xds["IDEAL_DIRECTIONAL_COSINES"] = xr.DataArray(
-                pnt_map_dict[map_ant_tag]["POINTING_OFFSET"].values[valid_data, ...],
+                pnt_xds["POINTING_OFFSET"].values[valid_data, ...],
                 dims=["time", "lm"],
             )
 
-            xds.attrs["holog_map_key"] = holog_map_key
-            xds.attrs["ddi"] = ddi
             xds.attrs["parallactic_samples"] = parallactic_samples
             xds.attrs["time_smoothing_interval"] = time_interval
             xds.attrs["scan_time_ranges"] = scan_time_ranges
             xds.attrs["scan_list"] = unq_scans
 
-            xds.attrs["summary"] = _crate_observation_summary(
-                ant_names[map_ant_index],
-                ant_station[map_ant_index],
+            xds.attrs["summary"] = _create_observation_summary(
                 gen_info,
                 grid_params,
                 xds["DIRECTIONAL_COSINES"].values,
                 chan,
-                pnt_map_dict[map_ant_tag],
+                pnt_xds,
                 valid_data,
                 map_ref_dict,
             )
 
-            holog_file = holog_name
+            holog_filename = holog_name
 
-            logger.debug(
-                f"Writing {create_dataset_label(ant_names[map_ant_index], ddi)} holog file to {holog_file}"
-            )
-            xds.to_zarr(
-                os.path.join(
-                    holog_file,
-                    "ddi_"
-                    + str(ddi)
-                    + "/"
-                    + str(holog_map_key)
-                    + "/"
-                    + "ant_"
-                    + str(ant_names[map_ant_index]),
-                ),
-                mode="w",
-                compute=True,
-                consolidated=True,
-            )
+            logger.debug(f"Writing {dataset_label} holog data to {holog_filename}")
+            dataset_name = "-".join([map_ant_key, ddi_key, map_key])
 
+            holog_mds.add_node_to_tree(
+                xr.DataTree(name=dataset_name, dataset=xds),
+                dump_to_disk=True,
+                running_in_parallel=parallel,
+            )
         else:
-            logger.warning(
-                "Mapping antenna {index} has no data".format(
-                    index=ant_names[map_ant_index]
-                )
-            )
-
-
-def create_holog_obs_dict(
-    pnt_dict,
-    baseline_average_distance,
-    baseline_average_nearest,
-    ant_names,
-    ant_pos,
-    ant_names_main,
-    exclude_antennas=None,
-    write_distance_matrix=False,
-):
-    """
-    Generate holog_obs_dict.
-    """
-
-    import pandas as pd
-    from scipy.spatial import distance_matrix
-
-    mapping_scans_dict = {}
-    holog_obs_dict = {}
-    map_id = 0
-    ant_names_set = set()
-
-    if exclude_antennas is None:
-        exclude_antennas = []
-    elif isinstance(exclude_antennas, str):
-        exclude_antennas = [exclude_antennas]
-    else:
-        pass
-
-    for ant_name in exclude_antennas:
-        prefixed = "ant_" + ant_name
-        if prefixed not in pnt_dict.keys():
-            logger.warning(
-                f"Bad reference antenna {ant_name} is not present in the data."
-            )
-
-    # Generate {ddi: {map: {scan:[i ...], ant:{ant_map_0:[], ...}}}} structure. No reference antennas are added
-    # because we first need to populate all mapping antennas.
-    for ant_name, ant_ds in pnt_dict.items():
-        if "ant" in ant_name:
-            ant_name = ant_name.replace("ant_", "")
-            if ant_name in exclude_antennas:
-                pass
-            else:
-                if ant_name in ant_names_main:  # Check if antenna in main table.
-                    ant_names_set.add(ant_name)
-                    for ddi, map_dict in ant_ds.attrs["mapping_scans_obs_dict"][
-                        0
-                    ].items():
-                        if ddi not in holog_obs_dict:
-                            holog_obs_dict[ddi] = {}
-                        for ant_map_id, scan_list in map_dict.items():
-                            if scan_list:
-                                map_key = _check_if_array_in_dict(
-                                    mapping_scans_dict, scan_list
-                                )
-                                if not map_key:
-                                    map_key = "map_" + str(map_id)
-                                    mapping_scans_dict[map_key] = scan_list
-                                    map_id = map_id + 1
-
-                                if map_key not in holog_obs_dict[ddi]:
-                                    holog_obs_dict[ddi][map_key] = {
-                                        "scans": np.array(scan_list),
-                                        "ant": {},
-                                    }
-
-                                holog_obs_dict[ddi][map_key]["ant"][ant_name] = []
-
-    df = pd.DataFrame(ant_pos, columns=["x", "y", "z"], index=ant_names)
-    df_mat = pd.DataFrame(
-        distance_matrix(df.values, df.values), index=df.index, columns=df.index
-    )
-    logger.debug("".join(("\n", str(df_mat))))
-
-    if write_distance_matrix:
-        df_mat.to_csv(
-            path_or_buf="{base}/.baseline_distance_matrix.csv".format(base=os.getcwd()),
-            sep="\t",
-        )
-        logger.info(
-            "Writing distance matrix to {base}/.baseline_distance_matrix.csv ...".format(
-                base=os.getcwd()
-            )
-        )
-
-    if (baseline_average_distance != "all") and (baseline_average_nearest != "all"):
-        logger.error(
-            "baseline_average_distance and baseline_average_nearest can not both be specified."
-        )
-
-        raise Exception("Too many baseline parameters specified.")
-
-    # The reference antennas are then given by ref_ant_set = ant_names_set - map_ant_set.
-    for ddi, ddi_dict in holog_obs_dict.items():
-        for map_id, map_dict in ddi_dict.items():
-            map_ant_set = set(map_dict["ant"].keys())
-
-            # Need a copy because of del holog_obs_dict[ddi][map_id]['ant'][map_ant_key] below.
-            map_ant_keys = list(map_dict["ant"].keys())
-
-            for map_ant_key in map_ant_keys:
-                ref_ant_set = ant_names_set - map_ant_set
-
-                # Select reference antennas by distance from mapping antenna
-                if baseline_average_distance != "all":
-                    sub_ref_ant_set = []
-
-                    for ref_ant in ref_ant_set:
-                        if df_mat.loc[map_ant_key, ref_ant] < baseline_average_distance:
-                            sub_ref_ant_set.append(ref_ant)
-
-                    if (not sub_ref_ant_set) and ref_ant_set:
-                        logger.warning(
-                            "DDI "
-                            + str(ddi)
-                            + " and mapping antenna "
-                            + str(map_ant_key)
-                            + " has no reference antennas. If baseline_average_distance was specified "
-                            "increase this distance. See antenna distance matrix in log by setting "
-                            "debug level to DEBUG in client function."
-                        )
-
-                    ref_ant_set = sub_ref_ant_set
-
-                # Select reference antennas by the n-closest antennas
-                if baseline_average_nearest != "all":
-                    sub_ref_ant_set = []
-                    nearest_ant_list = (
-                        df_mat.loc[map_ant_key, :]
-                        .loc[list(ref_ant_set)]
-                        .sort_values()
-                        .index.tolist()[0:baseline_average_nearest]
-                    )
-
-                    logger.debug(nearest_ant_list)
-                    for ref_ant in ref_ant_set:
-                        if ref_ant in nearest_ant_list:
-                            sub_ref_ant_set.append(ref_ant)
-
-                    ref_ant_set = sub_ref_ant_set
-                ##################################################
-
-                if ref_ant_set:
-                    holog_obs_dict[ddi][map_id]["ant"][map_ant_key] = np.array(
-                        list(ref_ant_set)
-                    )
-                else:
-                    del holog_obs_dict[ddi][map_id]["ant"][
-                        map_ant_key
-                    ]  # Don't want mapping antennas with no reference antennas.
-                    logger.warning(
-                        "DDI "
-                        + str(ddi)
-                        + " and mapping antenna "
-                        + str(map_ant_key)
-                        + " has no reference antennas."
-                    )
-
-    return holog_obs_dict
-
-
-def _check_if_array_in_dict(array_dict, array):
-    for key, val in array_dict.items():
-        if np.array_equiv(val, array):
-            return key
-    return False
+            logger.warning(f"No holography data for {dataset_label}")
 
 
 def _extract_pointing_chunk(
@@ -738,7 +753,7 @@ def _extract_pointing_chunk(
     return pnt_map_dict
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=True, nogil=True)
 def _get_time_index(data_time, i_time, time_axis, half_int):
     if i_time == time_axis.shape[0]:
         return -1
@@ -826,9 +841,7 @@ def _get_freq_summary(chan_axis):
     return freq_info
 
 
-def _crate_observation_summary(
-    antenna_name,
-    station,
+def _create_observation_summary(
     obs_info,
     grid_params,
     lm,
@@ -837,6 +850,9 @@ def _crate_observation_summary(
     valid_data,
     map_ref_dict,
 ):
+    antenna_info = pnt_map_xds.attrs["antenna_info"]
+    antenna_name = antenna_info["name"]
+    station = antenna_info["station"]
     spw_info = _get_freq_summary(chan_axis)
     obs_info["az el info"] = _get_az_el_characteristics(pnt_map_xds, valid_data)
     obs_info["reference antennas"] = map_ref_dict[antenna_name]
@@ -864,38 +880,28 @@ def _crate_observation_summary(
     return summary
 
 
-def create_holog_json(holog_file, holog_dict):
-    """Save holog file meta information to json file with the transformation
-        of the ordering (ddi, holog_map, ant) --> (ant, ddi, holog_map).
+def _convert_ant_name_to_id(
+    ant_name_list,
+    ref_ant_names,
+    ref_ant_ids,
+):
+    """_summary_
 
     Args:
-        input_params ():
-        holog_file (str): holog file name.
-        holog_dict (dict): Dictionary containing msdx data.
+        ant_name_list (list): List of antennas for which to fetch ids
+        ref_ant_names (list): Reference list of antenna names
+        ref_ant_ids (list): Reference list of antenna ids
+
+    Returns:
+        list: List of antenna ids
     """
+    if not isinstance(ant_name_list, list):
+        ant_name_list = [ant_name_list]
 
-    ant_holog_dict = {}
+    ant_ids_list = []
+    for ant_name in ant_name_list:
+        if ant_name in ref_ant_names:
+            i_ids = ref_ant_names.index(ant_name)
+            ant_ids_list.append(ref_ant_ids[i_ids])
 
-    for ddi, map_dict in holog_dict.items():
-        if "ddi_" in ddi:
-            for mapping, ant_dict in map_dict.items():
-                if "map_" in mapping:
-                    for ant, xds in ant_dict.items():
-                        if "ant_" in ant:
-                            if ant not in ant_holog_dict:
-                                ant_holog_dict[ant] = {ddi: {mapping: {}}}
-                            elif ddi not in ant_holog_dict[ant]:
-                                ant_holog_dict[ant][ddi] = {mapping: {}}
-
-                            ant_holog_dict[ant][ddi][mapping] = xds.to_dict(data=False)
-
-    output_meta_file = "{name}/{ext}".format(name=holog_file, ext=".holog_json")
-
-    try:
-        with open(output_meta_file, "w") as json_file:
-            json.dump(ant_holog_dict, json_file)
-
-    except Exception as error:
-        logger.error(f"{error}")
-
-        raise Exception(error)
+    return ant_ids_list

@@ -2,24 +2,27 @@ import pathlib
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
+from astrohack.utils import print_dict_types
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.file import load_point_file
-from astrohack.utils.data import write_meta_data
-from astrohack.core.extract_pointing import process_extract_pointing
-from astrohack.io.mds import AstrohackPointFile
+from astrohack.core.extract_pointing import (
+    extract_pointing_preprocessing,
+    extract_pointing_chunk,
+)
+from astrohack.io.point_mds import AstrohackPointFile
 
 from typing import List, Union
 
 
-@toolviper.utils.parameter.validate()
+# @toolviper.utils.parameter.validate()
 def extract_pointing(
     ms_name: str,
     point_name: str = None,
     exclude: Union[str, List[str]] = None,
     parallel: bool = False,
     overwrite: bool = False,
-) -> AstrohackPointFile:
+) -> Union[AstrohackPointFile, None]:
     """ Extract pointing data from measurement set.  Creates holography output file.
 
     :param ms_name: Name of input measurement file name.
@@ -79,28 +82,30 @@ def extract_pointing(
     overwrite_file(
         extract_pointing_params["point_name"], extract_pointing_params["overwrite"]
     )
+    ant_dist_matrix, looping_dict, pnt_params, mapping_state_ids = (
+        extract_pointing_preprocessing(extract_pointing_params)
+    )
+    # Create mds file here
+    point_mds = AstrohackPointFile.create_from_input_parameters(
+        point_name, input_params
+    )
+    point_mds.root.attrs["mapping_state_ids"] = mapping_state_ids
+    point_mds.root.attrs["baseline_dist_matrix"] = ant_dist_matrix
+    point_mds.root.attrs["antenna_names"] = pnt_params.pop("antenna_names")
+    point_mds.root.attrs["antenna_ids"] = pnt_params.pop("antenna_ids")
+    point_mds.root.attrs["antenna_stations"] = pnt_params.pop("antenna_stations")
+    point_mds.root.attrs["telescope_name"] = pnt_params.pop("telescope_name")
 
-    pnt_dict = process_extract_pointing(
-        ms_name=extract_pointing_params["ms_name"],
-        pnt_name=extract_pointing_params["point_name"],
-        exclude=extract_pointing_params["exclude"],
-        parallel=extract_pointing_params["parallel"],
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=looping_dict,
+        chunk_function=extract_pointing_chunk,
+        param_dict=pnt_params,
+        key_order=["ant"],
+        output_mds=point_mds,
     )
 
-    # Calling this directly since it is so simple it doesn't need a "_create_{}" function.
-    write_meta_data(
-        file_name="{name}/{ext}".format(
-            name=extract_pointing_params["point_name"], ext=".point_input"
-        ),
-        input_dict=input_params,
-    )
-
-    logger.info(f"Finished processing")
-    point_dict = load_point_file(
-        file=extract_pointing_params["point_name"], dask_load=True
-    )
-
-    pointing_mds = AstrohackPointFile(extract_pointing_params["point_name"])
-    pointing_mds.open()
-
-    return pointing_mds
+    if executed_graph:
+        point_mds.write(mode="a")
+        return point_mds
+    else:
+        return None

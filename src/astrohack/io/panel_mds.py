@@ -4,6 +4,7 @@ import pathlib
 from typing import Union, List, Tuple
 
 import toolviper.utils.logger as logger
+import toolviper.utils.parameter
 
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.constants import plot_types
@@ -18,6 +19,7 @@ from astrohack.utils.text import (
     string_to_ascii_file,
     format_value_unit,
 )
+from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 from astrohack.visualization.textual_data import generate_observation_summary
 
 
@@ -38,7 +40,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def get_antenna(self, ant: str, ddi: int) -> AntennaSurface:
         """Retrieve an AntennaSurface object for interaction
 
@@ -56,7 +58,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
         xds = self[ant][ddi].dataset
         return AntennaSurface(xds, reread=True)
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def export_screws(
         self,
         destination: str,
@@ -120,7 +122,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
             parallel=False,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_antennas(
         self,
         destination: str,
@@ -220,7 +222,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def export_to_fits(
         self,
         destination: str,
@@ -261,7 +263,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def export_gain_tables(
         self,
         destination: str,
@@ -326,7 +328,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def observation_summary(
         self,
         summary_file: str,

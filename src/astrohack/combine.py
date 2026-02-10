@@ -11,7 +11,7 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.io.image_mds import AstrohackImageFile
 
 
-# @toolviper.utils.parameter.validate()
+@toolviper.utils.parameter.validate()
 def combine(
     image_name: str,
     combine_name: str = None,

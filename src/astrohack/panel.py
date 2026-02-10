@@ -1,12 +1,7 @@
-import os
-import pathlib
 import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
-from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-
-from astrohack.utils.data import write_meta_data
+from astrohack.utils.file import overwrite_file
 from astrohack.core.panel import process_panel_chunk
 from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
@@ -18,7 +13,7 @@ from astrohack.io.dio import open_image
 from typing import Union, List
 
 
-# @toolviper.utils.parameter.validate(custom_checker=custom_panel_checker)
+@toolviper.utils.parameter.validate(custom_checker=custom_panel_checker)
 def panel(
     image_name: str,
     panel_name: str = None,

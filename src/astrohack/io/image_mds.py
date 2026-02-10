@@ -4,6 +4,7 @@ import numpy as np
 from typing import List, Union, Tuple
 
 import toolviper.utils.logger as logger
+import toolviper.utils.parameter
 
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
@@ -12,7 +13,11 @@ from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.phase_fitting import aips_par_names
-
+from astrohack.utils.validation import (
+    custom_split_checker,
+    custom_plots_checker,
+    custom_unit_checker,
+)
 from astrohack.utils.text import (
     format_label,
     format_frequency,
@@ -53,7 +58,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_split_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_split_checker)
     def export_to_fits(
         self,
         destination: str,
@@ -106,7 +111,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_apertures(
         self,
         destination: str,
@@ -192,7 +197,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_beams(
         self,
         destination: str,
@@ -258,7 +263,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def export_phase_fit_results(
         self,
         destination: str,
@@ -303,7 +308,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate()
+    @toolviper.utils.parameter.validate()
     def export_zernike_fit_results(
         self,
         destination: str,
@@ -341,7 +346,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    # @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
     def plot_zernike_model(
         self,
         destination: str,
@@ -395,8 +400,7 @@ class AstrohackImageFile(AstrohackBaseFile):
             parallel=parallel,
         )
 
-    #
-    # @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
+    @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def observation_summary(
         self,
         summary_file: str,

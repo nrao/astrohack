@@ -1,29 +1,25 @@
-import json
-import pathlib
 import numpy as np
 
-import toolviper.utils.logger as logger
-import toolviper
-
-from numbers import Number
 from typing import List, Union, NewType, Tuple
 
+import toolviper.utils.logger as logger
+
+from astrohack import open_holog
 from astrohack.utils.graph import create_and_execute_graph_from_dict
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-from astrohack.utils.data import write_meta_data
+from astrohack.utils.file import overwrite_file
 from astrohack.core.holog import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
-from astrohack.io.mds import AstrohackImageFile
+from astrohack.io.image_mds import AstrohackImageFile
 
 Array = NewType("Array", Union[np.array, List[int], List[float]])
 
 
-@toolviper.utils.parameter.validate()
+# @toolviper.utils.parameter.validate()
 def holog(
     holog_name: str,
+    image_name: str = None,
     grid_size: Union[int, Array, List] = None,
     cell_size: Union[float, Array, List] = None,
-    image_name: str = None,
     padding_factor: int = 10,
     grid_interpolation_mode: str = "gaussian",
     chan_average: bool = True,
@@ -44,6 +40,10 @@ def holog(
     :param holog_name: Name of holography .holog.zarr file to process.
     :type holog_name: str
 
+    :param image_name: Defines the name of the output image name. If value is None, the name will be set to \
+    <base_name>.image.zarr, defaults to None
+    :type image_name: str, optional
+
     :param grid_size: Numpy array specifying the dimensions of the grid used in data gridding. If not specified \
     grid_size is calculated using POINTING_OFFSET in pointing table.
     :type grid_size: numpy.ndarray, dtype int, list optional
@@ -51,10 +51,6 @@ def holog(
     :param cell_size: Size 2 array defining the cell size of each beam grid bin in radians. If not specified, the used \
     cell_size is the one given in the observation_summary of the input holog file.
     :type cell_size: numpy.ndarray, dtype float, list optional
-
-    :param image_name: Defines the name of the output image name. If value is None, the name will be set to \
-    <base_name>.image.zarr, defaults to None
-    :type image_name: str, optional
 
     :param padding_factor: Padding factor applied to beam grid before computing the fast-fourier transform. The default\
      has been set for operation on most systems. The user should be aware of memory constraints before increasing this\
@@ -160,8 +156,6 @@ def holog(
 
     """
 
-    check_if_file_can_be_opened(holog_name, "0.7.2")
-
     # Doing this here allows it to get captured by locals()
     if image_name is None:
         image_name = get_default_file_name(
@@ -170,65 +164,23 @@ def holog(
 
     holog_params = locals()
 
-    input_params = holog_params.copy()
-    assert pathlib.Path(holog_params["holog_name"]).exists() is True, logger.error(
-        f'File {holog_params["holog_name"]} does not exists.'
+    holog_mds = open_holog(holog_name)
+
+    overwrite_file(image_name, overwrite)
+    image_mds = AstrohackImageFile.create_from_input_parameters(
+        image_name, holog_params
     )
 
-    overwrite_file(holog_params["image_name"], holog_params["overwrite"])
-
-    json_data = "/".join((holog_params["holog_name"], ".holog_json"))
-
-    with open(json_data, "r") as json_file:
-        holog_json = json.load(json_file)
-
-    if create_and_execute_graph_from_dict(
-        looping_dict=holog_json,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=holog_mds,
         chunk_function=process_holog_chunk,
         param_dict=holog_params,
         key_order=["ant", "ddi"],
-        parallel=parallel,
-    ):
+        output_mds=image_mds,
+    )
 
-        output_attr_file = "{name}/{ext}".format(
-            name=holog_params["image_name"], ext=".image_attr"
-        )
-        write_meta_data(output_attr_file, holog_params)
-
-        output_attr_file = "{name}/{ext}".format(
-            name=holog_params["image_name"], ext=".image_input"
-        )
-        write_meta_data(output_attr_file, input_params)
-
-        image_mds = AstrohackImageFile(holog_params["image_name"])
-        image_mds.open()
-
-        logger.info("Finished processing")
-
+    if executed_graph:
+        image_mds.write(mode="a")
         return image_mds
-
     else:
-        logger.warning("No data to process")
         return None
-
-
-def _convert_gridding_parameter(
-    gridding_parameter: Union[List, Array], reflect_on_axis=False
-) -> np.ndarray:
-    if isinstance(gridding_parameter, Number):
-        gridding_parameter = np.array(
-            [np.power(-1, reflect_on_axis) * gridding_parameter, gridding_parameter]
-        )
-
-    elif isinstance(gridding_parameter, list):
-        gridding_parameter = np.array(gridding_parameter)
-
-    elif isinstance(gridding_parameter, np.ndarray):
-        pass
-
-    else:
-        logger.error(
-            "Unknown dtype for gridding parameter: {}".format(gridding_parameter)
-        )
-
-    return gridding_parameter

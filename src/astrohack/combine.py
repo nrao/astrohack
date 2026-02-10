@@ -1,20 +1,17 @@
-import pathlib
+from typing import Union, List
+
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
-from typing import Union, List
-
+from astrohack import open_image
 from astrohack.core.combine import process_combine_chunk
-
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.data import write_meta_data
 from astrohack.utils.text import get_default_file_name
+from astrohack.io.image_mds import AstrohackImageFile
 
-from astrohack.io.mds import AstrohackImageFile
 
-
-@toolviper.utils.parameter.validate()
+# @toolviper.utils.parameter.validate()
 def combine(
     image_name: str,
     combine_name: str = None,
@@ -52,6 +49,13 @@ def combine(
     :rtype: AstrohackImageFile
 
     .. _Description:
+    **combine**
+
+    Combine combines the amplitude and corrected_phase members of the selected DDIs in the input image file. Currently, \
+    combine only supports the combination of these two quantities to avoid long regridding times. Hence, the output \
+    image file (.combine.zarr file name) contains the combined amplitude and corrected_phase images, but the aperture \
+    and beam images present in this file will be those present in the DDI with the lowest frequency.
+
     **AstrohackImageFile**
 
     Image object allows the user to access image data via compound dictionary keys with values, in order of depth, \
@@ -83,47 +87,29 @@ def combine(
 
     if combine_name is None:
         combine_name = get_default_file_name(
-            input_file=image_name, output_type=".image.zarr"
+            input_file=image_name, output_type=".combine.zarr"
         )
 
     combine_params = locals()
 
-    input_params = combine_params.copy()
-
-    assert pathlib.Path(combine_params["image_name"]).exists() is True, logger.error(
-        f'File {combine_params["image_name"]} does not exists.'
-    )
-
     overwrite_file(combine_params["combine_name"], combine_params["overwrite"])
 
-    image_mds = AstrohackImageFile(combine_params["image_name"])
-    image_mds.open()
+    image_mds = open_image(image_name)
 
-    combine_params["image_mds"] = image_mds
-    image_attr = image_mds._meta_data
+    combine_mds = AstrohackImageFile.create_from_input_parameters(
+        combine_name, combine_params
+    )
 
-    if create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict(
         looping_dict=image_mds,
         chunk_function=process_combine_chunk,
         param_dict=combine_params,
         key_order=["ant"],
-        parallel=parallel,
-    ):
-        logger.info("Finished processing")
+        output_mds=combine_mds,
+    )
 
-        output_attr_file = "{name}/{ext}".format(
-            name=combine_params["combine_name"], ext=".image_attr"
-        )
-        write_meta_data(output_attr_file, image_attr)
-
-        output_attr_file = "{name}/{ext}".format(
-            name=combine_params["combine_name"], ext=".image_input"
-        )
-        write_meta_data(output_attr_file, input_params)
-
-        combine_mds = AstrohackImageFile(combine_params["combine_name"])
-        combine_mds.open()
+    if executed_graph:
+        combine_mds.write(mode="a")
         return combine_mds
     else:
-        logger.warning("No data to process")
         return None

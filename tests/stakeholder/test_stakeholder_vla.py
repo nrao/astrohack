@@ -1,46 +1,18 @@
 import json
-import pytest
 import toolviper
 import shutil
 
 import numpy as np
 
+from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.io.dio import open_panel
 from astrohack.extract_holog import extract_holog
 from astrohack.extract_pointing import extract_pointing
 from astrohack.holog import holog
 from astrohack.panel import panel
-import astrohack
+from astrohack.utils import convert_unit
 
 base_name = "ea25_cal_small_"
-
-
-@pytest.fixture(scope="session")
-def set_data(tmp_path_factory):
-    data_dir = tmp_path_factory.mktemp("data")
-
-    # Data files
-    toolviper.utils.data.download(
-        file="ea25_cal_small_before_fixed.split.ms", folder=str(data_dir)
-    )
-    toolviper.utils.data.download(
-        file="ea25_cal_small_after_fixed.split.ms", folder=str(data_dir)
-    )
-
-    # Verification json information
-    toolviper.utils.data.download(
-        file="extract_holog_verification.json", folder=str(data_dir)
-    )
-
-    # toolviper.utils.data.download(
-    #      file="holog_numerical_verification.json", folder=str(data_dir)
-    # )
-    verification_json = "/".join(
-        [astrohack.__path__[0], f"data/verification/holog_numerical_verification.json"]
-    )
-    shutil.copy2(verification_json, data_dir)
-
-    return data_dir
 
 
 def relative_difference(result, expected):
@@ -48,7 +20,8 @@ def relative_difference(result, expected):
 
 
 def verify_panel_shifts(
-    data_dir="",
+    before_panel_filename,
+    after_panel_filename,
     panel_list=None,
     expected_shift=np.array([-100, 75, 0, 150]),
     ref_mean_shift=np.array([-91.47636864, 60.34743659, 4.16119043, 122.40537789]),
@@ -57,17 +30,18 @@ def verify_panel_shifts(
 ):
     if panel_list is None:
         panel_list = ["3-4", "5-27", "5-37", "5-38"]
+    m_to_mils = convert_unit("m", "mils", "length")
 
-    M_TO_MILS = 39370.1
-
-    before_mds = open_panel("{data}/vla.before.split.panel.zarr".format(data=data_dir))
-    after_mds = open_panel("{data}/vla.after.split.panel.zarr".format(data=data_dir))
+    before_mds = open_panel(before_panel_filename)
+    after_mds = open_panel(after_panel_filename)
 
     before_shift = (
-        before_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * M_TO_MILS
+        before_mds[antenna][ddi].dataset.sel(labels=panel_list).PANEL_SCREWS.values
+        * m_to_mils
     )
     after_shift = (
-        after_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * M_TO_MILS
+        after_mds[antenna][ddi].dataset.sel(labels=panel_list).PANEL_SCREWS.values
+        * m_to_mils
     )
 
     difference = after_shift - before_shift
@@ -79,17 +53,18 @@ def verify_panel_shifts(
     delta_ref_shift = np.abs(ref_mean_shift - expected_shift)
 
     # New corrections - old corrections --> delta if delta < 0 ==> we improved.
-    delta_shift = delta_mean_shift - delta_ref_shift
     relative_shift = relative_difference(delta_mean_shift, delta_ref_shift)
     print(relative_shift)
 
     return np.all(relative_shift < 6e-2)
 
 
-def verify_center_pixels(file, antenna, ddi, reference_center_pixels, tolerance=1e-6):
+def verify_center_pixels(
+    image_filename, antenna, ddi, reference_center_pixels, tolerance=1e-6
+):
     from astrohack.io.dio import open_image
 
-    mds = open_image(file)[antenna][ddi]
+    mds = open_image(image_filename)[antenna][ddi]
 
     aperture_shape = mds.APERTURE.values.shape[-2], mds.APERTURE.values.shape[-1]
     beam_shape = mds.BEAM.values.shape[-2], mds.BEAM.values.shape[-1]
@@ -103,6 +78,8 @@ def verify_center_pixels(file, antenna, ddi, reference_center_pixels, tolerance=
 
     aperture_ref = list(map(complex, reference_center_pixels["aperture"]))
     beam_ref = list(map(complex, reference_center_pixels["beam"]))
+    real_check = True
+    imag_check = True
 
     for i in range(len(aperture_ref)):
         aperture_check = (
@@ -115,7 +92,7 @@ def verify_center_pixels(file, antenna, ddi, reference_center_pixels, tolerance=
             < tolerance
         )
 
-        real_check = aperture_check and beam_check
+        real_check = real_check and (aperture_check and beam_check)
 
         aperture_check = (
             relative_difference(aperture_ref[i].imag, aperture_center_pixels[i].imag)
@@ -127,111 +104,135 @@ def verify_center_pixels(file, antenna, ddi, reference_center_pixels, tolerance=
             < tolerance
         )
 
-        imag_check = aperture_check and beam_check
+        imag_check = imag_check and (aperture_check and beam_check)
 
     return real_check and imag_check
 
 
-def verify_holog_obs_dictionary(after_file, holog_obs_dict):
-    with open(f"{after_file}/holog_obs_dict.json", "r") as json_file:
-        holog_obj = json.load(json_file)
+class TestStakeholder:
+    data_dir = "stakeholder_test_data"
+    before_ms = "ea25_cal_small_before_fixed.split.ms"
+    after_ms = "ea25_cal_small_after_fixed.split.ms"
+    before_root = "ea25_before."
+    after_root = "ea25_after."
+    ext_holog_dict_ref = "extract_holog_verification.json"
+    hol_num_dict_ref = "holog_numerical_verification.json"
+    extensions = {
+        "pnt": "point.zarr",
+        "hlg": "holog.zarr",
+        "img": "image.zarr",
+        "pnl": "panel.zarr",
+    }
 
-    return holog_obj == holog_obs_dict
+    @classmethod
+    def get_name(cls, is_before, ext):
+        out_name = f"{cls.data_dir}/"
+        if is_before:
+            out_name += f"{cls.before_root}"
+        else:
+            out_name += f"{cls.after_root}"
+        out_name += cls.extensions[ext]
+        return out_name
 
+    @classmethod
+    def setup_class(cls):
+        """setup any state specific to the execution of the given test class
+        such as fetching test data"""
 
-def test_holography_pipeline(set_data):
-    before_ms = str(set_data / "".join((base_name, "before_fixed.split.ms")))
-    before_point = str(set_data / "vla.before.split.point.zarr")
-    before_holog = str(set_data / "vla.before.split.holog.zarr")
+        # Data files
+        toolviper.utils.data.download(file=cls.before_ms, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.after_ms, folder=cls.data_dir)
 
-    after_ms = str(set_data / "".join((base_name, "after_fixed.split.ms")))
-    after_point = str(set_data / "vla.after.split.point.zarr")
-    after_holog = str(set_data / "vla.after.split.holog.zarr")
+        # Verification json information
+        toolviper.utils.data.download(file=cls.ext_holog_dict_ref, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.hol_num_dict_ref, folder=cls.data_dir)
 
-    with open(str(set_data / "extract_holog_verification.json")) as file:
-        holog_obs_dict = json_dict = json.load(file)
+        for ms_name, status in [[cls.before_ms, True], [cls.after_ms, False]]:
+            ms_name = cls.data_dir + "/" + ms_name
+            pnt_name = cls.get_name(status, "pnt")
+            hlg_name = cls.get_name(status, "hlg")
+            img_name = cls.get_name(status, "img")
+            pnl_name = cls.get_name(status, "pnl")
 
-    extract_pointing(
-        ms_name=before_ms, point_name=before_point, parallel=False, overwrite=True
-    )
+            extract_pointing(
+                ms_name=ms_name,
+                point_name=pnt_name,
+                parallel=False,
+                overwrite=True,
+            )
 
-    extract_pointing(
-        ms_name=after_ms, point_name=after_point, parallel=False, overwrite=True
-    )
+            extract_holog(
+                ms_name=ms_name,
+                point_name=pnt_name,
+                holog_name=hlg_name,
+                data_column="CORRECTED_DATA",
+                parallel=False,
+                overwrite=True,
+            )
 
-    extract_holog(
-        ms_name=before_ms,
-        point_name=before_point,
-        holog_name=before_holog,
-        data_column="CORRECTED_DATA",
-        parallel=False,
-        overwrite=True,
-    )
+            holog(
+                holog_name=hlg_name,
+                image_name=img_name,
+                overwrite=True,
+                parallel=False,
+            )
 
-    extract_holog(
-        ms_name=after_ms,
-        point_name=after_point,
-        holog_name=after_holog,
-        data_column="CORRECTED_DATA",
-        parallel=False,
-        overwrite=True,
-    )
+            panel(
+                image_name=img_name,
+                panel_name=pnl_name,
+                panel_model="rigid",
+                parallel=False,
+                overwrite=True,
+            )
 
-    assert verify_holog_obs_dictionary(
-        after_holog, holog_obs_dict["vla"]["after"]
-    ), "Verifiy holog obs dictionary"
+    @classmethod
+    def teardown_class(cls):
+        """teardown any state that was previously setup with a call to setup_class
+        such as deleting test data"""
+        shutil.rmtree(cls.data_dir, ignore_errors=True)
 
-    with open(str(set_data / "holog_numerical_verification.json")) as file:
-        reference_dict = json.load(file)
+    def test_holog_obs_dict(self):
+        ref_json = f"{self.data_dir}/{self.ext_holog_dict_ref}"
+        with open(ref_json, "r") as ref_json_file:
+            full_ref_dict = json.load(ref_json_file)
 
-    before_holog = str(set_data / "vla.before.split.holog.zarr")
-    after_holog = str(set_data / "vla.after.split.holog.zarr")
+        for epoch in ["before", "after"]:
+            is_before = epoch == "before"
+            hlg_name = self.get_name(is_before, "hlg")
 
-    before_image = str(set_data / "vla.before.split.image.zarr")
-    after_image = str(set_data / "vla.after.split.image.zarr")
+            test_hlg_obs_dict = HologObsDict.from_holog_file(hlg_name)
+            ref_hlg_obs_dict = HologObsDict(full_ref_dict["vla"][epoch])
+            assert (
+                test_hlg_obs_dict == ref_hlg_obs_dict
+            ), f"Verify {epoch} holog obs dictionary"
 
-    holog(
-        holog_name=before_holog,
-        overwrite=True,
-        parallel=False,
-    )
+    def test_center_pixels(self):
+        ref_json = f"{self.data_dir}/{self.hol_num_dict_ref}"
+        with open(ref_json, "r") as ref_json_file:
+            full_ref_dict = json.load(ref_json_file)
 
-    assert verify_center_pixels(
-        file=before_image,
-        antenna="ant_ea25",
-        ddi="ddi_0",
-        reference_center_pixels=reference_dict["vla"]["pixels"]["before"],
-        tolerance=1.5e-6,
-    ), "Verifiy center pixels-before"
+        for epoch in ["before", "after"]:
+            is_before = epoch == "before"
+            img_name = self.get_name(is_before, "img")
 
-    holog(
-        holog_name=after_holog,
-        overwrite=True,
-        parallel=False,
-    )
+            assert verify_center_pixels(
+                image_filename=img_name,
+                antenna="ant_ea25",
+                ddi="ddi_0",
+                reference_center_pixels=full_ref_dict["vla"]["pixels"][epoch],
+                tolerance=1.5e-6,
+            ), f"Verifiy center pixels {epoch}"
 
-    assert verify_center_pixels(
-        file=after_image,
-        antenna="ant_ea25",
-        ddi="ddi_0",
-        reference_center_pixels=reference_dict["vla"]["pixels"]["after"],
-        tolerance=1.5e-6,
-    ), "Verifiy center pixels-after"
+    def test_panel_shifts(self):
+        ref_json = f"{self.data_dir}/{self.hol_num_dict_ref}"
+        with open(ref_json, "r") as ref_json_file:
+            full_ref_dict = json.load(ref_json_file)
 
-    before_panel = panel(
-        image_name=before_image,
-        panel_model="rigid",
-        parallel=False,
-        overwrite=True,
-    )
+        bef_pnl_name = self.get_name(True, "pnl")
+        aft_pnl_name = self.get_name(False, "pnl")
 
-    after_panel = panel(
-        image_name=after_image,
-        panel_model="rigid",
-        parallel=False,
-        overwrite=True,
-    )
-
-    assert verify_panel_shifts(
-        data_dir=str(set_data), ref_mean_shift=reference_dict["vla"]["offsets"]
-    ), "Verify panel shifts"
+        assert verify_panel_shifts(
+            before_panel_filename=bef_pnl_name,
+            after_panel_filename=aft_pnl_name,
+            ref_mean_shift=full_ref_dict["vla"]["offsets"],
+        ), "Verify panel shifts"

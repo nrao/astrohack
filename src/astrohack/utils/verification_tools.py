@@ -188,3 +188,11 @@ def mds_equality_test(mds_a, mds_b):
         return False, f"{mds_a.filename} and {mds_b.filename} {msg}."
 
     return True, f"{mds_a.filename} and {mds_b.filename} are equal"
+
+
+def add_data_folder_to_names_in_class(class_ref):
+    # Add datafolder to names for execution
+    for varname, varvalue in class_ref.__dict__.items():
+        if isinstance(varvalue, str):
+            if varname.split("_")[-1] == "name":
+                setattr(class_ref, varname, f"{class_ref.data_dir}/{varvalue}")

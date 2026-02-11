@@ -100,7 +100,7 @@ def extract_holog(
     :type time_smoothing_interval: float, optional
 
     :param pointing_interpolation_method: Determines which algorithm to use to interpolate pointing in time, two \
-    options are available: 'linear' (Faster but brittle) and gaussian (slower but robust).
+    options are available: 'linear' (Faster but brittle) and 'gaussian' (slower but robust), default is 'linear'.
     :type pointing_interpolation_method: str, optional
 
     :param parallel: Boolean for whether to process in parallel, defaults to False.

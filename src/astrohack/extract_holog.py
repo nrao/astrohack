@@ -16,9 +16,7 @@ from rich.table import Table
 
 from astrohack.io.dio import open_pointing, open_holog
 
-from astrohack.utils.file import (
-    overwrite_file,
-)
+from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_holog import (
     extract_holog_preprocessing,
 )
@@ -212,9 +210,7 @@ def extract_holog(
     # VVV This is a temporary fix waiting for the implementation of a mapping parameter
     extract_holog_params["map"] = "all"
 
-    assert pathlib.Path(extract_holog_params["ms_name"]).exists() is True, logger.error(
-        f'File {extract_holog_params["ms_name"]} does not exists.'
-    )
+    check_ms_exists(ms_name)
 
     if append and overwrite:
         raise RuntimeError("Append and overwrite cannot be both set to True.")

@@ -4,7 +4,7 @@ import toolviper.utils.logger as logger
 
 from typing import Union, List
 
-from astrohack.utils.file import overwrite_file
+from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_locit import (
     extract_antenna_data,
     extract_spectral_info,
@@ -87,9 +87,7 @@ def extract_locit(
     input_params = extract_locit_params.copy()
     attributes = extract_locit_params.copy()
 
-    assert (
-        pathlib.Path(extract_locit_params["cal_table"]).exists() is True
-    ), logger.error(f'File {extract_locit_params["cal_table"]} does not exists.')
+    check_ms_exists(cal_table)
 
     overwrite_file(
         extract_locit_params["locit_name"], extract_locit_params["overwrite"]

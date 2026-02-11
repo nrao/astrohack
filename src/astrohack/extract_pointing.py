@@ -5,7 +5,7 @@ import toolviper.utils.logger as logger
 from astrohack.utils import print_dict_types
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.file import overwrite_file
+from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_pointing import (
     extract_pointing_preprocessing,
     extract_pointing_chunk,
@@ -75,9 +75,7 @@ def extract_pointing(
 
     input_params = extract_pointing_params.copy()
 
-    assert (
-        pathlib.Path(extract_pointing_params["ms_name"]).exists() is True
-    ), logger.error(f'File {extract_pointing_params["ms_name"]} does not exists.')
+    check_ms_exists(ms_name)
 
     overwrite_file(
         extract_pointing_params["point_name"], extract_pointing_params["overwrite"]

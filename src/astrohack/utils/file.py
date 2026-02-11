@@ -18,6 +18,20 @@ DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()
 
 
+def check_ms_exists(ms_name):
+    ms_path = pathlib.Path(ms_name)
+    if not ms_path.exists():
+        raise FileNotFoundError(f"{ms_name} does not exist.")
+    if not ms_path.is_dir():
+        raise RuntimeError(f"{ms_name} is a file not a directory.")
+
+    ms_tbl_info_path = pathlib.Path(ms_name + "/table.info")
+    if not ms_tbl_info_path.is_file():
+        raise RuntimeError(
+            f"{ms_name} does not contain a table.info file, probably not a proper or cal table."
+        )
+
+
 def check_if_file_can_be_opened(filename, minimal_version):
     meta_list = [
         ".point_input",

@@ -1,5 +1,4 @@
 import os
-import json
 import pathlib
 import shutil
 
@@ -9,7 +8,6 @@ import toolviper
 from astrohack import open_holog
 from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.extract_holog import extract_holog
-from astrohack.extract_pointing import extract_pointing
 from astrohack.extract_holog import generate_holog_obs_dict
 from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
 
@@ -36,7 +34,7 @@ class TestExtractHolog:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_dir)
+        shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         new_hlg_mds = extract_holog(

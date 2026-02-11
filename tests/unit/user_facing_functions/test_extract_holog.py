@@ -124,7 +124,7 @@ class TestExtractHolog:
 
         assert (
             initial_time != final_time
-        ), "Recreated files has to have a different time from the original file."
+        ), "Recreated file has to have a different time from the original file."
 
         with pytest.raises(FileExistsError):
             extract_holog(

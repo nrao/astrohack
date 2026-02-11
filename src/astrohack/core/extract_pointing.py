@@ -43,7 +43,7 @@ def extract_pointing_preprocessing(input_params):
         ack=False,
     )
 
-    antenna_positions = ctb.getcol("POSITION")
+    antenna_positions = ctb.getcol("POSITION").tolist()
     antenna_stations = ctb.getcol("STATION")
     antenna_names = ctb.getcol("NAME")
     ctb.close()
@@ -53,11 +53,14 @@ def extract_pointing_preprocessing(input_params):
     # Exclude antennas according to user direction
     if exclude:
         if not isinstance(exclude, list):
-            exclude = list(exclude)
-        for i_ant, antenna in enumerate(exclude):
+            exclude = [exclude]
+        for antenna in exclude:
             if antenna in antenna_names:
-                antenna_names.remove(antenna)
-                antenna_ids.remove(i_ant)
+                ant_id = antenna_names.index(antenna)
+                antenna_names.pop(ant_id)
+                antenna_ids.pop(ant_id)
+                antenna_positions.pop(ant_id)
+                antenna_stations.pop(ant_id)
 
     antenna_ids = np.array(antenna_ids)
 
@@ -125,7 +128,7 @@ def extract_pointing_preprocessing(input_params):
         looping_dict[f"ant_{ant_name}"] = {
             "id": antenna_ids[i_ant],
             "name": ant_name,
-            "position": antenna_positions[i_ant].tolist(),
+            "position": antenna_positions[i_ant],
             "station": antenna_stations[i_ant],
         }
 

@@ -8,8 +8,9 @@
             "nullable": true
         },
         "exclude":{
-            "type":["list"],
-            "nullable": true
+            "type":["list", "str"],
+            "nullable": true,
+            "struct_type": ["str"]
         },
         "parallel":{
             "type":["boolean"]

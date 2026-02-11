@@ -33,7 +33,7 @@ def extract_pointing(
     :type point_name: str, optional
 
     :param exclude: Name of antenna to exclude from extraction.
-    :type exclude: list, optional
+    :type exclude: str, list, optional
 
     :param parallel: Boolean for whether to process in parallel. Defaults to False
     :type parallel: bool, optional

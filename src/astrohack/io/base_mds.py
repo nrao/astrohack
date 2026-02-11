@@ -61,6 +61,34 @@ class AstrohackBaseFile:
         self.root[key] = subtree
         return
 
+    def __eq__(self, other: object) -> bool:
+        """
+        Compare two AstrohackBaseFile objects, ignoring input_parameters and origin_info to check if their data and \
+        attributes are equal
+
+        :param other: Second AstrohackBaseFile object
+        :type other: AstrohackBaseFile
+
+        :return: equality result
+        :rtype: bool
+        """
+        if not isinstance(other, AstrohackBaseFile):
+            return NotImplemented
+
+        excluded_keys = ["input_parameters", "origin_info"]
+        equality = True
+        for key, item in self.root.attrs.items():
+            if key in excluded_keys:
+                continue
+            equality = equality and (item == other.root.attrs[key])
+
+        if not equality:
+            return False
+
+        for key, sub_tree in self.root.items():
+            equality = equality and sub_tree.identical(other[key])
+        return equality
+
     @property
     def is_open(self) -> bool:
         """

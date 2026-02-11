@@ -135,7 +135,7 @@ class FITSImage:
         elif len(self.data.shape) == 2:
             pass  # image is already as expected
         else:
-            raise Exception(f"FITS image has an unsupported shape: {self.data.shape}")
+            raise ValueError(f"FITS image has an unsupported shape: {self.data.shape}")
 
         self.original_data = np.copy(self.data)
 
@@ -153,7 +153,7 @@ class FITSImage:
             self.y_axis, _, self.y_unit = get_axis_from_fits_header(self.header, 2)
             self.data = np.fliplr(self.data)
         else:
-            raise Exception(f'Unrecognized origin:\n{self.header["origin"]}')
+            raise NotImplementedError(f'Unrecognized origin:\n{self.header["origin"]}')
         self._create_base_mask()
         self.original_x_axis = np.copy(self.x_axis)
         self.original_y_axis = np.copy(self.y_axis)
@@ -328,7 +328,7 @@ class FITSImage:
         base_name = f"{destination}/{self.rootname}"
 
         if self.residuals is None:
-            raise Exception("Cannot plot results as they don't exist yet.")
+            raise RuntimeError("Cannot plot results as they don't exist yet.")
         self._plot_map(
             self.mask_array(self.residuals),
             f"Residuals, {self.reference_name} - {self.filename}",
@@ -385,7 +385,7 @@ class FITSImage:
 
         if plot_percentuals:
             if self.residuals is None:
-                raise Exception("Cannot plot results as they don't exist yet.")
+                raise RuntimeError("Cannot plot results as they don't exist yet.")
             self._plot_map(
                 self.mask_array(self.residuals_percent),
                 f"Residuals in %, {self.reference_name} - {self.filename}",
@@ -511,7 +511,7 @@ class FITSImage:
                 xds.attrs[key] = value
 
             if failed:
-                raise Exception(f"Don't know what to do with: {key}")
+                raise ValueError(f"Don't know what to do with: {key}")
 
         xds = xds.assign_coords(coords)
         return xds
@@ -684,7 +684,7 @@ def image_comparison_chunk(compare_params):
             display=display,
         )
     else:
-        raise Exception(f'Unknown comparison type {compare_params["comparison"]}')
+        raise ValueError(f'Unknown comparison type {compare_params["comparison"]}')
 
     if compare_params["export_to_fits"]:
         image.export_to_fits(destination)

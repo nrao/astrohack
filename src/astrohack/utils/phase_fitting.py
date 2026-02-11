@@ -67,7 +67,7 @@ def aips_like_phase_fitting(
         else:
             msg = f"Unknown polarization scheme: {pol_axis}"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         min_wavelength = clight / freq_axis[0]
         results, errors, phase_corrected_angle, _, in_rms, out_rms = (
@@ -147,7 +147,7 @@ def _solve_phase_fitting_controls(phase_fit_par, tel_name):
 
     if isinstance(phase_fit_par, (np.ndarray, list, tuple)):
         if len(phase_fit_par) != 5:
-            raise Exception("Phase fit parameter must have 5 elements")
+            raise ValueError("Phase fit parameter must have 5 elements")
 
         else:
             if np.sum(phase_fit_par) == 0:
@@ -172,7 +172,7 @@ def _solve_phase_fitting_controls(phase_fit_par, tel_name):
                     )
 
     else:
-        raise Exception("Phase fit parameter is not an array of booleans.")
+        raise ValueError("Phase fit parameter is not an array of booleans.")
     return do_phase_fit, [
         do_pnt_off,
         do_xy_foc_off,

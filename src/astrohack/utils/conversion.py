@@ -102,7 +102,7 @@ def convert_5d_grid_to_stokes(grid, pol_axis):
             1j * (grid[:, :, ixy, :, :] - grid[:, :, iyx, :, :]) / 2
         )
     else:
-        raise Exception("Pol not supported " + str(pol_axis))
+        raise ValueError("Pol not supported " + str(pol_axis))
 
     return grid_stokes
 
@@ -154,7 +154,7 @@ def convert_5d_grid_from_stokes(stokes_grid, input_pol_axis, destiny_pol_axis):
         )
 
     else:
-        raise Exception("Pol not supported " + str(destiny_pol_axis))
+        raise ValueError("Pol not supported " + str(destiny_pol_axis))
 
     return corr_grid
 

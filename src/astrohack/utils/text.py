@@ -224,11 +224,11 @@ def param_to_list(param, data_dict, prefix):
             else:
                 msg = f"Cannot interpret parameter {item} of type {type(item)}"
                 logger.error(msg)
-                raise Exception(msg)
+                raise ValueError(msg)
     else:
         msg = f"Cannot interpret parameter {param} of type {type(param)}"
         logger.error(msg)
-        raise Exception(msg)
+        raise ValueError(msg)
 
     return out_list
 
@@ -303,7 +303,7 @@ def get_data_content_string(data_object, alignment="l", field_names=None):
         for item_l1 in data_object.keys():
             table.add_row([item_l1])
     else:
-        raise Exception(f"Unhandled case len(field_names) == {depth}")
+        raise NotImplementedError(f"Unhandled case len(field_names) == {depth}")
 
     outstr = f"{lnbr}Data Contents:{lnbr}"
     outstr += table.get_string()
@@ -336,7 +336,7 @@ def print_data_contents(data_dict, field_names, alignment="l"):
         for item_l1 in data_dict.keys():
             table.add_row([item_l1])
     else:
-        raise Exception(f"Unhandled case len(field_names) == {depth}")
+        raise NotImplementedError(f"Unhandled case len(field_names) == {depth}")
 
     print("\nContents:")
     print(table)
@@ -787,14 +787,14 @@ def create_pretty_table(field_names, alignment="c"):
         if len(field_names) != len(alignment):
             msg = "If alignment is not a single string alignment must have the same length of field_names"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
         for i_field, field in enumerate(field_names):
             table.align[field] = alignment[i_field]
     elif isinstance(alignment, str):
         if len(alignment) != 1:
             msg = "Alignment string must be of length 1"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
         table.align = alignment
     return table
 

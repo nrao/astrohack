@@ -288,7 +288,7 @@ def _plot_source_positions_sub(
         if obs_midpoint is None:
             msg = "Observation midpoint is missing"
             logger.error(msg)
-            raise Exception(msg)
+            raise RuntimeError(msg)
         coorkey = "precessed"
         time = Time(obs_midpoint, format="mjd")
         title = f"Coordinates precessed to {time.iso}"

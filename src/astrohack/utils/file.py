@@ -294,7 +294,7 @@ def overwrite_file(file, overwrite):
             logger.warning(
                 f"{file} may not be valid astrohack file. Check the file name again."
             )
-            raise Exception(f"IncorrectFileType: {file}")
+            raise TypeError(f"IncorrectFileType: {file}")
 
 
 def load_image_xds(file_stem, ant, ddi, dask_load=True):

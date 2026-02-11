@@ -84,7 +84,9 @@ def export_to_fits_holog_chunk(parm_dict):
 
     ntime = len(input_xds.time)
     if ntime != 1:
-        raise Exception("Data with multiple times not supported for FITS export")
+        raise NotImplementedError(
+            "Data with multiple times not supported for FITS export"
+        )
 
     base_header = put_axis_in_fits_header(
         base_header, input_xds.chan.values, 3, "Frequency", "Hz"

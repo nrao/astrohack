@@ -234,7 +234,7 @@ def _delays_from_phase_differences(ddi_0, ddi_1):
     else:
         msg = f"The two DDIs must have different frequencies"
         logger.error(msg)
-        raise Exception(msg)
+        raise ValueError(msg)
 
     if isinstance(fields, list):
         time = []
@@ -396,7 +396,7 @@ def _get_data_from_locit_xds(
             f"Polarization scheme {pol} is not what is expected for antenna based gains"
         )
         logger.error(msg)
-        raise Exception(msg)
+        raise ValueError(msg)
     elif pol_selection == "both":
         phases = [
             xds_data[f"P0_PHASE_GAINS"].values,
@@ -426,7 +426,7 @@ def _get_data_from_locit_xds(
         if len(phases) == 0:
             msg = f"No valid data found for polarization selection {pol_selection}"
             logger.error(msg)
-            raise Exception(msg)
+            raise RuntimeError(msg)
 
         if not split_pols:
             phases = np.concatenate(phases)

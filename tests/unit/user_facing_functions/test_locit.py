@@ -115,8 +115,8 @@ class TestLocit:
                 # makes what is happening more obvious to others.
                 try:
                     position_mds[ant][ddi].koff_fit
-                except Exception:
-                    raise Exception
+                except KeyError as error:
+                    raise KeyError(error)
 
     def test_locit_fit_rate(self):
         """
@@ -140,8 +140,8 @@ class TestLocit:
                 try:
                     position_mds[ant]["ddi_0"].rate_fit
 
-                except Exception:
-                    raise Exception
+                except Exception as error:
+                    raise Exception(error)
 
     def test_locit_elevation_limit(self):
         """

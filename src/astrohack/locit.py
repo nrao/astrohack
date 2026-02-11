@@ -180,7 +180,7 @@ def locit(
         combined = False
 
     else:
-        raise Exception(
+        raise RuntimeError(
             "This part of the code should be unreacheable when parameter validation is online."
         )
 

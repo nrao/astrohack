@@ -87,7 +87,7 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
     if error:
         msg = f"Unsupported antenna characteristics"
         logger.error(msg)
-        raise Exception(msg)
+        raise RuntimeError(msg)
     return
 
 
@@ -138,7 +138,7 @@ def extract_spectral_info(extract_locit_parms):
     if error:
         msg = f"Unsupported DDI characteristics"
         logger.error(msg)
-        raise Exception(msg)
+        raise RuntimeError(msg)
     return ddi_dict
 
 
@@ -271,7 +271,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     else:
         msg = f'Unrecognized telescope {extract_locit_parms["telescope_name"]}'
         logger.error(msg)
-        raise Exception(msg)
+        raise ValueError(msg)
 
     n_pol = gains.shape[2]
     assert n_pol == 2, logger.error(

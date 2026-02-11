@@ -127,7 +127,7 @@ def get_telescope_lat_lon_rad(telescope):
 
         msg = f'Unsupported telescope position reference :{telescope.array_center["refer"]}'
         logger.error(msg)
-        raise Exception(msg)
+        raise NotImplementedError(msg)
 
     return lon, lat, rad
 

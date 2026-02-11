@@ -370,7 +370,7 @@ def gaussfit(
         mp = mpfit(mpfitfun(data, err), parinfo=parinfo, quiet=quiet)
 
     if mp.errmsg:
-        raise Exception("MPFIT error: {0}".format(mp.errmsg))
+        raise RuntimeError("MPFIT error: {0}".format(mp.errmsg))
 
     if (not circle) and rotate:
         mp.params[-1] %= 180.0
@@ -595,7 +595,7 @@ def onedgaussfit(
     chi2 = mp.fnorm
 
     if mp.status == 0:
-        raise Exception(mp.errmsg)
+        raise RuntimeError(mp.errmsg)
 
     if (not shh) or veryverbose:
         print("Fit status: ", mp.status)
@@ -768,7 +768,7 @@ def multigaussfit(
     chi2 = mp.fnorm
 
     if mp.status == 0:
-        raise Exception(mp.errmsg)
+        raise RuntimeError(mp.errmsg)
 
     if not shh:
         print("Final fit values: ")

@@ -50,7 +50,7 @@ def bump_version(bump):
     elif bump == "minor":
         bumped_version = f"{revision}.{major}.{int(minor)+1}"
     else:
-        raise Exception(f"Do not know what to do with a {bump} bump")
+        raise ValueError(f"Do not know what to do with a {bump} bump")
 
     project_toml["project"]["version"] = bumped_version
     print(f"Bumping version to {bumped_version}")

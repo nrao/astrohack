@@ -479,7 +479,7 @@ def _export_gain_tables_chunk(parm_dict):
             msg = f"Telescope {antenna.telescope.name} has no predefined list of wavelengths to compute gains"
             logger.error(msg)
             logger.info("Please provide one in the arguments")
-            raise Exception(msg)
+            raise NotImplementedError(msg)
     else:
         wave_fac = convert_unit(parm_dict["wavelength_unit"], "m", "length")
         freq_fac = convert_unit(parm_dict["frequency_unit"], "Hz", "frequency")

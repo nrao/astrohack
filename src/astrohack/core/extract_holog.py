@@ -111,7 +111,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         if n_mapping == 0:
             msg = "No mapping antennas to process, maybe you need to fix the pointing table?"
             logger.error(msg)
-            raise Exception(msg)
+            raise RuntimeError(msg)
 
     looping_dict = {}
     for ddi_key in holog_obs_dict.keys():
@@ -252,12 +252,9 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
     # ref_ant_per_map_ant_name_tuple = extract_holog_params["ref_ant_per_map_ant_name_tuple"]
 
     if len(ref_ant_per_map_ant_tuple) != len(map_ant_tuple):
-        logger.error(
-            "Reference antenna per mapping antenna list and mapping antenna list should have same length."
-        )
-        raise Exception(
-            "Inconsistancy between antenna list length, see error above for more info."
-        )
+        msg = "Reference antenna per mapping antenna list and mapping antenna list should have same length."
+        logger.error(msg)
+        raise RuntimeError(msg)
 
     table_obj = ctables.table(
         ms_name, readonly=True, lockoptions={"option": "usernoread"}, ack=False

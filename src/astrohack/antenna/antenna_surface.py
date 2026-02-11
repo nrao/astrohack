@@ -115,7 +115,7 @@ class AntennaSurface:
     def _read_holog_xds(self, inputxds):
         if "chan" in inputxds.dims:
             if inputxds.sizes["chan"] != 1:
-                raise Exception("Only single channel holographies supported")
+                raise RuntimeError("Only single channel holographies supported")
             self.wavelength = clight / inputxds.chan.values[0]
         else:
             self.wavelength = inputxds.attrs["wavelength"]
@@ -126,7 +126,7 @@ class AntennaSurface:
                 f'{inputxds.coords["pol"]})'
             )
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         self.amplitude = (
             inputxds["AMPLITUDE"].sel(pol=self.pol_state).isel(time=0, chan=0).values
@@ -224,7 +224,7 @@ class AntennaSurface:
             clip = self._compute_noise_threshold_clip(clip_level)
         else:
             msg = f"Unrecognized clipping type: {clip_type}"
-            raise Exception(msg)
+            raise ValueError(msg)
         return clip
 
     def _compute_noise_threshold_clip(self, threshold, step_multiplier=0.95):
@@ -315,7 +315,7 @@ class AntennaSurface:
                     "Cannot computed gains for corrected dish if panels are not fitted."
                 )
                 logger.error(msg)
-                raise Exception(msg)
+                raise RuntimeError(msg)
         else:
             scaled_phase = wavelength_scaling * self.phase
 
@@ -377,7 +377,7 @@ class AntennaSurface:
         Apply corrections determined by the panel surface fitting methods to the antenna surface
         """
         if not self.fitted:
-            raise Exception("Panels must be fitted before atempting a correction")
+            raise RuntimeError("Panels must be fitted before atempting a correction")
         self.corrections = np.where(self.mask, 0, np.nan)
         for panel in self.panels:
             corrections = panel.get_corrections()
@@ -514,7 +514,7 @@ class AntennaSurface:
 
     def _multi_plot(self, maps, labels, prefix, basename, factor, parm_dict, caller):
         if len(maps) != len(labels):
-            raise Exception("Map list and label list must be of the same size")
+            raise ValueError("Map list and label list must be of the same size")
         nplots = len(maps)
         if parm_dict["z_lim"] is None or parm_dict["z_lim"] == "None":
             vmax = np.nanmax(

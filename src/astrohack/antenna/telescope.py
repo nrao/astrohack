@@ -195,7 +195,7 @@ class RingedCassegrain(Telescope):
             error = True
 
         if error:
-            raise Exception("Failed Consistency check")
+            raise RuntimeError("Failed Consistency check")
         else:
             print("Consistency passed")
 
@@ -253,7 +253,9 @@ class RingedCassegrain(Telescope):
         elif "ALMA" in self.name or self.name == "ACA 7m":
             self._panel_label = self._alma_panel_labeling
         else:
-            raise Exception(f"Don't know how to build panel list for {self.name}")
+            raise NotImplementedError(
+                f"Don't know how to build panel list for {self.name}"
+            )
 
         panel_list = []
         for iring in range(self.n_rings_of_panels):
@@ -371,7 +373,7 @@ class RingedCassegrain(Telescope):
                 )
 
         else:
-            raise Exception(
+            raise TypeError(
                 f"Don't know how to handle an arm width of class {type(self.arm_shadow_width)}"
             )
 
@@ -551,14 +553,14 @@ def get_proper_telescope(name: str, antenna_name: str = None):
         elif "na" in antenna_name:
             return NgvlaPrototype.from_name("ngvla_proto_2025")
         else:
-            raise Exception(f"Unsupported antenna type for the VLA: {antenna_name}")
+            raise ValueError(f"Unsupported antenna type for the VLA: {antenna_name}")
 
     elif "vlba" in name:
         return RingedCassegrain.from_name("vlba")
 
     elif "alma" in name:
         if antenna_name is None:
-            raise Exception(
+            raise ValueError(
                 "ALMA is an heterogenious array and hence an antenna name is needed"
             )
         elif "dv" in antenna_name:
@@ -568,7 +570,7 @@ def get_proper_telescope(name: str, antenna_name: str = None):
         elif "tp" in antenna_name:
             return RingedCassegrain.from_name("alma_tp")
         else:
-            raise Exception(f"Unsupported antenna type for ALMA: {antenna_name}")
+            raise ValueError(f"Unsupported antenna type for ALMA: {antenna_name}")
 
     elif "aca" in name:
         return RingedCassegrain.from_name("aca_7m")

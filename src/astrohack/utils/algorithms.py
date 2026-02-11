@@ -25,17 +25,17 @@ def tokenize_version_number(version_number):
         Tokenized version number in 3 element numpy array of integers
     """
     if not isinstance(version_number, str):
-        raise Exception(f"Version number: {version_number} is not a string")
+        raise ValueError(f"Version number: {version_number} is not a string")
     split = version_number.split(".")
     if len(split) != 3:
-        raise Exception(f"Version number: {version_number} is badly formated")
+        raise ValueError(f"Version number: {version_number} is badly formated")
     tokenized = np.ndarray([3], dtype=int)
 
     for itoken in range(len(split)):
         try:
             tokenized[itoken] = int(split[itoken])
         except ValueError:
-            raise Exception(
+            raise ValueError(
                 f"Version number: {version_number} is not composed of integers"
             )
     return tokenized
@@ -257,9 +257,9 @@ def least_squares(system, vector, return_sigma=False):
     The solved system, the variances of the system solution and the sum of the residuals
     """
     if len(system.shape) != 2:
-        raise Exception("System must have 2 dimensions")
+        raise ValueError("System must have 2 dimensions")
     if system.shape[0] < system.shape[1]:
-        raise Exception(
+        raise ValueError(
             "System must have at least the same number of rows as it has of columns"
         )
 
@@ -292,9 +292,9 @@ def least_squares_jit(system, vector):
     The solved system, the variances of the system solution and the sum of the residuals
     """
     if len(system.shape) != 2:
-        raise Exception("System must have 2 dimensions")
+        raise ValueError("System must have 2 dimensions")
     if system.shape[0] < system.shape[1]:
-        raise Exception(
+        raise ValueError(
             "System must have at least the same number of rows as it has of columns"
         )
 
@@ -322,9 +322,9 @@ def _least_squares_fit_block(system, vector):
     The solved system and the variances of the system solution
     """
     if len(system.shape) < 2:
-        raise Exception("System block must have at least 2 dimensions")
+        raise ValueError("System block must have at least 2 dimensions")
     if system.shape[-2] < system.shape[-1]:
-        raise Exception(
+        raise ValueError(
             "Systems must have at least the same number of rows as they have of columns"
         )
     shape = system.shape
@@ -425,7 +425,7 @@ def compute_stokes(data, weight, pol_axis):
         stokes_data[:, 3] = 1j * (data[:, 1] - data[:, 2]) / 2
         sigma_amp[:, 3] = sigma_amp[:, 2]
     else:
-        raise Exception("Pol not supported " + str(pol_axis))
+        raise ValueError("Pol not supported " + str(pol_axis))
     stokes_amp = np.absolute(stokes_data)
     stokes_pha = np.angle(stokes_data, deg=True)
     sigma_amp[~np.isfinite(sigma_amp)] = np.nan

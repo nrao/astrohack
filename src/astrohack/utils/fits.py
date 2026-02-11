@@ -58,13 +58,13 @@ def read_fits(filename, header_as_dict=True):
     hdul.close()
     if head["NAXIS"] != 1:
         if head["NAXIS"] < 1:
-            raise Exception(filename + " is not bi-dimensional")
+            raise ValueError(filename + " is not bi-dimensional")
         elif head["NAXIS"] > 1:
             for iax in range(2, head["NAXIS"]):
                 if head["NAXIS" + str(iax + 1)] != 1:
-                    raise Exception(filename + " is not bi-dimensional")
+                    raise ValueError(filename + " is not bi-dimensional")
     if head["NAXIS1"] != head["NAXIS2"]:
-        raise Exception(
+        raise ValueError(
             filename + " does not have the same amount of pixels in the x and y axes"
         )
 
@@ -206,12 +206,14 @@ def put_axis_in_fits_header(header: dict, axis, iaxis, axistype, unit, iswcs=Tru
     else:
         inc = axis[1] - axis[0]
         if inc == 0:
-            logger.error("Axis increment is zero valued")
-            raise Exception
+            msg = "Axis increment is zero valued"
+            logger.error(msg)
+            raise ValueError(msg)
         absdiff = abs((axis[-1] - axis[-2]) - inc) / inc
         if absdiff > 1e-7:
-            logger.error("Axis is not linear!")
-            raise Exception
+            msg = "Axis is not linear!"
+            logger.error(msg)
+            raise ValueError(msg)
 
     ref = naxis // 2
     val = axis[ref]
@@ -293,13 +295,13 @@ def aips_holog_to_xds(ampname, devname):
     devdata = np.flipud(devdata)
 
     if amphead["NAXIS1"] != devhead["NAXIS1"]:
-        raise Exception(ampname + " and " + devname + " have different dimensions")
+        raise ValueError(ampname + " and " + devname + " have different dimensions")
     if (
         amphead["CRPIX1"] != devhead["CRPIX1"]
         or amphead["CRVAL1"] != devhead["CRVAL1"]
         or amphead["CDELT1"] != devhead["CDELT1"]
     ):
-        raise Exception(
+        raise ValueError(
             ampname + " and " + devname + " have different axes descriptions"
         )
 

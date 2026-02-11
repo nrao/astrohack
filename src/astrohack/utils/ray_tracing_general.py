@@ -555,7 +555,7 @@ class LocalQPS:
             z_val_grid = regrid_data_onto_2d_grid(u_axis, v_axis, z_val, uv_idx_grid)
             z_cos_grid = regrid_data_onto_2d_grid(u_axis, v_axis, z_angle, uv_idx_grid)
         else:
-            raise Exception("only 2D regrid available now")
+            raise NotImplementedError("only 2D regriding available for the moment")
 
         self.current_z_val = z_val_grid
         self.current_z_cos = z_cos_grid

@@ -915,7 +915,7 @@ def fit_zernike_coefficients(
     elif fitting_engine == "scipy":
         fit_func = _fit_an_aperture_plane_component_scipy_opt_lst_sq
     else:
-        raise Exception(f"Unknown fitting method {fitting_engine}")
+        raise ValueError(f"Unknown fitting method {fitting_engine}")
 
     for itime in range(ntime):
         for ichan in range(nchan):

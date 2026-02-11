@@ -50,7 +50,7 @@ def process_holog_chunk(holog_chunk_params, output_mds):
     elif isinstance(user_grid_size, (list, np.ndarray)):
         grid_size = np.array(user_grid_size)
     else:
-        raise Exception(
+        raise TypeError(
             f"Don't know what due with grid size of type {type(user_grid_size)}"
         )
     logger.info(
@@ -67,7 +67,7 @@ def process_holog_chunk(holog_chunk_params, output_mds):
     elif isinstance(user_cell_size, (list, np.ndarray)):
         cell_size = np.array(user_cell_size)
     else:
-        raise Exception(
+        raise TypeError(
             f"Don't know what due with cell size of type {type(user_cell_size)}"
         )
 

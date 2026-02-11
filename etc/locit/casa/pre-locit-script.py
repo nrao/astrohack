@@ -93,7 +93,7 @@ msmd.done()
 
 unq_chan = np.unique(nchans)
 if unq_chan.size != 1:
-    raise Exception("SPWs do not have a consistent number of channels")
+    raise RuntimeError("SPWs do not have a consistent number of channels")
 else:
     nchan = unq_chan[0]
 
@@ -102,14 +102,14 @@ if frg_src not in field_names:
     print("Available sources for fringe fitting:")
     print(field_names)
     print()
-    raise Exception("Chosen fringe fit source is not available in dataset")
+    raise ValueError("Chosen fringe fit source is not available in dataset")
 
 if ref_ant not in ant_names:
     print()
     print("Available antennas:")
     print(ant_names)
     print()
-    raise Exception("Chosen reference antenna is not available in dataset")
+    raise ValueError("Chosen reference antenna is not available in dataset")
 
 print("Splitting out relevant scans...")
 split(

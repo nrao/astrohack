@@ -57,7 +57,7 @@ def export_gains_table_chunk(parm_dict):
             msg = f"Telescope {antenna.telescope.name} has no predefined list of wavelengths to compute gains"
             logger.error(msg)
             logger.info("Please provide one in the arguments")
-            raise Exception(msg)
+            raise NotImplementedError(msg)
     else:
         wave_fac = convert_unit(parm_dict["wavelength_unit"], "m", "length")
         freq_fac = convert_unit(parm_dict["frequency_unit"], "Hz", "frequency")
@@ -149,7 +149,7 @@ def export_phase_fit_chunk(parm_dict):
                     else:
                         msg = f"Unknown unit {unit}"
                         logger.error(msg)
-                        raise Exception(msg)
+                        raise ValueError(msg)
 
                     row = [
                         format_label(par_name),

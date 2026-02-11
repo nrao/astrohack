@@ -77,7 +77,9 @@ def get_cal_table_name(calname, cal_ext):
     if cal_ext in calname:
         return calname.replace(cal_ext, "")
     else:
-        raise Exception('Cal table is badly formatted, it must end with "-pha.cal"')
+        raise ValueError(
+            'Cal table name is badly formatted, it must end with "-pha.cal"'
+        )
 
 
 caltable = args.caltable

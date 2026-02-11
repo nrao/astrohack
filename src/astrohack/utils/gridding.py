@@ -129,7 +129,7 @@ def grid_beam_2(
         else:
             msg = f"Unknown grid type {grid_interpolation_mode}."
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         time_centroid_index = map_xdt.sizes["time"] // 2
         time_centroid.append(map_xdt.coords["time"][time_centroid_index].values)
@@ -257,7 +257,7 @@ def grid_beam(
         else:
             msg = f"Unknown grid type {grid_interpolation_mode}."
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         time_centroid_index = ant_ddi_dict[holog_map].sizes["time"] // 2
         time_centroid.append(
@@ -391,7 +391,7 @@ def _normalize_beam(beam_grid, n_chan, pol_axis):
         else:
             msg = f"Unknown polarization scheme: {pol_axis}"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         for chan in range(n_chan):
             try:

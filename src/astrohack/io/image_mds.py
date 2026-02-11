@@ -527,7 +527,7 @@ def _export_to_fits_chunk(param_dict):
 
     ntime = len(input_xds.time)
     if ntime != 1:
-        raise Exception("Data with multiple times not supported for FITS export")
+        raise RuntimeError("Data with multiple times not supported for FITS export")
 
     base_header = put_axis_in_fits_header(
         base_header, input_xds.chan.values, 3, "Frequency", "Hz"
@@ -665,7 +665,7 @@ def _plot_aperture_chunk(parm_dict):
     else:
         msg = f"Uncomprehensible polarization state: {asked_pol_states}"
         logger.error(msg)
-        raise Exception(msg)
+        raise ValueError(msg)
 
     for pol_state in plot_pol_states:
         if pol_state in avail_pol_states:
@@ -701,10 +701,10 @@ def _plot_beam_chunk(parm_dict):
         "rad", parm_dict["angle_unit"], "trigonometric"
     )
     if input_xds.sizes["chan"] != 1:
-        raise Exception("Only single channel holographies supported")
+        raise RuntimeError("Only single channel holographies supported")
 
     if input_xds.sizes["time"] != 1:
-        raise Exception("Only single mapping holographies supported")
+        raise RuntimeError("Only single mapping holographies supported")
 
     full_beam = input_xds.BEAM.isel(time=0, chan=0).values
     pol_axis = input_xds.pol.values
@@ -840,7 +840,7 @@ def _export_phase_fit_chunk(parm_dict):
                     else:
                         msg = f"Unknown unit {unit}"
                         logger.error(msg)
-                        raise Exception(msg)
+                        raise ValueError(msg)
 
                     row = [
                         format_label(par_name),
@@ -907,10 +907,10 @@ def _plot_zernike_model_chunk(parm_dict):
     input_xds = parm_dict["xdt_data"]
 
     if input_xds.sizes["chan"] != 1:
-        raise Exception("Only single channel holographies supported")
+        raise RuntimeError("Only single channel holographies supported")
 
     if input_xds.sizes["time"] != 1:
-        raise Exception("Only single mapping holographies supported")
+        raise RuntimeError("Only single mapping holographies supported")
 
     # Data retrieval
     u_axis = input_xds.u.values

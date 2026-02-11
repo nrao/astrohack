@@ -11,12 +11,9 @@ from astrohack.extract_pointing import extract_pointing
 from astrohack.holog import holog
 from astrohack.panel import panel
 from astrohack.utils import convert_unit
+from astrohack.utils.verification_tools import relative_difference
 
 base_name = "ea25_cal_small_"
-
-
-def relative_difference(result, expected):
-    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
 
 
 def verify_panel_shifts(

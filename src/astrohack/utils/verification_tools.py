@@ -196,3 +196,7 @@ def add_data_folder_to_names_in_class(class_ref):
         if isinstance(varvalue, str):
             if varname.split("_")[-1] == "name":
                 setattr(class_ref, varname, f"{class_ref.data_dir}/{varvalue}")
+
+
+def relative_difference(result, expected):
+    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))

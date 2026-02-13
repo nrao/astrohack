@@ -18,7 +18,7 @@ def beamcut(
     holog_name: str,
     beamcut_name: str = None,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[str]] = "all",
+    ddi: Union[int, List[int], str] = "all",
     destination: str = None,
     lm_unit: str = "amin",
     azel_unit: str = "deg",

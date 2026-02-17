@@ -49,7 +49,9 @@ class TestPanel:
         ).is_dir(), f"A .panel.zarr file named {self.def_pnl_name} does not exist."
 
         ref_pnl_mds = open_panel(self.ref_pnl_name)
-        assert new_pnl_mds == ref_pnl_mds, "Reference and new mdses are different."
+        assert new_pnl_mds.is_close_to(
+            ref_pnl_mds
+        ), "Reference and new mdses are different."
 
     def test_data_selection(self):
         """

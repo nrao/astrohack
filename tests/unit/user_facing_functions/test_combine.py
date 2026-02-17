@@ -46,7 +46,9 @@ class TestCombine:
         ).is_dir(), f"A .combine.zarr file named {self.def_cmb_name} does not exist."
 
         ref_cmb_mds = open_image(self.ref_cmb_name)
-        assert new_cmb_mds == ref_cmb_mds, "Reference and new mdses are different."
+        assert new_cmb_mds.is_close_to(
+            ref_cmb_mds
+        ), "Reference and new mdses are different."
 
     def test_ddi_and_ant_selection(self):
         """

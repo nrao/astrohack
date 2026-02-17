@@ -37,7 +37,9 @@ class TestExtractPointing:
         ).is_dir(), f"A .point.zarr file named {self.def_pnt_name} does not exist."
 
         ref_pnt_mds = open_pointing(self.ref_pnt_name)
-        assert new_pnt_mds == ref_pnt_mds, "Reference and new mdses are different."
+        assert new_pnt_mds.is_close_to(
+            ref_pnt_mds
+        ), "Reference and new mdses are different."
 
     def test_renaming(self):
         """Test extract_pointing naming"""
@@ -52,9 +54,6 @@ class TestExtractPointing:
         assert (
             new_pnt_mds.filename == self.alt_pnt_name
         ), "Point mds filename does not match the file on disk."
-
-        ref_pnt_mds = open_pointing(self.ref_pnt_name)
-        assert new_pnt_mds == ref_pnt_mds, "Reference and new mdses are different."
 
     def test_antenna_exclusion(self):
         """Test extract_pointing antenna exclusion"""

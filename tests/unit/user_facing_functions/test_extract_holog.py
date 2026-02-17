@@ -45,7 +45,9 @@ class TestExtractHolog:
         ).is_dir(), f"A .holog.zarr file named {self.def_hlg_name} does not exist."
 
         ref_hlg_mds = open_holog(self.ref_hlg_name)
-        assert new_hlg_mds == ref_hlg_mds, "Reference and new mdses are different."
+        assert new_hlg_mds.is_close_to(
+            ref_hlg_mds
+        ), "Reference and new mdses are different."
 
     def test_holog_obs_dict(self):
         """

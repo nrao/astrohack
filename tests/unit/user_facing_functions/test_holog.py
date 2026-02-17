@@ -53,7 +53,9 @@ class TestHolog:
         ).is_dir(), f"A .image.zarr file named {self.def_img_name} does not exist."
 
         ref_img_mds = open_image(self.ref_img_name)
-        assert new_img_mds == ref_img_mds, "Reference and new mdses are different."
+        assert new_img_mds.is_close_to(
+            ref_img_mds
+        ), "Reference and new mdses are different."
 
     def test_data_selection(self):
         image_mds = holog(

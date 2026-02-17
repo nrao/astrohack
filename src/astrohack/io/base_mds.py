@@ -12,6 +12,7 @@ from astrohack.utils import (
     get_method_list_string,
     lnbr,
 )
+from astrohack.utils.verification_tools import are_dicts_close, are_data_trees_close
 
 
 class AstrohackBaseFile:
@@ -291,3 +292,42 @@ class AstrohackBaseFile:
         outstr += f"File on disk: {self.filename}{lnbr}"
         outstr += f"Data tree: {lnbr}{self.root.__repr__()}"
         return outstr
+
+    def is_close_to(self, other_mds, tol=1e-8):
+        """
+        Tests if self and other_mds are close to each other.
+
+        :param other_mds: Another mds
+        :type other_mds: AstrohackBaseFile
+
+        :param tol: Tolerance
+        :type tol: float
+
+        :return: True if Mdses are close up to tolerance
+        :rtype: bool
+        """
+        if not isinstance(other_mds, AstrohackBaseFile):
+            return NotImplemented
+
+        excluded_keys = ["input_parameters", "origin_info"]
+        is_close = True
+        for key, item in self.root.attrs.items():
+            if key in excluded_keys:
+                continue
+            else:
+                is_close = is_close and are_dicts_close(
+                    item, other_mds.root.attrs[key], tol
+                )
+
+        if is_close:
+            for key, self_subtree in self.items():
+                if key not in other_mds.keys():
+                    return False
+                else:
+                    is_close = is_close and are_data_trees_close(
+                        self_subtree, other_mds[key], tol=tol
+                    )
+        else:
+            return False
+
+        return is_close

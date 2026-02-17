@@ -1,8 +1,8 @@
 import contextlib
 import io
-
 import numpy as np
 import xarray as xr
+import xarray.testing
 from PIL import Image, ImageChops
 
 
@@ -147,6 +147,90 @@ def _compare_xds_data(xds_a, xds_b, label):
 
     else:
         return _compare_dictionaries(xds_a, xds_b, metaname=f"{label} data variable")
+
+
+def are_dicts_close(dict_a, dict_b, tol=1e-8):
+    """
+    Compares dictionaries and returns True if data is close up to tolerance.
+
+    :param dict_a: First dictionary
+    :type dict_a: dict
+
+    :param dict_b: Second dictionary
+    :type dict_b: dict
+
+    :param tol: Tolerance
+    :type tol: float
+
+    :return: is_close
+    :rtype: bool
+    """
+    is_close = True
+    for key, a_value in dict_a.items():
+        if key not in dict_b.keys():
+            return False
+        else:
+            b_value = dict_b[key]
+            if type(a_value) != type(b_value):
+                return False
+            elif a_value is None:
+                is_close = is_close and (b_value is None)
+            elif isinstance(a_value, (np.ndarray, float, int)):
+                is_close = is_close and np.allclose(
+                    a_value, b_value, equal_nan=True, rtol=tol
+                )
+            elif isinstance(a_value, str):
+                is_close = is_close and a_value == b_value
+            elif isinstance(a_value, dict):
+                is_close = is_close and are_dicts_close(a_value, b_value, tol=tol)
+            elif isinstance(a_value, (list, tuple)):
+                if isinstance(a_value[0], (float, int)):
+                    is_close = is_close and np.allclose(
+                        np.array(a_value), np.array(b_value), equal_nan=True, rtol=tol
+                    )
+                else:
+                    is_close = is_close and a_value == b_value
+            else:
+                raise TypeError(f"Unrecognized type {type(a_value)}")
+            if not is_close:
+                return False
+    return is_close
+
+
+def are_data_trees_close(tree_a, tree_b, tol=1e-8):
+    """
+    Compares data trees and returns True if data is close up to tolerance.
+    :param tree_a: First data tree
+    :type tree_a: xarray.DataTree
+
+    :param tree_b: Second data tree
+    :type tree_b: xarray.DataTree
+
+    :param tol: Tolerance
+    :type tol: float
+
+    :return: is_close
+    :rtype: bool
+    """
+    is_close = True
+    if are_dicts_close(tree_a.attrs, tree_b.attrs, tol=tol):
+        try:
+            xarray.testing.assert_allclose(tree_a.dataset, tree_b.dataset, rtol=tol)
+        except AssertionError:
+            return False
+        if tree_a.is_leaf and tree_b.is_leaf:
+            pass
+        else:
+            for key, subtree_a in tree_a.items():
+                is_close = is_close and are_data_trees_close(
+                    subtree_a, tree_b[key], tol
+                )
+                if not is_close:
+                    return False
+    else:
+        return False
+
+    return is_close
 
 
 def _are_data_dicts_different(dict_a, dict_b, label=""):

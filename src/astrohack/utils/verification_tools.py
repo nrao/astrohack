@@ -149,7 +149,7 @@ def _compare_xds_data(xds_a, xds_b, label):
         return _compare_dictionaries(xds_a, xds_b, metaname=f"{label} data variable")
 
 
-def are_dicts_close(dict_a, dict_b, tol=1e-8):
+def are_dicts_close(dict_a, dict_b, tol=1e-8, ignored_keys=None):
     """
     Compares dictionaries and returns True if data is close up to tolerance.
 
@@ -162,11 +162,18 @@ def are_dicts_close(dict_a, dict_b, tol=1e-8):
     :param tol: Tolerance
     :type tol: float
 
+    :param ignored_keys: Keys to be ignored in comparison
+    :type ignored_keys: list
+
     :return: is_close
     :rtype: bool
     """
+    if ignored_keys is None:
+        ignored_keys = []
     is_close = True
     for key, a_value in dict_a.items():
+        if key in ignored_keys:
+            continue
         if key not in dict_b.keys():
             return False
         else:

@@ -309,15 +309,12 @@ class AstrohackBaseFile:
         if not isinstance(other_mds, AstrohackBaseFile):
             return NotImplemented
 
-        excluded_keys = ["input_parameters", "origin_info"]
-        is_close = True
-        for key, item in self.root.attrs.items():
-            if key in excluded_keys:
-                continue
-            else:
-                is_close = is_close and are_dicts_close(
-                    item, other_mds.root.attrs[key], tol
-                )
+        is_close = are_dicts_close(
+            self.root.attrs,
+            other_mds.root.attrs,
+            tol,
+            ignored_keys=["input_parameters", "origin_info"],
+        )
 
         if is_close:
             for key, self_subtree in self.items():

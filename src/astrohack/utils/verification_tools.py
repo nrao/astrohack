@@ -178,8 +178,10 @@ def are_dicts_close(dict_a, dict_b, tol=1e-8, ignored_keys=None):
             return False
         else:
             b_value = dict_b[key]
-            if type(a_value) != type(b_value):
-                return False
+            if isinstance(a_value, dict) and isinstance(b_value, dict):
+                is_close = is_close and are_dicts_close(a_value, b_value, tol=tol)
+            elif type(a_value) is not type(b_value):
+                is_close = False
             elif a_value is None:
                 is_close = is_close and (b_value is None)
             elif isinstance(a_value, (np.ndarray, float, int)):
@@ -200,6 +202,7 @@ def are_dicts_close(dict_a, dict_b, tol=1e-8, ignored_keys=None):
             else:
                 raise TypeError(f"Unrecognized type {type(a_value)}")
             if not is_close:
+                print(f"Failed key = {key}")
                 return False
     return is_close
 
@@ -224,6 +227,7 @@ def are_data_trees_close(tree_a, tree_b, tol=1e-8):
         try:
             xarray.testing.assert_allclose(tree_a.dataset, tree_b.dataset, rtol=tol)
         except AssertionError:
+            print(f"Failed datasets")
             return False
         if tree_a.is_leaf and tree_b.is_leaf:
             pass
@@ -233,6 +237,7 @@ def are_data_trees_close(tree_a, tree_b, tol=1e-8):
                     subtree_a, tree_b[key], tol
                 )
                 if not is_close:
+                    print(f"Failed key = {key}")
                     return False
     else:
         return False

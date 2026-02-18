@@ -5,6 +5,8 @@ import xarray as xr
 import xarray.testing
 from PIL import Image, ImageChops
 
+from astrohack.utils import print_dict_types
+
 
 def are_lists_equal(list_a, list_b):
     n_a = len(list_a)
@@ -163,7 +165,7 @@ def are_dicts_close(dict_a, dict_b, tol=1e-8, ignored_keys=None):
     :type tol: float
 
     :param ignored_keys: Keys to be ignored in comparison
-    :type ignored_keys: list
+    :type ignored_keys: list, NoneType
 
     :return: is_close
     :rtype: bool
@@ -171,39 +173,69 @@ def are_dicts_close(dict_a, dict_b, tol=1e-8, ignored_keys=None):
     if ignored_keys is None:
         ignored_keys = []
     is_close = True
+    b_keys = list(dict_b.keys())
     for key, a_value in dict_a.items():
         if key in ignored_keys:
-            continue
-        if key not in dict_b.keys():
-            return False
+            mode = "ignored"
         else:
-            b_value = dict_b[key]
-            if isinstance(a_value, dict) and isinstance(b_value, dict):
-                is_close = is_close and are_dicts_close(a_value, b_value, tol=tol)
-            elif type(a_value) is not type(b_value):
-                is_close = False
-            elif a_value is None:
-                is_close = is_close and (b_value is None)
-            elif isinstance(a_value, (np.ndarray, float, int)):
-                is_close = is_close and np.allclose(
-                    a_value, b_value, equal_nan=True, rtol=tol
-                )
-            elif isinstance(a_value, str):
-                is_close = is_close and a_value == b_value
-            elif isinstance(a_value, dict):
-                is_close = is_close and are_dicts_close(a_value, b_value, tol=tol)
-            elif isinstance(a_value, (list, tuple)):
-                if isinstance(a_value[0], (float, int)):
-                    is_close = is_close and np.allclose(
-                        np.array(a_value), np.array(b_value), equal_nan=True, rtol=tol
-                    )
-                else:
-                    is_close = is_close and a_value == b_value
+            if key in b_keys:
+                key_in_b = True
+            elif str(key) in b_keys:
+                key_in_b = True
+                key = str(key)
             else:
-                raise TypeError(f"Unrecognized type {type(a_value)}")
-            if not is_close:
-                print(f"Failed key = {key}")
-                return False
+                try:
+                    b_type = type(b_keys[0])
+                    if b_type(key) in b_keys:
+                        key_in_b = True
+                        key = b_type(key)
+                    else:
+                        key_in_b = False
+                except TypeError:
+                    key_in_b = False
+            if key_in_b:
+                b_value = dict_b[key]
+                if isinstance(a_value, dict) and isinstance(b_value, dict):
+                    is_close = is_close and are_dicts_close(
+                        a_value, b_value, tol=tol, ignored_keys=None
+                    )
+                    mode = "dict"
+                elif type(a_value) is not type(b_value):
+                    is_close = False
+                    mode = "type diff"
+                elif a_value is None:
+                    is_close = is_close and (b_value is None)
+                    mode = "None"
+                elif isinstance(a_value, (np.ndarray, float, int)):
+                    mode = "nparray"
+                    is_close = is_close and np.allclose(
+                        a_value, b_value, equal_nan=True, rtol=tol
+                    )
+                elif isinstance(a_value, str):
+                    mode = "str"
+                    is_close = is_close and a_value == b_value
+                elif isinstance(a_value, (list, tuple)):
+                    if isinstance(a_value[0], (float, int)):
+                        mode = "number list"
+                        is_close = is_close and np.allclose(
+                            np.array(a_value),
+                            np.array(b_value),
+                            equal_nan=True,
+                            rtol=tol,
+                        )
+                    else:
+                        mode = "obj list"
+                        is_close = is_close and a_value == b_value
+                else:
+                    raise TypeError(f"Unrecognized type {type(a_value)}")
+            else:
+                mode = "missing"
+                is_close = False
+
+        if not is_close:
+            print(f"Key: {key} => {mode}")
+            return False
+        # print(f"Key: {key} => {mode} == {is_close}")
     return is_close
 
 
@@ -241,7 +273,6 @@ def are_data_trees_close(tree_a, tree_b, tol=1e-8):
                     return False
     else:
         return False
-
     return is_close
 
 

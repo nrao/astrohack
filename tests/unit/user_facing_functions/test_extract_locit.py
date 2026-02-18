@@ -17,6 +17,11 @@ class TestExtractLocit:
     def_lct_name = "locit-input-pha.locit.zarr"
     ref_lct_name = "locit-input-pha-reference.locit.zarr"
 
+    ant_id = "ea17"
+    ant_key = f"ant_{ant_id}"
+    ddi_id = 0
+    ddi_key = f"ddi_{ddi_id}"
+
     @classmethod
     def setup_class(cls):
         """
@@ -25,7 +30,7 @@ class TestExtractLocit:
         """
 
         toolviper.utils.data.download(file=cls.cal_table_name, folder=cls.data_dir)
-        # toolviper.utils.data.download(file=cls.ref_lct_name, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.ref_lct_name, folder=cls.data_dir)
 
         add_data_folder_to_names_in_class(cls)
 
@@ -52,7 +57,7 @@ class TestExtractLocit:
         ), "Reference and new mdses are different."
 
     @pytest.mark.skip(reason="Fix later")
-    def test_extract_locit_antenna_select(self):
+    def test_data_selection(self):
         """
         Check that only specified antenna is processed.
         """

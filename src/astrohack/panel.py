@@ -200,10 +200,7 @@ def panel(
     """
 
     # Doing this here allows it to get captured by locals()
-    if panel_name is None:
-        panel_name = get_default_file_name(
-            input_file=image_name, output_type=".panel.zarr"
-        )
+    panel_name = get_default_file_name(image_name, ".panel.zarr", panel_name)
 
     panel_params = locals()
 

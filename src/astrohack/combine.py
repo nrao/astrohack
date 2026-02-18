@@ -85,10 +85,7 @@ def combine(
         )
     """
 
-    if combine_name is None:
-        combine_name = get_default_file_name(
-            input_file=image_name, output_type=".combine.zarr"
-        )
+    combine_name = get_default_file_name(image_name, ".combine.zarr", combine_name)
 
     combine_params = locals()
 

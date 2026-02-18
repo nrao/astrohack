@@ -110,10 +110,7 @@ def beamcut(
         )
     """
 
-    if beamcut_name is None:
-        beamcut_name = get_default_file_name(
-            input_file=holog_name, output_type=".beamcut.zarr"
-        )
+    beamcut_name = get_default_file_name(holog_name, ".beamcut.zarr", beamcut_name)
 
     beamcut_params = locals()
 

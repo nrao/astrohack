@@ -77,11 +77,7 @@ def extract_locit(
        "myphase.locit.zarr" that will be overwritten if already present.
     """
     # Doing this here allows it to get captured by locals()
-    if locit_name is None:
-        locit_name = get_default_file_name(
-            input_file=cal_table, output_type=".locit.zarr"
-        )
-
+    locit_name = get_default_file_name(cal_table, ".locit.zarr", locit_name)
     extract_locit_params = locals()
 
     input_params = extract_locit_params.copy()

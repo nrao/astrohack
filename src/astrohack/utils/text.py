@@ -233,30 +233,38 @@ def param_to_list(param, data_dict, prefix):
     return out_list
 
 
-def get_default_file_name(input_file: str, output_type: str) -> str:
-    known_data_types = [
-        ".ms",
-        ".cal",
-        ".point.zarr" ".holog.zarr",
-        ".image.zarr",
-        ".locit.zarr",
-        ".combine.zarr",
-        ".position.zarr",
-    ]
+def get_default_file_name(
+    input_filename: str, output_ext: str, user_filename: str
+) -> str:
 
-    output_file = None
+    if user_filename is None:
+        known_data_types = [
+            ".ms",
+            ".cal",
+            ".point.zarr",
+            ".holog.zarr",
+            ".image.zarr",
+            ".locit.zarr",
+            ".combine.zarr",
+            ".position.zarr",
+            ".beamcut.zarr",
+        ]
 
-    for suffix in known_data_types:
-        if input_file.endswith(suffix):
-            base_name = input_file.removesuffix(suffix)
-            output_file = "".join((base_name, output_type))
+        output_filename = None
 
-    if not output_file:
-        output_file = "".join((input_file, output_type))
+        for suffix in known_data_types:
+            if input_filename.endswith(suffix):
+                base_name = input_filename.removesuffix(suffix)
+                output_filename = "".join((base_name, output_ext))
 
-    logger.info("Creating output file name: {}".format(output_file))
+        if output_filename is None:
+            output_filename = "".join((input_filename, output_ext))
 
-    return output_file
+    else:
+        output_filename = user_filename
+
+    logger.info(f"Creating output file name: {output_filename}")
+    return output_filename
 
 
 def _get_tree_field_names(data_tree, field_names=None):

@@ -147,10 +147,7 @@ def locit(
     """
 
     # Doing this here allows it to get captured by locals()
-    if position_name is None:
-        position_name = get_default_file_name(
-            input_file=locit_name, output_type=".position.zarr"
-        )
+    position_name = get_default_file_name(locit_name, ".position.zarr", position_name)
 
     locit_params = locals()
 

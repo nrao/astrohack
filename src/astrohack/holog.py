@@ -157,10 +157,7 @@ def holog(
     """
 
     # Doing this here allows it to get captured by locals()
-    if image_name is None:
-        image_name = get_default_file_name(
-            input_file=holog_name, output_type=".image.zarr"
-        )
+    image_name = get_default_file_name(holog_name, ".image.zarr", image_name)
 
     holog_params = locals()
 

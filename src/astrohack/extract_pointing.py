@@ -65,10 +65,7 @@ def extract_pointing(
 
     """
     # Doing this here allows it to get captured by locals()
-    if point_name is None:
-        point_name = get_default_file_name(
-            input_file=ms_name, output_type=".point.zarr"
-        )
+    point_name = get_default_file_name(ms_name, ".point.zarr", point_name)
 
     # Returns the current local variables in dictionary form
     extract_pointing_params = locals()

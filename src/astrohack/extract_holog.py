@@ -200,11 +200,7 @@ def extract_holog(
     """
 
     # Doing this here allows it to get captured by locals()
-    if holog_name is None:
-        holog_name = get_default_file_name(
-            input_file=ms_name, output_type=".holog.zarr"
-        )
-
+    holog_name = get_default_file_name(ms_name, ".holog.zarr", holog_name)
     extract_holog_params = locals()
 
     # VVV This is a temporary fix waiting for the implementation of a mapping parameter

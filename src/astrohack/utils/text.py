@@ -236,7 +236,8 @@ def param_to_list(param, data_dict, prefix):
 def get_default_file_name(input_file: str, output_type: str) -> str:
     known_data_types = [
         ".ms",
-        ".holog.zarr",
+        ".cal",
+        ".point.zarr" ".holog.zarr",
         ".image.zarr",
         ".locit.zarr",
         ".combine.zarr",

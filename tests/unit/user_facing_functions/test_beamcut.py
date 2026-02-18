@@ -2,16 +2,16 @@ import pathlib
 import numpy as np
 import shutil
 import glob
-
-import pytest
+import matplotlib
 from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
 from astrohack.utils.verification_tools import (
     are_lists_equal,
-    mds_equality_test,
     add_data_folder_to_names_in_class,
 )
+
+matplotlib.use("Agg")
 
 
 def retrieve_data_from_report(report):

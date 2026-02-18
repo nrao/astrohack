@@ -38,7 +38,7 @@ class TestExtractLocit:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_dir)
+        shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         """
@@ -56,76 +56,53 @@ class TestExtractLocit:
             ref_lct_mds
         ), "Reference and new mdses are different."
 
-    @pytest.mark.skip(reason="Fix later")
     def test_data_selection(self):
         """
         Check that only specified antenna is processed.
         """
 
-        locit_mds = extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, ant="ea17"
+        new_lct_mds = extract_locit(
+            cal_table=self.cal_table_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
         )
 
-        # There should only be 1 antenna in the dict named ea17
-        assert len(locit_mds.keys()) == 1
+        ant_list = list(new_lct_mds.keys())
+        assert len(ant_list) == 1, "A single antenna should be present."
+        assert (
+            ant_list[0] == self.ant_key
+        ), "Ant name should be the same as the one given."
 
-        # Check that only the specific antenna is in the keys.
-        assert list(locit_mds.keys()) == [
-            "ant_ea17",
-        ]
+        ddi_list = list(new_lct_mds[self.ant_key].keys())
+        assert len(ddi_list) == 1, "A single ddi should be present."
+        assert (
+            ddi_list[0] == self.ddi_key
+        ), "DDI key should be the same as the one given."
 
-    @pytest.mark.skip(reason="Fix later")
-    def test_extract_locit_ddi(self):
-        """
-        Check that only specified ddi is processed.
-        """
-
-        locit_mds = extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, ddi=0
-        )
-
-        # Check that only the specific ddi is in the keys.
-        assert len(locit_mds["ant_ea01"].keys()) == 1
-        assert list(locit_mds["ant_ea01"].keys()) == ["ddi_0"]
-
-    @pytest.mark.skip(reason="Fix later")
     def test_extract_locit_overwrite(self):
         """
         Specify the output file should be overwritten; check that it WAS.
         """
-
-        extract_locit(cal_table=self.cal_table, locit_name=self.locit_name)
-
         # To check this properly we need to not only know an exception was not thrown but that the file is ACTUALLY
         # overwritten. We do this by checking the modification time.
-        initial_time = os.path.getctime(self.locit_name)
+        initial_time = os.path.getctime(self.def_lct_name)
 
         extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, overwrite=True
+            cal_table=self.cal_table_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
         )
+        modified_time = os.path.getctime(self.def_lct_name)
+        assert (
+            initial_time != modified_time
+        ), "Recreated file has to have a different time from the original file."
 
-        modified_time = os.path.getctime(self.locit_name)
-
-        assert initial_time != modified_time
-
-    @pytest.mark.skip(reason="Fix later")
-    def test_extract_locit_no_overwrite(self):
-        """
-        Specify the output file should be NOT be overwritten; check that it WAS NOT.
-        """
-        extract_locit(cal_table=self.cal_table, locit_name=self.locit_name)
-
-        initial_time = os.path.getctime(self.locit_name)
-
-        try:
+        with pytest.raises(FileExistsError):
             extract_locit(
-                cal_table=self.cal_table, locit_name=self.locit_name, overwrite=False
+                cal_table=self.cal_table_name,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                overwrite=False,
             )
-
-        except FileExistsError:
-            pass
-
-        finally:
-            modified_time = os.path.getctime(self.locit_name)
-
-            assert initial_time == modified_time

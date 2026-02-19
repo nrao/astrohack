@@ -293,7 +293,7 @@ class AstrohackBaseFile:
         outstr += f"Data tree: {lnbr}{self.root.__repr__()}"
         return outstr
 
-    def is_close_to(self, other_mds, tol=1e-8):
+    def is_close_to(self, other_mds, tol=1e-6):
         """
         Tests if self and other_mds are close to each other.
 

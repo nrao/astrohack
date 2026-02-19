@@ -80,7 +80,7 @@ class TestExtractLocit:
             ddi_list[0] == self.ddi_key
         ), "DDI key should be the same as the one given."
 
-    def test_extract_locit_overwrite(self):
+    def test_overwrite(self):
         """
         Specify the output file should be overwritten; check that it WAS.
         """

@@ -43,11 +43,29 @@ def safe_keyword_fetch(header_dict, keyword):
         return None
 
 
+def read_fits_no_checks(filename):
+    """
+    Brute force reading of a fits file, no checks are performed
+    :param filename: Fits filename
+
+    :return: FITS header as a dict and associated data
+    """
+    hdul = fits.open(filename)
+    head = hdul[0].header
+    data = hdul[0].data
+    hdul.close()
+    header_dict = {}
+    for key, value in head.items():
+        header_dict[key] = value
+    return header_dict, data
+
+
 def read_fits(filename, header_as_dict=True):
     """
     Reads a square FITS file and do sanity checks on its dimensionality
     Args:
         filename: a string containing the FITS file name/path
+        header_as_dict: return header as dictionary
 
     Returns:
     The FITS header and the associated data array
@@ -156,6 +174,8 @@ def _reorder_axes_for_fits(data: np.ndarray):
         return np.flip(transpo, 2)
     elif n_dim == 2:
         return np.flipud(data)
+    else:
+        raise RuntimeError("This should be a blocked path")
 
 
 def put_resolution_in_fits_header(header, resolution):

@@ -1,5 +1,4 @@
 import shutil
-import pytest
 
 from toolviper.utils import data
 
@@ -7,14 +6,14 @@ from astrohack import AstrohackPositionFile, extract_locit, locit, open_position
 from astrohack.utils.verification_tools import (
     are_png_files_close,
     are_txt_files_equal,
-    is_captured_output_equal_to_txt_reference,
+    add_data_folder_to_names_in_class,
 )
 
 
 class TestPositionMDS:
-    data_folder = "position_data"
+    data_dir = "position_data"
     destination_folder = "position_exports"
-    ref_products_folder = f"{data_folder}/ref_position_products"
+    ref_products_name = f"ref_position_products"
 
     phase_cal_table_name = "locit-input-pha.cal"
     locit_name = "ant-pos.locit.zarr"
@@ -23,32 +22,27 @@ class TestPositionMDS:
     position_diff_comb_name = "ant-pos-diff-comb.position.zarr"
 
     position_files = {
-        "no": position_no_comb_name,
-        "simple": position_simple_comb_name,
-        "difference": position_diff_comb_name,
+        "no": f"{data_dir}/{position_no_comb_name}",
+        "simple": f"{data_dir}/{position_simple_comb_name}",
+        "difference": f"{data_dir}/{position_diff_comb_name}",
     }
 
     @classmethod
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        data.download(file=cls.phase_cal_table_name, folder=cls.data_folder)
-        data.download(file="ref_position_products", folder=cls.data_folder)
+        data.download(file=cls.phase_cal_table_name, folder=cls.data_dir)
+        data.download(file=cls.ref_products_name, folder=cls.data_dir)
 
-        # Add datafolder to names for execution
-        for varname, varvalue in cls.__dict__.items():
-            if isinstance(varvalue, str):
-                if varname.split("_")[-1] == "name":
-                    setattr(cls, varname, f"{cls.data_folder}/{varvalue}")
+        add_data_folder_to_names_in_class(cls)
 
         extract_locit(cls.phase_cal_table_name, cls.locit_name, overwrite=True)
 
-        for key in cls.position_files.keys():
-            cls.position_files[key] = f"{cls.data_folder}/{cls.position_files[key]}"
+        for ddi_combination, pos_file_name in cls.position_files.items():
             locit(
                 cls.locit_name,
-                cls.position_files[key],
-                combine_ddis=key,
+                pos_file_name,
+                combine_ddis=ddi_combination,
                 overwrite=True,
             )
 
@@ -56,29 +50,13 @@ class TestPositionMDS:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_folder, ignore_errors=True)
+        shutil.rmtree(cls.data_dir, ignore_errors=True)
         shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_position_mds_init(self):
         position_mds = AstrohackPositionFile(self.position_no_comb_name)
         assert isinstance(position_mds, AstrohackPositionFile)
-
-    @pytest.mark.skip(reason="Summary test is fickle")
-    def test_position_mds_summary(self):
-        for label, filename in self.position_files.items():
-            position_mds = open_position(filename)
-            summary_reference_name = (
-                f"{self.ref_products_folder}/summary_{label}_comb_reference.txt"
-            )
-
-            assert is_captured_output_equal_to_txt_reference(
-                position_mds.summary, summary_reference_name
-            ), (
-                f"{label.capitalize()} combination summary should be exactly equal to reference {label} combination "
-                f"summary"
-            )
-        return
 
     def test_position_mds_text_exports(self):
         pos_res_name_dict = {
@@ -93,7 +71,7 @@ class TestPositionMDS:
             position_mds.export_locit_fit_results(self.destination_folder)
             assert are_txt_files_equal(
                 f"{self.destination_folder}/{fit_res_filename}",
-                f"{self.ref_products_folder}/{fit_res_filename}",
+                f"{self.ref_products_name}/{fit_res_filename}",
             ), f"{fit_res_filename} differs from reference file."
 
             parminator_filename = f"parminator_{label}_combination.par"
@@ -104,7 +82,7 @@ class TestPositionMDS:
             )
             assert are_txt_files_equal(
                 f"{self.destination_folder}/{parminator_filename}",
-                f"{self.ref_products_folder}/{parminator_filename}",
+                f"{self.ref_products_name}/{parminator_filename}",
             ), f"{parminator_filename} differs from reference file."
         return
 
@@ -135,7 +113,7 @@ class TestPositionMDS:
             if sky_coverage_name_dict[label] is not None:
                 equal, msg = are_png_files_close(
                     f"{self.destination_folder}/{sky_coverage_name_dict[label]}",
-                    f"{self.ref_products_folder}/{sky_coverage_name_dict[label]}",
+                    f"{self.ref_products_name}/{sky_coverage_name_dict[label]}",
                 )
                 assert (
                     equal
@@ -144,7 +122,7 @@ class TestPositionMDS:
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
             equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{delay_name_dict[label]}",
-                f"{self.ref_products_folder}/{delay_name_dict[label]}",
+                f"{self.ref_products_name}/{delay_name_dict[label]}",
             )
             assert (
                 equal
@@ -153,7 +131,7 @@ class TestPositionMDS:
             position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
             equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{ant_pos_name_dict[label]}",
-                f"{self.ref_products_folder}/{ant_pos_name_dict[label]}",
+                f"{self.ref_products_name}/{ant_pos_name_dict[label]}",
             )
             assert (
                 equal

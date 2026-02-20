@@ -190,7 +190,7 @@ class AstrohackBaseFile:
 
     def summary(self) -> None:
         """
-        Prints summary of this Astrohack File object, with available data, attributes and available methods
+        Prints summary of this Astrohack File object, with available data, attributes and methods
 
         :return: None
         :rtype: NoneType

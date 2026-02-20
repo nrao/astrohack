@@ -1,17 +1,17 @@
-import pytest
 import shutil
 import os
+import matplotlib
 
 from toolviper.utils import data
 
 from astrohack import open_beamcut, AstrohackBeamcutFile
 from astrohack.utils.verification_tools import (
     are_png_files_close,
-    capture_prints_from_function,
     are_txt_files_equal,
-    is_captured_output_equal_to_txt_reference,
     add_data_folder_to_names_in_class,
 )
+
+matplotlib.use("Agg")
 
 
 class TestBeamcutMDS:

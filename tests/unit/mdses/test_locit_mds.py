@@ -1,4 +1,5 @@
 import shutil
+import matplotlib
 
 from toolviper.utils import data
 
@@ -9,6 +10,8 @@ from astrohack.utils.verification_tools import (
     is_captured_output_equal_to_txt_reference,
     add_data_folder_to_names_in_class,
 )
+
+matplotlib.use("Agg")
 
 
 class TestLocitMDS:

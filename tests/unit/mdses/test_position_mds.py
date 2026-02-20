@@ -1,4 +1,5 @@
 import shutil
+import matplotlib
 
 from toolviper.utils import data
 
@@ -8,6 +9,8 @@ from astrohack.utils.verification_tools import (
     are_txt_files_equal,
     add_data_folder_to_names_in_class,
 )
+
+matplotlib.use("Agg")
 
 
 class TestPositionMDS:

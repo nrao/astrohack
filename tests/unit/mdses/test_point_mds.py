@@ -1,4 +1,5 @@
 import shutil
+import matplotlib
 
 from toolviper.utils import data
 
@@ -7,6 +8,8 @@ from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     are_png_files_close,
 )
+
+matplotlib.use("Agg")
 
 
 class TestPointMDS:

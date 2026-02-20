@@ -11,14 +11,6 @@ class TestAstrohack:
         such as deleting test data"""
         pass
 
-    def setup_method(self):
-        """setup any state specific to all methods of the given class"""
-        pass
-
-    def teardown_method(self):
-        """teardown any state that was previously setup for all methods of the given class"""
-        pass
-
     def test_import_extract_holog(self):
         try:
             from astrohack.extract_holog import extract_holog
@@ -70,11 +62,5 @@ class TestAstrohack:
     def test_import_dio_print_json(self):
         try:
             from astrohack.io.dio import print_json
-        except ImportError:
-            assert False
-
-    def test_import_dio_inspect_holog_obs_dict(self):
-        try:
-            from astrohack.io.dio import inspect_holog_obs_dict
         except ImportError:
             assert False

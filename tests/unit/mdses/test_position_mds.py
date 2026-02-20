@@ -5,7 +5,7 @@ from toolviper.utils import data
 
 from astrohack import AstrohackPositionFile, extract_locit, locit, open_position
 from astrohack.utils.verification_tools import (
-    are_png_files_equal,
+    are_png_files_close,
     are_txt_files_equal,
     is_captured_output_equal_to_txt_reference,
 )
@@ -133,7 +133,7 @@ class TestPositionMDS:
 
             position_mds.plot_sky_coverage(self.destination_folder, ant=ant, ddi=ddi)
             if sky_coverage_name_dict[label] is not None:
-                equal, msg = are_png_files_equal(
+                equal, msg = are_png_files_close(
                     f"{self.destination_folder}/{sky_coverage_name_dict[label]}",
                     f"{self.ref_products_folder}/{sky_coverage_name_dict[label]}",
                 )
@@ -142,7 +142,7 @@ class TestPositionMDS:
                 ), f"{msg}: {sky_coverage_name_dict[label]} differs from reference file."
 
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
-            equal, msg = are_png_files_equal(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{delay_name_dict[label]}",
                 f"{self.ref_products_folder}/{delay_name_dict[label]}",
             )
@@ -151,7 +151,7 @@ class TestPositionMDS:
             ), f"{msg}: {delay_name_dict[label]} differs from reference file."
 
             position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
-            equal, msg = are_png_files_equal(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{ant_pos_name_dict[label]}",
                 f"{self.ref_products_folder}/{ant_pos_name_dict[label]}",
             )

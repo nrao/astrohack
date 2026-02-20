@@ -20,7 +20,7 @@ def are_lists_equal(list_a, list_b):
         return equal
 
 
-def are_png_files_equal(img_path1, img_path2, tol=1e-5):
+def are_png_files_close(img_path1, img_path2, tol=1e-5):
     try:
         # Open images (Pillow handles various modes and removes metadata concerns for pixel data)
         with Image.open(img_path1) as img1, Image.open(img_path2) as img2:

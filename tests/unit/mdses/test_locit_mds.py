@@ -6,7 +6,7 @@ from toolviper.utils import data
 from astrohack import AstrohackLocitFile, extract_locit, open_locit
 from astrohack.utils.verification_tools import (
     are_lists_equal,
-    are_png_files_equal,
+    are_png_files_close,
     is_captured_output_equal_to_txt_reference,
 )
 
@@ -73,7 +73,7 @@ class TestLocitMDS:
 
         src_fk5_plot_name = "locit_source_table_fk5.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=False)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{src_fk5_plot_name}",
             f"{self.ref_products_folder}/{src_fk5_plot_name}",
         )
@@ -83,7 +83,7 @@ class TestLocitMDS:
 
         src_prece_plot_name = "locit_source_table_precessed.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=True)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{src_prece_plot_name}",
             f"{self.ref_products_folder}/{src_prece_plot_name}",
         )
@@ -93,7 +93,7 @@ class TestLocitMDS:
 
         array_cfg_plot_name = "locit_antenna_positions.png"
         locit_mds.plot_array_configuration(self.destination_folder)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{array_cfg_plot_name}",
             f"{self.ref_products_folder}/{array_cfg_plot_name}",
         )

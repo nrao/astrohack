@@ -372,8 +372,8 @@ def _plot_diagnostics_chunk(param_dict):
     else:
         vis_dict = {
             "data": [
-                xds_data.isel(time=indices).apply(np.abs).VIS,
-                xds_data.isel(time=indices).apply(np.angle).VIS,
+                xds_data.isel(time=indices).map(np.abs).VIS,
+                xds_data.isel(time=indices).map(np.angle).VIS,
             ],
             "polarization": [0, 3],
             "label": ["AMP", "PHASE"],

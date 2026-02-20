@@ -6,6 +6,7 @@ import xarray.testing
 from PIL import Image, ImageChops
 
 from astrohack.utils import print_dict_types
+from astrohack.utils.fits import read_fits_no_checks
 
 
 def are_lists_equal(list_a, list_b):
@@ -18,6 +19,16 @@ def are_lists_equal(list_a, list_b):
         for item in list_a:
             equal = equal and item in list_b
         return equal
+
+
+def are_fits_files_close(fits_path1, fits_path2, tol=1e-5):
+    head1, data1 = read_fits_no_checks(fits_path1)
+    head2, data2 = read_fits_no_checks(fits_path2)
+
+    if are_dicts_close(head1, head2, tol=tol, ignored_keys=["DATE", "ORIGIN"]):
+        return np.allclose(data1, data2, equal_nan=True, atol=tol)
+    else:
+        return False
 
 
 def are_png_files_close(img_path1, img_path2, tol=1e-5):

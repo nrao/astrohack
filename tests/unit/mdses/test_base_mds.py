@@ -2,18 +2,120 @@ import copy
 import shutil
 import xarray
 import pathlib
+import inspect
 
 from collections.abc import KeysView, ValuesView, ItemsView
 
 from toolviper.utils import data
-from xarray.coding.cftimeindex import assert_all_valid_date_type
 
 import astrohack
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     are_dicts_close,
+    capture_prints_from_function,
+    are_lists_equal,
 )
+
+
+def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
+    """analyse summary file"""
+    summ_str = capture_prints_from_function(mds_obj.summary)
+    n_input_pars = len(exp_input_pars.keys())
+
+    i_start_input = 15
+    i_end_input = i_start_input + n_input_pars
+    i_start_orig = 6
+    i_end_orig = 9
+    inside_method_table = False
+    inside_antenna_table = False
+    exp_orig_info = create_origin_dict("test_summary")
+
+    full_method_list = method_list = inspect.getmembers(
+        mds_obj, predicate=inspect.ismethod
+    )
+    exp_method_list = []
+    for name, method in method_list:
+        if name[0] == "_":
+            continue
+        else:
+            exp_method_list.append(name)
+
+    this_method_list = []
+    this_ant_list = []
+    this_input_pars = {}
+    this_orig_info = {}
+    this_filename = None
+    for i_line, line in enumerate(summ_str.splitlines()):
+        if i_line == 2:
+            this_filename = line.split()[1]
+        if i_start_orig <= i_line < i_end_orig:
+            wrds = line.split(":")
+            key = wrds[0].strip()
+            value = wrds[1].strip()
+            this_orig_info[key] = value
+        elif i_start_input <= i_line < i_end_input:
+            wrds = line.split("|")
+            key = wrds[1].strip()
+            value = wrds[2].strip()
+            this_input_pars[key] = value
+        elif line.strip() == "Available methods:":
+            inside_method_table = True
+        elif inside_method_table:
+            if line.strip() == "":
+                inside_method_table = False
+            elif line[0] == "+":
+                pass
+            else:
+                method_wrd = line.split("|")[1].strip()
+                if method_wrd == "" or method_wrd == "Methods":
+                    pass
+                else:
+                    this_method_list.append(method_wrd)
+        elif line.strip() == "Data Contents:":
+            inside_antenna_table = True
+        elif inside_antenna_table:
+            if line.strip() == "":
+                inside_antenna_table = False
+            elif line[0] == "+":
+                pass
+            else:
+                ant_wrd = line.split("|")[1].strip()
+                if ant_wrd == "" or ant_wrd == "Antenna":
+                    pass
+                else:
+                    this_ant_list.append(ant_wrd)
+        else:
+            pass
+
+    assert (
+        this_filename == exp_file_name
+    ), "File name in Summary should be equal to the expected one"
+
+    assert are_dicts_close(
+        this_input_pars, exp_input_pars
+    ), "Input parameter dictionaries should identical"
+
+    assert are_dicts_close(
+        this_orig_info, exp_orig_info
+    ), "Origin info dictionaries should be identical"
+
+    assert are_lists_equal(
+        this_ant_list, exp_ant_keys_list
+    ), "Antenna list should be equal to the expected one"
+
+    assert are_lists_equal(
+        this_method_list, exp_method_list
+    ), "Method list should be equal to the expected one"
+
+
+def create_origin_dict(caller):
+    orig_dict = {
+        "origin": "astrohack",
+        "version": astrohack.__version__,
+        "creator_function": caller,
+    }
+    return orig_dict
 
 
 class TestBaseMds:
@@ -48,7 +150,7 @@ class TestBaseMds:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_dir, ignore_errors=True)
+        shutil.rmtree(cls.data_dir, ignore_errors=True)
         return
 
     def test_init_and_open_base_mds(self):
@@ -146,14 +248,11 @@ class TestBaseMds:
             new_base_mds.root.attrs["input_parameters"] == self.ref_input_pars
         ), "input_parameters should be equal to the given dictionary"
 
-        ref_origin_dict = {
-            "origin": "astrohack",
-            "version": astrohack.__version__,
-            "creator_function": "test_base_mds_write_items_and_values_and_create_from_input_parameters",
-        }
         assert are_dicts_close(
             new_base_mds.root.attrs["origin_info"],
-            ref_origin_dict,
+            create_origin_dict(
+                "test_base_mds_write_items_and_values_and_create_from_input_parameters"
+            ),
             ignored_keys=["creation_time"],
         ), "Origin information should be equal to reference"
 
@@ -166,7 +265,7 @@ class TestBaseMds:
 
         assert pathlib.Path(
             self.output_file_name
-        ).is_dir(), f"Write method should create a directory named {self.output_file_name} containiing the DataTree"
+        ).is_dir(), f"Write method should create a directory named {self.output_file_name} containing the DataTree"
 
         new_base_mds = AstrohackBaseFile(self.output_file_name)
         new_base_mds.open()
@@ -208,7 +307,6 @@ class TestBaseMds:
             len(new_mds.keys()) == exp_n_keys
         ), f"new_mds should have {exp_n_keys} keys at this moment."
 
-        print()
         new_ant_tree = copy.deepcopy(any_ant_tree)
         new_ant_tree.name = self.set_ant_key
 
@@ -228,3 +326,24 @@ class TestBaseMds:
         assert not new_mds.is_close_to(
             base_mds
         ), "New mds should be different from base mds"
+
+    def test_summary(self):
+        base_mds = AstrohackBaseFile(self.pos_mds_name)
+        base_mds.open()
+        any_ant_tree = base_mds[self.get_ant_key]
+
+        new_mds = AstrohackBaseFile.create_from_input_parameters(
+            self.output_file_name, self.ref_input_pars
+        )
+        new_mds[self.get_ant_key] = any_ant_tree
+        new_ant_tree = copy.deepcopy(any_ant_tree)
+        new_ant_tree.name = self.set_ant_key
+        new_mds[self.set_ant_key] = new_ant_tree
+
+        analyse_summary(
+            new_mds,
+            self.output_file_name,
+            self.ref_input_pars,
+            [self.set_ant_key, self.get_ant_key],
+        )
+        return

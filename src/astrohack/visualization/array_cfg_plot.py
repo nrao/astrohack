@@ -1,25 +1,13 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from astropy.time import Time
-from toolviper.utils import logger as logger
 
-from astrohack.antenna.antenna_surface import AntennaSurface
-from astrohack.utils import (
-    convert_unit,
-    plot_types,
-    convert_5d_grid_from_stokes,
-    create_dataset_label,
-)
-from astrohack.utils.constants import fontsize, markersize
-from astrohack.utils.text import add_prefix
+from astrohack.utils import convert_unit
+from astrohack.utils.constants import fontsize
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.algorithms import compute_antenna_relative_off
 from astrohack.antenna import get_proper_telescope
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     close_figure,
-    scatter_plot,
-    simple_imshow_map_plot,
     plot_boxes_limits_and_labels,
 )
 

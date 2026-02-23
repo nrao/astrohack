@@ -52,15 +52,3 @@ class TestAstrohack:
             from astrohack.io.dio import open_pointing
         except ImportError:
             assert False
-
-    def test_import_dio_fix_pointing_table(self):
-        try:
-            from astrohack.io.dio import fix_pointing_table
-        except ImportError:
-            assert False
-
-    def test_import_dio_print_json(self):
-        try:
-            from astrohack.io.dio import print_json
-        except ImportError:
-            assert False

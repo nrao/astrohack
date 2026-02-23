@@ -212,7 +212,7 @@ class AstrohackBaseFile:
         :param input_parameters: Input parameters for the calling function to be stored in root attributes.
         :type input_parameters: dict
 
-        :return: Initiallized AstrohackBaseFile object
+        :return: Initialized AstrohackBaseFile object
         :rtype: AstrohackBaseFile
         """
         data_obj = cls(file_name)
@@ -233,7 +233,7 @@ class AstrohackBaseFile:
         :param new_node: Node to be included in root
         :type new_node: xarray.DataTree
 
-        :param dump_to_disk: Dump root to disk to freeup RAM
+        :param dump_to_disk: Dump root to disk to free up RAM
         :type dump_to_disk: bool
 
         :param running_in_parallel: Get dask lock if running in parallel

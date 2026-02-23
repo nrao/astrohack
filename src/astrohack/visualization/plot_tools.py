@@ -27,6 +27,9 @@ def create_figure_and_axes(
         figure_size: Desired figure size in inches
         boxes: How many subplots in the horizontal and vertical directions
         default_figsize: Default figure size for when the user specifies no figure size
+        sharex: Subplots share the X axis
+        sharey: Subplots share the Y axis
+        plot_is_3d: Subplots will contain 3d data.
 
     Returns:
     Figure and plotting axes array

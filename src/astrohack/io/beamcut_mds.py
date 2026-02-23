@@ -12,7 +12,7 @@ from astrohack.core.beamcut import (
     create_report_chunk,
     plot_cuts_in_lm_chunk,
 )
-from astrohack.visualization.textual_data import (
+from astrohack.visualization.observation_summary import (
     generate_observation_summary,
 )
 from astrohack.utils.graph import create_and_execute_graph_from_dict

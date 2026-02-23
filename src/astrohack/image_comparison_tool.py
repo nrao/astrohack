@@ -6,11 +6,13 @@ import numpy as np
 import toolviper.utils.logger as logger
 import toolviper
 
-from astrohack.core.image_comparison_tool import image_comparison_chunk
+from astrohack.core.image_comparison_tool import (
+    image_comparison_chunk,
+    create_fits_comparison_rms_table,
+)
 from astrohack.utils.graph import compute_graph_from_lists
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 from astrohack.utils.data import add_caller_and_version_to_dict
-from astrohack.visualization.textual_data import create_fits_comparison_rms_table
 
 
 @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)

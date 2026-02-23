@@ -38,7 +38,7 @@ from astrohack.visualization.plot_tools import (
     close_figure,
     simple_imshow_map_plot,
 )
-from astrohack.visualization.textual_data import generate_observation_summary
+from astrohack.visualization.observation_summary import generate_observation_summary
 
 
 class AstrohackImageFile(AstrohackBaseFile):

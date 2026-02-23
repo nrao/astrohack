@@ -27,7 +27,7 @@ from astrohack.visualization.plot_tools import (
     close_figure,
     compute_extent,
 )
-from astrohack.visualization.textual_data import create_pretty_table
+from astrohack.visualization.observation_summary import create_pretty_table
 from astrohack.utils.text import format_value_error, format_label
 from astrohack.antenna.telescope import get_proper_telescope
 

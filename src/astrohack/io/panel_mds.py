@@ -20,7 +20,7 @@ from astrohack.utils.text import (
     format_value_unit,
 )
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-from astrohack.visualization.textual_data import generate_observation_summary
+from astrohack.visualization.observation_summary import generate_observation_summary
 
 
 class AstrohackPanelFile(AstrohackBaseFile):

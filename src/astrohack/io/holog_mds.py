@@ -20,7 +20,7 @@ from astrohack.visualization.plot_tools import (
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
-from astrohack.visualization.textual_data import generate_observation_summary
+from astrohack.visualization.observation_summary import generate_observation_summary
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 

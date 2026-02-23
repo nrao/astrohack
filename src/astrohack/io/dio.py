@@ -16,9 +16,7 @@ from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
-from astrohack.utils.text import print_array
-
-from typing import Union, List, NewType, Dict, Any
+from typing import Union, NewType, Dict, Any
 
 JSON = NewType("JSON", Dict[str, Any])
 

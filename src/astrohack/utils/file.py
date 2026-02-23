@@ -12,7 +12,6 @@ import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
 from astrohack.utils import data_from_version_needs_patch
-from astrohack.utils.data import read_meta_data
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()

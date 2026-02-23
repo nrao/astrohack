@@ -1,18 +1,8 @@
-import os
 import pathlib
-import pickle
-import shutil
-import math
-import multiprocessing
 
 import toolviper.utils.parameter
-
-import psutil
-
 import toolviper.utils.logger as logger
 
-from rich.console import Console
-from rich.table import Table
 
 from astrohack.io.dio import open_pointing, open_holog
 
@@ -23,7 +13,6 @@ from astrohack.core.extract_holog import (
 from astrohack.core.extract_holog import process_extract_holog_chunk
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.holog_mds import AstrohackHologFile
-from astrohack.extract_pointing import extract_pointing
 from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 

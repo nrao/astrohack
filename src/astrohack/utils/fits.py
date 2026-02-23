@@ -1,4 +1,3 @@
-import xarray as xr
 from toolviper.utils import logger as logger
 
 import astrohack

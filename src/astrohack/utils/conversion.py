@@ -1,7 +1,4 @@
 import toolviper.utils.logger as logger
-from astropy import units as units
-from astropy.coordinates import EarthLocation, AltAz, HADec, SkyCoord
-from astropy.time import Time
 
 from astrohack.utils.constants import *
 from astrohack.utils.tools import get_str_idx_in_list

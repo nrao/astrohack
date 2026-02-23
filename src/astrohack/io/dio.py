@@ -1,10 +1,3 @@
-import pathlib
-import toolviper.utils.logger as logger
-
-import numpy as np
-
-from casacore import tables
-
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.file import (

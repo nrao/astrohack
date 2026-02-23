@@ -397,7 +397,7 @@ def _normalize_beam(beam_grid, n_chan, pol_axis):
             try:
                 p1_peak = find_peak_beam_value(beam_grid[chan, i_p1, ...], scaling=0.25)
                 p2_peak = find_peak_beam_value(beam_grid[chan, i_p2, ...], scaling=0.25)
-            except Exception:
+            except IndexError:
                 center_pixel = np.array(beam_grid.shape[-2:]) // 2
                 p1_peak = beam_grid[chan, i_p1, center_pixel[0], center_pixel[1]]
                 p2_peak = beam_grid[chan, i_p2, center_pixel[0], center_pixel[1]]

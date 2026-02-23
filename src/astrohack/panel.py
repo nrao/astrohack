@@ -46,7 +46,7 @@ def panel(
     passing a dictionary, default is 3 (appropriate for sigma clipping)
     :type clip_level: float, dict, optional
 
-    :param use_detailed_mask: Use a detailed aperture mask, ie. include arm shadows for the VLA or include regions \
+    :param use_detailed_mask: Use a detailed aperture mask, i.e. include arm shadows for the VLA or include regions \
     outside central circular aperture for the ngvla, default is True.
     :type use_detailed_mask: bool, optional
 

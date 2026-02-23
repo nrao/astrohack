@@ -466,7 +466,7 @@ def _extract_holog_chunk_jit(
             dtype=types.float64,
         )
 
-        # This code here is to uncommented and the snippet above commited for this function to work outside jit
+        # This code here is to be uncommented and the snippet above commited for this function to work outside jit
         # vis_map_dict[antenna_id] = np.zeros(
         #     (n_time, n_chan, n_pol),
         #     dtype=np.complex128,

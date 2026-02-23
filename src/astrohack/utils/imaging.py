@@ -153,7 +153,7 @@ def calculate_near_field_aperture(
 
     Args:
         grid (numpy.ndarray): gridded beam data
-        sky_cell_size (float): incremental spacing between lm values, ie. delta_l = l_(n+1) - l_(n)
+        sky_cell_size (float): incremental spacing between lm values, i.e. delta_l = l_(n+1) - l_(n)
         padding_factor (int, optional): Padding to apply to beam data grid before FFT. Padding is applied on outer edges
                                         of each beam data grid and not between layers. Defaults to 20.
         distance: distance to holographic tower
@@ -200,8 +200,8 @@ def calculate_near_field_aperture(
     #
     phase = np.angle(aperture_grid[0, 0, 0, ...])
     amp = np.absolute(aperture_grid[0, 0, 0, ...])
-    # dishhorn_artefact = fit_dishhorn_beam_artefact(amp, telescope.inlim, u_axis, v_axis)
-    # amp -= dishhorn_artefact
+    # dish horn_artefact = fit_dish horn_beam_artefact(amp, telescope.inlim, u_axis, v_axis)
+    # amp -= dish horn_artefact
 
     phase = _feed_correction(phase, u_axis, v_axis, telescope.focus)
     # fitted_amp = fit_illumination_pattern(amp, u_axis, v_axis, telescope.diam, blockage)

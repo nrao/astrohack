@@ -29,6 +29,7 @@ def process_holog_chunk(holog_chunk_params, output_mds):
 
     Args:
         holog_chunk_params (dict): Dictionary containing holography parameters.
+        output_mds: Output mds object
     """
 
     ant_key = holog_chunk_params["this_ant"]

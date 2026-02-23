@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pathlib
 
@@ -260,7 +262,7 @@ def _finalize_pointing_figure(
 def _plot_one_pnt_xds(
     time_fac, ang_fac, ant_name, pnt_xds, target_column, y_labels, axes
 ):
-    time_ax = pnt_xds.coords["time"].values
+    time_ax = deepcopy(pnt_xds.coords["time"].values)
     # Set time from obs start
     time_ax -= time_ax[0]
     plot_data = pnt_xds[target_column].values

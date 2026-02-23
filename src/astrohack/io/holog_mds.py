@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pathlib
 
@@ -212,7 +214,7 @@ class AstrohackHologFile(AstrohackBaseFile):
     ) -> None:
         """ Export data compatible to AIPS's HOLOG task
 
-        :param destination: Name of the destination folder to contain SCII files
+        :param destination: Name of the destination folder to contain ASCII files
         :type destination: str
 
         :param ant: antenna ID to use in subselection, defaults to "all" when None, ex. ea25
@@ -349,7 +351,7 @@ def _plot_diagnostics_chunk(param_dict):
     dpi = param_dict["dpi"]
     thisfont = 1.2 * fontsize
 
-    UNIX_CONVERSION = 3506716800
+    unix_conversion = 3506716800
 
     radius = np.power(xds_data.attrs["summary"]["beam"]["cell size"] * delta, 2)
 
@@ -380,7 +382,7 @@ def _plot_diagnostics_chunk(param_dict):
         }
 
     times = np.unique(
-        Time(vis_dict["data"][0].time.data - UNIX_CONVERSION, format="unix").iso
+        Time(vis_dict["data"][0].time.data - unix_conversion, format="unix").iso
     )
 
     fig, axis = create_figure_and_axes(figuresize, [4, 1], sharex=True)
@@ -437,7 +439,7 @@ def _plot_lm_sky_coverage_chunk(param_dict):
     angle_fact = convert_unit("rad", param_dict["angle_unit"], "trigonometric")
     real_lm = xdt_data["DIRECTIONAL_COSINES"] * angle_fact
     ideal_lm = xdt_data["IDEAL_DIRECTIONAL_COSINES"] * angle_fact
-    time = xdt_data.time.values
+    time = deepcopy(xdt_data.time.values)
     time -= time[0]
     time *= convert_unit("sec", param_dict["time_unit"], "time")
     param_dict["l_label"] = f'L [{param_dict["angle_unit"]}]'

@@ -461,6 +461,7 @@ def _compute_non_fresnel_corrections(
 
     it = 1
     while it < max_it:
+        corr_term = None
         if it < 1 or it >= mega_max_it:
             raise RuntimeError(f"Maximum number of iterations is {mega_max_it}")
         fft_work_array = padded_grid[0, 0, 0, ...].copy()

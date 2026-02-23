@@ -450,6 +450,7 @@ def _compute_non_fresnel_corrections(
     Returns:
         Aperture with non fresnel corrections
     """
+    mega_max_it = 6
     if verbose:
         logger.info("Applying non-fresnel corrections...")
     wave_vector = factor
@@ -461,6 +462,8 @@ def _compute_non_fresnel_corrections(
 
     it = 1
     while it < max_it:
+        if it < 1 or it >= mega_max_it:
+            raise RuntimeError(f"Maximum number of iterations is {mega_max_it}")
         fft_work_array = padded_grid[0, 0, 0, ...].copy()
         if it == 1:
             fft_work_array *= lmesh

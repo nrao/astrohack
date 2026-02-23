@@ -11,8 +11,6 @@ from astrohack.io.position_mds import AstrohackPositionFile
 
 from typing import Union, NewType, Dict, Any
 
-JSON = NewType("JSON", Dict[str, Any])
-
 
 def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
     """ Open beamcut file and return instance of the beamcut data object. Object includes summary function to list\

@@ -18,8 +18,8 @@ Array = NewType("Array", Union[np.array, List[int], List[float]])
 def holog(
     holog_name: str,
     image_name: str = None,
-    grid_size: Union[int, Array, List] = None,
-    cell_size: Union[float, Array, List] = None,
+    grid_size: Union[int, np.array, List] = None,
+    cell_size: Union[float, np.array, List] = None,
     padding_factor: int = 10,
     grid_interpolation_mode: str = "gaussian",
     chan_average: bool = True,

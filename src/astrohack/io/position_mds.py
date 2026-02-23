@@ -491,7 +491,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
             elif isinstance(ddi, list):
                 ddi_list = ddi
                 for i_ddi in range(len(ddi_list)):
-                    ddi_list[i_ddi] = "ddi_" + ddi_list[i_ddi]
+                    ddi_list[i_ddi] = f"ddi_{ddi_list[i_ddi]}"
             else:
                 ddi_list = [f"ddi_{ddi}"]
             for ddi in ddi_list:

@@ -34,16 +34,6 @@ def add_caller_and_version_to_dict(in_dict, direct_call=False):
         ipos = 1
     else:
         ipos = 2
-    in_dict.update(
-        {"version": astrohack.__version__, "origin": inspect.stack()[ipos].function}
-    )
-
-
-def add_caller_and_version_to_dict_2(in_dict, direct_call=False):
-    if direct_call:
-        ipos = 1
-    else:
-        ipos = 2
     curr_time = datetime.datetime.now()
     local_tz = curr_time.astimezone().tzinfo
     time_str = curr_time.strftime(f"%Y-%m-%d %H:%M:%S {local_tz}")

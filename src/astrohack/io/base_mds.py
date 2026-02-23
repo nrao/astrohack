@@ -5,7 +5,7 @@ from dask.distributed import Lock
 import toolviper.utils.logger as logger
 
 from astrohack.utils import (
-    add_caller_and_version_to_dict_2,
+    add_caller_and_version_to_dict,
     get_summary_header,
     get_property_string,
     get_data_content_string,
@@ -218,7 +218,7 @@ class AstrohackBaseFile:
         """
         data_obj = cls(file_name)
         data_obj.root = xr.DataTree(name="root")
-        add_caller_and_version_to_dict_2(data_obj.root.attrs, direct_call=False)
+        add_caller_and_version_to_dict(data_obj.root.attrs, direct_call=False)
         data_obj.root.attrs["input_parameters"] = input_parameters
         return data_obj
 

@@ -6,7 +6,6 @@ __version__ = version("astrohack")
 from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,
-    model_memory_usage,
 )
 
 from .beamcut import beamcut

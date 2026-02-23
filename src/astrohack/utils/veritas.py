@@ -32,7 +32,7 @@ def get_center_pixel(file, antenna, ddi):
 
 def get_grid_parameters(file, antenna, mapping, ddi):
     holog_mds = open_holog(file)
-    xds = holog_mds[ddi][mapping][antenna]
+    xds = holog_mds[antenna][ddi][mapping]
 
     beam_summary = xds.attrs["summary"]["beam"]
     cell_size = beam_summary["cell size"]
@@ -118,7 +118,7 @@ def generate_verification_files():
         )
 
         # Extract holography data using holog_obd_dict
-        holog_mds = extract_holog(
+        extract_holog(
             ms_name=f"data/ea25_cal_small_{stub}_fixed.split.ms",
             point_name=f"data/{stub}.split.point.zarr",
             holog_name=f"data/{stub}.split.holog.zarr",
@@ -127,14 +127,14 @@ def generate_verification_files():
             overwrite=True,
         )
 
-        image_mds = holog(
+        holog(
             holog_name=f"data/{stub}.split.holog.zarr",
             image_name=f"data/{stub}.split.image.zarr",
             overwrite=True,
             parallel=False,
         )
 
-        before_mds = panel(
+        panel(
             image_name=f"data/{stub}.split.image.zarr",
             panel_model="rigid",
             parallel=False,
@@ -146,7 +146,7 @@ def generate_panel_mask_array(generate_files=True):
     if generate_files:
         generate_verification_files()
 
-    panel_mds = panel(
+    panel(
         image_name="data/before.split.image.zarr",
         clip_type="absolute",
         clip_level=0.0,

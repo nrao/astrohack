@@ -170,6 +170,7 @@ class AstrohackBaseFile:
         except FileNotFoundError:
             self._file_is_open = False
             msg = f"File not found at {self.filename}"
+            raise FileNotFoundError(msg)
 
         except Exception as error:
             self._file_is_open = False

@@ -1,7 +1,4 @@
-import pathlib
-
 import toolviper.utils.parameter
-import toolviper.utils.logger as logger
 
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened_2

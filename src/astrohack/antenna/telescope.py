@@ -1,5 +1,3 @@
-import time
-
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.strtree import STRtree
@@ -402,13 +400,13 @@ class RingedCassegrain(Telescope):
         bcoeff = 4 * self.focus**2
         return acoeff * phase * np.sqrt(radius**2 + bcoeff)
 
-    def deviation_to_phase(self, u_axis, v_axis, mask, deviation, wavelength):
+    def deviation_to_phase(self, u_axis, v_axis, _, deviation, wavelength):
         """ "
         Transform deviation image to physical phase image based on wavelength.
         Args:
             u_axis: Aperture U axis
             v_axis: Aperture V axis
-            mask: dummy argument for interface compatibility
+            _: dummy argument for interface compatibility
             deviation: Deviation image in meters
             wavelength: Observation wavelength in meters
 

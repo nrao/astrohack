@@ -13,12 +13,9 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils import (
     compute_antenna_baseline_distance_matrix_dict,
-    param_to_list,
-    convert_unit,
 )
 from astrohack.utils.conversion import convert_dict_from_numba
 from astrohack.utils.tools import get_valid_state_ids
-from astrohack.visualization import create_figure_and_axes, close_figure
 
 
 def extract_pointing_preprocessing(input_params):

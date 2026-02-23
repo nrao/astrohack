@@ -14,8 +14,6 @@ from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
 from astrohack.utils import (
     create_dataset_label,
-    print_dict_types,
-    tuple_inspect,
 )
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters

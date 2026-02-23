@@ -9,11 +9,6 @@ from astrohack.utils.algorithms import (
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.constants import clight
 from astrohack.utils.tools import get_str_idx_in_list
-from matplotlib.patches import Circle
-from astrohack.visualization.plot_tools import (
-    well_positioned_colorbar,
-    get_proper_color_map,
-)
 
 import toolviper.utils.logger as logger
 

@@ -5,7 +5,6 @@ import xarray as xr
 import xarray.testing
 from PIL import Image, ImageChops
 
-from astrohack.utils import print_dict_types
 from astrohack.utils.fits import read_fits_no_checks
 
 

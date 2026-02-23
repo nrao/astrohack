@@ -8,7 +8,6 @@ from casacore import tables
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.file import (
-    check_if_file_can_be_opened,
     check_if_file_can_be_opened_2,
 )
 from astrohack.io.image_mds import AstrohackImageFile
@@ -19,7 +18,7 @@ from astrohack.io.position_mds import AstrohackPositionFile
 
 from astrohack.utils.text import print_array
 
-from typing import Union, List, NewType, Dict, Any, NoReturn
+from typing import Union, List, NewType, Dict, Any
 
 JSON = NewType("JSON", Dict[str, Any])
 

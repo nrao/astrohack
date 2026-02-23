@@ -9,10 +9,9 @@ import time
 
 import toolviper.utils.logger as logger
 
-from skimage.draw import disk
-from astrohack.utils.algorithms import calc_coords, least_squares
+from astrohack.utils.algorithms import calc_coords
 from astrohack.utils.gridding import gridding_correction
-from astrohack.utils.constants import clight, sig_2_fwhm
+from astrohack.utils.constants import clight
 
 
 def calculate_parallactic_angle_chunk(

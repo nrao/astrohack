@@ -1,7 +1,6 @@
 from typing import Union, List
 
 import toolviper.utils.parameter
-import toolviper.utils.logger as logger
 
 from astrohack import open_image
 from astrohack.core.combine import process_combine_chunk

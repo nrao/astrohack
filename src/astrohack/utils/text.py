@@ -4,7 +4,6 @@ import textwrap
 
 import numba.typed.typeddict
 import numpy as np
-import xarray
 from astropy.time import Time
 from prettytable import PrettyTable
 from toolviper.utils import logger as logger

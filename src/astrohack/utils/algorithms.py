@@ -525,7 +525,6 @@ def create_coordinate_images(x_axis, y_axis, create_polar_coordinates=False):
     Returns:
         x_mesh and y_mesh, plus radius_mesh and polar_angle_mesh if create_polar_coordinates
     """
-    x_mesh, y_mesh = np.meshgrid(x_axis, y_axis, indexing="ij")
     shape = [x_axis.shape[0], y_axis.shape[0]]
     x_mesh = np.empty(shape)
     y_mesh = np.empty(shape)

@@ -9,7 +9,7 @@ from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
-from typing import Union, NewType, Dict, Any
+from typing import Union
 
 
 def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:

@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List, Union, NewType, Tuple
+from typing import List, Union, Tuple
 
 import toolviper.utils.parameter
 
@@ -10,8 +10,6 @@ from astrohack.utils.file import overwrite_file
 from astrohack.core.holog import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.image_mds import AstrohackImageFile
-
-Array = NewType("Array", Union[np.array, List[int], List[float]])
 
 
 @toolviper.utils.parameter.validate()

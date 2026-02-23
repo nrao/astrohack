@@ -1,5 +1,7 @@
 import copy
 import shutil
+
+import pytest
 import xarray
 import pathlib
 import inspect
@@ -162,14 +164,12 @@ class TestBaseMds:
 
         assert not base_mds.is_open, "base mds file should not be opened yet"
 
-        sucessful_open = base_mds.open()
-        assert (
-            not sucessful_open
-        ), "opening base_mds file should fail when base_mds.file is set to nonsense"
+        with pytest.raises(FileNotFoundError):
+            successful_open = base_mds.open()
 
-        sucessful_open = base_mds.open(self.pos_mds_name)
+        successful_open = base_mds.open(self.pos_mds_name)
         assert (
-            sucessful_open
+            successful_open
         ), "Opening base_mds should succeed now that the correct file name is given"
 
         assert (

@@ -1,3 +1,5 @@
+import datetime
+import inspect
 import os
 import json
 import copy
@@ -11,6 +13,7 @@ import xarray as xr
 import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
+import astrohack
 from astrohack.utils import data_from_version_needs_patch
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
@@ -446,3 +449,20 @@ def _get_attrs(zarr_obj):
         dict: a group of zarr attributes
     """
     return {k: v for k, v in zarr_obj.attrs.asdict().items() if not k.startswith("_NC")}
+
+
+def add_caller_and_version_to_dict(in_dict, direct_call=False):
+    if direct_call:
+        ipos = 1
+    else:
+        ipos = 2
+    curr_time = datetime.datetime.now()
+    local_tz = curr_time.astimezone().tzinfo
+    time_str = curr_time.strftime(f"%Y-%m-%d %H:%M:%S {local_tz}")
+
+    in_dict["origin_info"] = {
+        "origin": "astrohack",
+        "version": astrohack.__version__,
+        "creator_function": inspect.stack()[ipos].function,
+        "creation_time": time_str,
+    }

@@ -12,7 +12,7 @@ from astrohack.core.image_comparison_tool import (
 )
 from astrohack.utils.graph import compute_graph_from_lists
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-from astrohack.utils.data import add_caller_and_version_to_dict
+from astrohack.utils.file import add_caller_and_version_to_dict
 
 
 @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)

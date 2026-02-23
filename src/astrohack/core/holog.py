@@ -12,7 +12,7 @@ from astrohack.utils.imaging import (
     calculate_far_field_aperture,
     calculate_near_field_aperture,
 )
-from astrohack.utils.gridding import grid_beam_2
+from astrohack.utils.gridding import grid_beam
 from astrohack.utils.imaging import parallactic_derotation
 from astrohack.utils.phase_fitting import (
     clic_like_phase_fitting,
@@ -94,7 +94,7 @@ def process_holog_chunk(holog_chunk_params, output_mds):
         m_axis,
         grid_corr,
         summary,
-    ) = grid_beam_2(
+    ) = grid_beam(
         ant_ddi_xdt=ant_ddi_xdt,
         grid_size=grid_size,
         sky_cell_size=cell_size,

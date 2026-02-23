@@ -23,7 +23,7 @@ from astrohack.utils.tools import (
 )
 
 
-def grid_beam_2(
+def grid_beam(
     ant_ddi_xdt: xarray.DataTree,
     grid_size,
     sky_cell_size,
@@ -133,136 +133,6 @@ def grid_beam_2(
 
         time_centroid_index = map_xdt.sizes["time"] // 2
         time_centroid.append(map_xdt.coords["time"][time_centroid_index].values)
-
-        beam_grid[holog_map_index, ...] = _normalize_beam(
-            beam_grid[holog_map_index, ...], n_chan, pol_axis
-        )
-
-    return (
-        beam_grid,
-        time_centroid,
-        output_freq_axis,
-        pol_axis,
-        l_axis,
-        m_axis,
-        grid_corr,
-        observation_summary,
-    )
-
-
-def grid_beam(
-    ant_ddi_dict,
-    grid_size,
-    sky_cell_size,
-    avg_chan,
-    chan_tol_fac,
-    telescope,
-    grid_interpolation_mode,
-    observation_summary,
-    label,
-):
-    """
-    Grids the visibilities onto a 2D plane based on their Sky coordinates, using scipy griddata or a gaussian
-    convolution
-    Args:
-        ant_ddi_dict: Dictionary with the description of the data
-        grid_size: The size of the beam image grid (pixels)
-        sky_cell_size: Size of the beam grid cell in the sky (radians)
-        avg_chan: Average cahnnels? (boolean)
-        chan_tol_fac: Frequency tolerance to chunk channels together
-        telescope: Telescope object containing optical description of the telescope
-        grid_interpolation_mode: linear, nearest, cubic or gaussian (convolution)
-        observation_summary: Dictionaty containing a summary of observation information.
-        label: label to be used in messages
-
-    Returns:
-        The gridded beam, its time centroid, frequency axis, polarization axis, L and M axes and a boolean about the
-        necessity of gridding corrections after fourier transform.
-    """
-
-    n_holog_map = len(ant_ddi_dict.keys())
-    map0 = list(ant_ddi_dict.keys())[0]
-    freq_axis = ant_ddi_dict[map0].chan.values
-    pol_axis = ant_ddi_dict[map0].pol.values
-    n_chan = ant_ddi_dict[map0].sizes["chan"]
-    n_pol = ant_ddi_dict[map0].sizes["pol"]
-
-    observation_summary["beam"]["grid size"] = [int(grid_size[0]), int(grid_size[1])]
-    observation_summary["beam"]["cell size"] = [sky_cell_size[0], sky_cell_size[1]]
-
-    reference_scaling_frequency = np.mean(freq_axis)
-    if avg_chan:
-        n_chan = 1
-        avg_chan_map, avg_freq_axis = _create_average_chan_map(freq_axis, chan_tol_fac)
-        output_freq_axis = [np.mean(avg_freq_axis)]
-        observation_summary["spectral"]["channel width"] *= observation_summary[
-            "spectral"
-        ]["number of channels"]
-        observation_summary["spectral"]["number of channels"] = 1
-    else:
-        avg_chan_map = None
-        avg_freq_axis = None
-        output_freq_axis = freq_axis
-    l_axis, m_axis, l_grid, m_grid, beam_grid = _create_beam_grid(
-        grid_size, sky_cell_size, n_chan, n_pol, n_holog_map
-    )
-    scipy_interp = ["linear", "nearest", "cubic"]
-
-    time_centroid = []
-    grid_corr = False
-    for holog_map_index, holog_map in enumerate(ant_ddi_dict.keys()):
-        ant_xds = ant_ddi_dict[holog_map]
-        # Grid the data
-        vis = ant_xds.VIS.values
-        vis[vis == np.nan] = 0.0
-        lm = ant_xds.DIRECTIONAL_COSINES.values
-        weight = ant_xds.WEIGHT.values
-
-        if avg_chan:
-            vis_avg, weight_sum = chunked_average(
-                vis, weight, avg_chan_map, avg_freq_axis
-            )
-            lm_freq_scaled = lm[:, :, None] * (
-                avg_freq_axis / reference_scaling_frequency
-            )
-        else:
-            vis_avg = vis
-            weight_sum = weight
-            lm_freq_scaled = lm[:, :, None] * np.full_like(freq_axis, 1.0)
-
-        if grid_interpolation_mode in scipy_interp:
-            beam_grid[holog_map_index, ...] = _scipy_gridding(
-                vis_avg,
-                lm_freq_scaled,
-                l_grid,
-                m_grid,
-                grid_interpolation_mode,
-                avg_chan,
-                label,
-            )
-        elif grid_interpolation_mode == "gaussian":
-            grid_corr = True
-            beam_grid[holog_map_index, ...] = _convolution_gridding(
-                vis_avg,
-                weight_sum,
-                lm_freq_scaled,
-                telescope.diameter,
-                l_axis,
-                m_axis,
-                sky_cell_size,
-                reference_scaling_frequency,
-                avg_chan,
-                label,
-            )
-        else:
-            msg = f"Unknown grid type {grid_interpolation_mode}."
-            logger.error(msg)
-            raise ValueError(msg)
-
-        time_centroid_index = ant_ddi_dict[holog_map].sizes["time"] // 2
-        time_centroid.append(
-            ant_ddi_dict[holog_map].coords["time"][time_centroid_index].values
-        )
 
         beam_grid[holog_map_index, ...] = _normalize_beam(
             beam_grid[holog_map_index, ...], n_chan, pol_axis

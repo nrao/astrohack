@@ -4,7 +4,7 @@ import pytest
 import shutil
 
 from astrohack.utils import clight
-from astrohack.utils.gridding import grid_beam_2, grid_1d_data, gridding_correction
+from astrohack.utils.gridding import grid_beam, grid_1d_data, gridding_correction
 from astrohack import get_proper_telescope, open_holog
 from astrohack.utils.ray_tracing_general import simple_axis
 from astrohack.utils.verification_tools import (
@@ -177,7 +177,7 @@ class TestGridAlgorithms:
 
     def test_grid_linear_beam_no_chan_average(self):
         mode = "linear no average"
-        return_tuple = grid_beam_2(
+        return_tuple = grid_beam(
             ant_ddi_xdt=self.ant_ddi_xdt,
             grid_size=self.grid_size,
             sky_cell_size=self.cell_size,
@@ -202,7 +202,7 @@ class TestGridAlgorithms:
 
     def test_grid_linear_beam_chan_average(self):
         mode = "linear average"
-        return_tuple = grid_beam_2(
+        return_tuple = grid_beam(
             ant_ddi_xdt=self.ant_ddi_xdt,
             grid_size=self.grid_size,
             sky_cell_size=self.cell_size,
@@ -227,7 +227,7 @@ class TestGridAlgorithms:
 
     def test_grid_gaussian_beam_no_chan_average(self):
         mode = "gaussian no average"
-        return_tuple = grid_beam_2(
+        return_tuple = grid_beam(
             ant_ddi_xdt=self.ant_ddi_xdt,
             grid_size=self.grid_size,
             sky_cell_size=self.cell_size,
@@ -256,7 +256,7 @@ class TestGridAlgorithms:
 
     def test_grid_gaussian_beam_chan_average(self):
         mode = "gaussian average"
-        return_tuple = grid_beam_2(
+        return_tuple = grid_beam(
             ant_ddi_xdt=self.ant_ddi_xdt,
             grid_size=self.grid_size,
             sky_cell_size=self.cell_size,

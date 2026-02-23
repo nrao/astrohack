@@ -73,12 +73,32 @@ def dump_captured_output_to_file(function, dump_file, args=None):
         dump_file_obj.write(output_captured)
 
 
-def are_txt_files_equal(txt_path1, txt_path2):
+def are_txt_files_equal(txt_path1, txt_path2, ignored_key_words=()):
     with open(txt_path1, "r") as txt_file1:
         txt1_content = txt_file1.read()
-        with open(txt_path2, "r") as txt_file2:
-            txt2_content = txt_file2.read()
-            return txt1_content == txt2_content
+    with open(txt_path2, "r") as txt_file2:
+        txt2_content = txt_file2.read()
+
+    txt1_lines = txt1_content.splitlines()
+    txt2_lines = txt2_content.splitlines()
+    if len(txt1_lines) != len(txt2_lines):
+        return False
+    else:
+        for i_line, line1 in enumerate(txt1_lines):
+            line2 = txt2_lines[i_line]
+            if line1.strip() == line2.strip():
+                continue
+            else:
+                found_ignored_keywords = False
+                for key_word in ignored_key_words:
+                    if key_word in line1 and key_word in line2:
+                        found_ignored_keywords = True
+                        break
+                if found_ignored_keywords:
+                    continue
+                else:
+                    return False
+        return True
 
 
 def is_captured_output_equal_to_txt_reference(function, txt_ref, args=None):

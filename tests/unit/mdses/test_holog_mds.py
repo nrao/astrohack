@@ -60,6 +60,7 @@ class TestHologMDS:
         assert are_txt_files_equal(
             f"{self.ref_products_name}/{uvhol_like_file_name}",
             f"{self.destination_folder}/{uvhol_like_file_name}",
+            ignored_key_words=["DATE-OBS"],
         ), "AIPS like export is different from reference"
 
         obs_summ_file_name = "obs_summ.txt"

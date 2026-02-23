@@ -11,6 +11,8 @@ from astrohack.io.position_mds import AstrohackPositionFile
 
 from typing import Union
 
+xdtree_version = "0.10.1"
+
 
 def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
     """ Open beamcut file and return instance of the beamcut data object. Object includes summary function to list\
@@ -44,7 +46,7 @@ def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
                 ant_n: …
             }
     """
-    check_if_file_can_be_opened(file, "beamcut", "0.10.1")
+    check_if_file_can_be_opened(file, "beamcut", xdtree_version)
     _data_file = AstrohackBeamcutFile(file=file)
 
     if _data_file.open():
@@ -85,7 +87,7 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
             ant_m: …
             }
     """
-    check_if_file_can_be_opened(file, "extract_holog", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_holog", xdtree_version)
     _data_file = AstrohackHologFile(file=file)
 
     if _data_file.open():
@@ -123,7 +125,7 @@ def open_image(file: str) -> Union[AstrohackImageFile, None]:
            }
 
     """
-    check_if_file_can_be_opened(file, ["holog", "combine"], "0.10.1")
+    check_if_file_can_be_opened(file, ["holog", "combine"], xdtree_version)
     _data_file = AstrohackImageFile(file=file)
 
     if _data_file.open():
@@ -161,7 +163,7 @@ def open_panel(file: str) -> Union[AstrohackPanelFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "panel", "0.10.1")
+    check_if_file_can_be_opened(file, "panel", xdtree_version)
     _data_file = AstrohackPanelFile(file=file)
 
     if _data_file.open():
@@ -199,7 +201,7 @@ def open_locit(file: str) -> Union[AstrohackLocitFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "extract_locit", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_locit", xdtree_version)
     _data_file = AstrohackLocitFile(file=file)
 
     if _data_file.open():
@@ -237,7 +239,7 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "locit", "0.10.1")
+    check_if_file_can_be_opened(file, "locit", xdtree_version)
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():
@@ -273,7 +275,7 @@ def open_pointing(file: str) -> Union[AstrohackPointFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "extract_pointing", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_pointing", xdtree_version)
     _data_file = AstrohackPointFile(file=file)
 
     if _data_file.open():

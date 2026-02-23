@@ -80,16 +80,16 @@ def generate_verification_json(
     # Fill panel offsets
     panel_list = ["3-4", "5-27", "5-37", "5-38"]
 
-    M_TO_MILS = 39370.1
+    m_to_mils = 39370.1
 
     before_mds = open_panel(f"{path}/before.split.panel.zarr")
     after_mds = open_panel(f"{path}/after.split.panel.zarr")
 
     before_shift = (
-        before_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * M_TO_MILS
+        before_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * m_to_mils
     )
     after_shift = (
-        after_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * M_TO_MILS
+        after_mds[antenna][ddi].sel(labels=panel_list).PANEL_SCREWS.values * m_to_mils
     )
 
     numerical_dict["vla"]["offsets"] = np.mean(

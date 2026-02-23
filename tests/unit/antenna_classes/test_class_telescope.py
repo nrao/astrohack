@@ -75,7 +75,7 @@ class TestClassTelescope:
         assert (
             filecmp.cmp(tel.file_path + "/vlba.zarr/.zattrs", testfile + "/.zattrs")
             == 0
-        ), ("Telescope configuration " "file is not equal to the " "reference")
+        ), "Telescope configuration file is not equal to the reference"
         shutil.rmtree(testfile)
 
         tel.name = self.silly_name

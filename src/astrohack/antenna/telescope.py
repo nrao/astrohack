@@ -380,13 +380,13 @@ class RingedCassegrain(Telescope):
         else:
             return mask
 
-    def phase_to_deviation(self, u_axis, v_axis, mask, phase, wavelength):
+    def phase_to_deviation(self, u_axis, v_axis, _, phase, wavelength):
         """
         Transform phase image to physical deviation image based on wavelength.
         Args:
             u_axis: Aperture U axis
             v_axis: Aperture V axis
-            mask: dummy argument for interface compatibility
+            _: dummy argument for interface compatibility
             phase: Phase image in Radians
             wavelength: Observation wavelength in meters
 

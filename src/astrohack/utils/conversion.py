@@ -173,30 +173,6 @@ def convert_dict_from_numba(func):
     return wrapper
 
 
-def altaz_to_hadec_astropy(az, el, time, x_ant, y_ant, z_ant):
-    """
-    Astropy conversion from Alt Az to Ha Dec, seems to be more precise, but it is VERY slow
-    Args:
-        az: Azimuth
-        el: Elevation
-        time: Time
-        x_ant: Antenna x position in geocentric coordinates
-        y_ant: Antenna y position in geocentric coordinates
-        z_ant: Antenna z position in geocentric coordinates
-
-    Returns: Hour angle and Declination
-
-    """
-    ant_pos = EarthLocation.from_geocentric(x_ant, y_ant, z_ant, "meter")
-    mjd_time = Time(casa_time_to_mjd(time), format="mjd", scale="utc")
-    az_el_frame = AltAz(location=ant_pos, obstime=mjd_time)
-    ha_dec_frame = HADec(location=ant_pos, obstime=mjd_time)
-    azel_coor = SkyCoord(az * units.rad, el * units.rad, frame=az_el_frame)
-    ha_dec_coor = azel_coor.transform_to(ha_dec_frame)
-
-    return ha_dec_coor.ha, ha_dec_coor.dec
-
-
 def hadec_to_elevation(hadec, lat):
     """Convert HA + DEC to elevation.
 
@@ -211,49 +187,6 @@ def hadec_to_elevation(hadec, lat):
     sin_el = sinlat * np.sin(hadec[1]) + coslat * np.cos(hadec[1]) * cosha
     el = np.arcsin(sin_el)
     return el
-
-
-def hadec_to_altaz(ha, dec, lat):
-    """Convert HA + DEC to Alt + Az coordinates.
-
-    (HA [rad], dec [rad])
-
-    Provided by D. Faes DSOC
-    """
-    #
-    sinha = np.sin(ha)
-    cosha = np.cos(ha)
-    coslat = np.cos(lat)
-    sinlat = np.sin(lat)
-    bottom = cosha * sinlat - np.tan(dec) * coslat
-    sin_el = sinlat * np.sin(dec) + coslat * np.cos(dec) * cosha
-    az = np.arctan2(sinha, bottom)
-    el = np.arcsin(sin_el)
-    az += np.pi  # formula is starting from *South* instead of North
-    if az > 2 * np.pi:
-        az -= 2 * np.pi
-    return az, el
-
-
-def altaz_to_hadec(az, el, lat):
-    """Convert AltAz to HA + DEC coordinates.
-
-    (HA [rad], dec [rad])
-
-    Provided by D. Faes DSOC
-    """
-    sinlat = np.sin(lat)
-    coslat = np.cos(lat)
-    sinel = np.sin(el)
-    cosel = np.cos(el)
-    cosaz = np.cos(az)
-    sindec = sinlat * sinel + coslat * cosel * cosaz
-    dec = np.arcsin(sindec)
-    argarccos = (sinel - sinlat * sindec) / (coslat * np.cos(dec))
-    lt1 = argarccos < -1
-    argarccos[lt1] = -1.0
-    ha = np.arccos(argarccos)
-    return ha, dec
 
 
 def casa_time_to_mjd(times):

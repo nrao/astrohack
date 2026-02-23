@@ -249,27 +249,6 @@ def _file_name_factory(file_type, par_dict):
 ###########################################################
 ### Data extraction
 ###########################################################
-def _time_scan_selection(scan_time_ranges, time_axis):
-    """
-    Produce scan based time selection
-    :param scan_time_ranges: MS derived scan time ranges
-    :type scan_time_ranges: list
-
-    :param time_axis: Visibilities time axis
-    :type time_axis: numpy.array
-
-    :return: Selection in time for each scan.
-    :rtype: numpy.array(dtype=bool)
-    """
-    time_selections = []
-    for scan_time_range in scan_time_ranges:
-        time_selection = np.logical_and(
-            time_axis >= scan_time_range[0], time_axis < scan_time_range[1]
-        )
-        time_selections.append(time_selection)
-    return time_selections
-
-
 def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
     """
     Creates data tree containing the different cuts from a holog xds.

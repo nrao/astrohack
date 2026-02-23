@@ -33,7 +33,7 @@ from astrohack.visualization import (
     close_figure,
     plot_boxes_limits_and_labels,
 )
-from astrohack.visualization.diagnostics import plot_one_antenna_position
+from astrohack.visualization.array_cfg_plot import plot_one_antenna_position
 
 
 class AstrohackPositionFile(AstrohackBaseFile):

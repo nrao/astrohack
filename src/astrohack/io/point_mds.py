@@ -8,7 +8,7 @@ from typing import Union, List, Tuple
 import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
-from astrohack.visualization.diagnostics import plot_array_configuration
+from astrohack.visualization.array_cfg_plot import plot_array_configuration
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit

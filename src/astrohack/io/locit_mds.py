@@ -25,7 +25,7 @@ from astrohack.visualization.plot_tools import (
 )
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.validation import custom_unit_checker
-from astrohack.visualization.diagnostics import plot_array_configuration
+from astrohack.visualization.array_cfg_plot import plot_array_configuration
 
 
 class AstrohackLocitFile(AstrohackBaseFile):

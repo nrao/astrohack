@@ -190,14 +190,14 @@ def create_phase_model(parameters, wavelength, telescope, u_axis, v_axis):
     Returns:
 
     """
-    iNPARameters = _external_to_internal_parameters(parameters, wavelength, telescope)
+    internal_pars = _external_to_internal_parameters(parameters, wavelength, telescope)
     dummyphase = np.zeros((u_axis.shape[0], v_axis.shape[0]))
 
     _, model = _correct_phase(
         dummyphase,
         u_axis,
         v_axis,
-        iNPARameters,
+        internal_pars,
         telescope.magnification,
         telescope.focus,
         telescope.surp_slope,
@@ -357,18 +357,18 @@ def _external_to_internal_parameters(exparameters, wavelength, telescope):
     Returns:
         Array in internal units, see _phase_fitting for more details
     """
-    iNPARameters = exparameters
+    internal_pars = exparameters
     # convert from mm
     scaling = wavelength / 0.54
-    iNPARameters[3:] /= scaling
+    internal_pars[3:] /= scaling
     # Sub-reflector tilt from degrees
     rad2deg = convert_unit("rad", "deg", "trigonometric")
-    iNPARameters[6:8] /= rad2deg / (1000.0 * telescope.secondary_distance_to_focus)
+    internal_pars[6:8] /= rad2deg / (1000.0 * telescope.secondary_distance_to_focus)
     # rescale phase ramp to pointing offset
-    iNPARameters[1:3] /= wavelength * rad2deg / 360.0
-    iNPARameters /= rad2deg
+    internal_pars[1:3] /= wavelength * rad2deg / 360.0
+    internal_pars /= rad2deg
 
-    return iNPARameters
+    return internal_pars
 
 
 def _ignore_non_fitted(ignored, matrix, vector):

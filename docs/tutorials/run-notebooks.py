@@ -44,38 +44,38 @@ if not args.file_list:  # Default file_list
 # Check list of notebooks
 notebooks = []
 print("Notebooks to run:")
-for f in args.file_list:
+for file_name in args.file_list:
     # Find notebooks but not notebooks previously output from this script
-    if f.endswith(".ipynb") and not f.endswith("_out.ipynb"):
-        print(f[:-6])
-        notebooks.append(f[:-6])  # Want the filename without '.ipynb'
+    if file_name.endswith(".ipynb") and not file_name.endswith("_out.ipynb"):
+        print(file_name[:-6])
+        notebooks.append(file_name[:-6])  # Want the filename without '.ipynb'
 
 # Execute notebooks and output
 num_notebooks = len(notebooks)
 print("\n*****\n")
-for i, n in enumerate(notebooks):
+for i, note_name in enumerate(notebooks):
     if args.overwrite:
-        n_out = n
+        n_out = note_name
     else:
-        n_out = n + "_out"
-    with open(n + ".ipynb") as f:
-        nb = nbformat.read(f, as_version=4)
+        n_out = note_name + "_out"
+    with open(note_name + ".ipynb") as note_file:
+        nb = nbformat.read(note_file, as_version=4)
         ep = ExecutePreprocessor(timeout=int(args.timeout), kernel_name="python3")
         try:
-            print("Running", n, ":", i, "/", num_notebooks)
+            print("Running", note_name, ":", i, "/", num_notebooks)
             out = ep.preprocess(nb, {"metadata": {"path": args.run_path}})
         except CellExecutionError:
             out = None
-            msg = 'Error executing the notebook "%s".\n' % n
+            msg = 'Error executing the notebook "%s".\n' % note_name
             msg += 'See notebook "%s" for the traceback.' % n_out
             print(msg)
         except TimeoutError:
-            msg = 'Timeout executing the notebook "%s".\n' % n
+            msg = 'Timeout executing the notebook "%s".\n' % note_name
             print(msg)
         finally:
             # Write output file
-            with open(n_out + ".ipynb", mode="wt") as f:
-                nbformat.write(nb, f)
+            with open(n_out + ".ipynb", mode="wt") as out_note_file:
+                nbformat.write(nb, out_note_file)
 
 stop = time.time()
 print(f"Running notebooks took {stop-start:.2f} s")

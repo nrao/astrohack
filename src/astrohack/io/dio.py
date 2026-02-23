@@ -8,7 +8,7 @@ from casacore import tables
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.file import (
-    check_if_file_can_be_opened_2,
+    check_if_file_can_be_opened,
 )
 from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.io.holog_mds import AstrohackHologFile
@@ -55,7 +55,7 @@ def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
                 ant_n: …
             }
     """
-    check_if_file_can_be_opened_2(file, "beamcut", "0.10.1")
+    check_if_file_can_be_opened(file, "beamcut", "0.10.1")
     _data_file = AstrohackBeamcutFile(file=file)
 
     if _data_file.open():
@@ -96,7 +96,7 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
             ant_m: …
             }
     """
-    check_if_file_can_be_opened_2(file, "extract_holog", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_holog", "0.10.1")
     _data_file = AstrohackHologFile(file=file)
 
     if _data_file.open():
@@ -134,7 +134,7 @@ def open_image(file: str) -> Union[AstrohackImageFile, None]:
            }
 
     """
-    check_if_file_can_be_opened_2(file, ["holog", "combine"], "0.10.1")
+    check_if_file_can_be_opened(file, ["holog", "combine"], "0.10.1")
     _data_file = AstrohackImageFile(file=file)
 
     if _data_file.open():
@@ -172,7 +172,7 @@ def open_panel(file: str) -> Union[AstrohackPanelFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "panel", "0.10.1")
+    check_if_file_can_be_opened(file, "panel", "0.10.1")
     _data_file = AstrohackPanelFile(file=file)
 
     if _data_file.open():
@@ -210,7 +210,7 @@ def open_locit(file: str) -> Union[AstrohackLocitFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "extract_locit", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_locit", "0.10.1")
     _data_file = AstrohackLocitFile(file=file)
 
     if _data_file.open():
@@ -248,7 +248,7 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "locit", "0.10.1")
+    check_if_file_can_be_opened(file, "locit", "0.10.1")
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():
@@ -284,7 +284,7 @@ def open_pointing(file: str) -> Union[AstrohackPointFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "extract_pointing", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_pointing", "0.10.1")
     _data_file = AstrohackPointFile(file=file)
 
     if _data_file.open():

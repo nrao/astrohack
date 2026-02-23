@@ -1,7 +1,7 @@
 import toolviper.utils.parameter
 
 from astrohack.utils.graph import create_and_execute_graph_from_dict
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened_2
+from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.core.locit import (
     locit_separated_chunk,
     locit_combined_chunk,
@@ -151,7 +151,7 @@ def locit(
     input_params = locit_params.copy()
     attributes = locit_params.copy()
 
-    check_if_file_can_be_opened_2(locit_params["locit_name"], "extract_locit", "0.10.1")
+    check_if_file_can_be_opened(locit_params["locit_name"], "extract_locit", "0.10.1")
 
     overwrite_file(locit_params["position_name"], locit_params["overwrite"])
 

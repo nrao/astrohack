@@ -32,46 +32,7 @@ def check_ms_exists(ms_name):
         )
 
 
-def check_if_file_can_be_opened(filename, minimal_version):
-    meta_list = [
-        ".point_input",
-        ".holog_input",
-        ".panel_input",
-        ".image_input",
-        ".locit_input",
-        ".position_input",
-    ]
-
-    if os.path.exists(filename):
-        pass
-    else:
-        raise FileNotFoundError(f"{filename} cannot be found.")
-
-    found_meta = False
-    metadata = None
-
-    for meta_name in meta_list:
-        try:
-            metadata = read_meta_data(f"{filename}/{meta_name}")
-            found_meta = True
-        except FileNotFoundError:
-            continue
-
-    if not found_meta:
-        raise ValueError(
-            f"{filename} does not contain valid metadata, it might not be a valid Astrohack file."
-        )
-
-    file_version = metadata["version"]
-
-    if data_from_version_needs_patch(file_version, minimal_version):
-        raise ValueError(
-            f"{filename} was created by astrohack version {file_version} which has a deprecated file"
-            f" format, please rerun astrohack on this dataset from scratch to access the data in it."
-        )
-
-
-def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
+def check_if_file_can_be_opened(filename, file_creator, minimal_version):
     if os.path.exists(filename):
         pass
     else:

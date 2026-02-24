@@ -47,7 +47,7 @@
         "az_scale":{
             "nullable": true,
             "required": false,
-            "struct_type": ["float"],
+            "struct_type": ["float", "int"],
             "minlength": 2,
             "maxlength": 2,
             "type": ["tuple", "list", "ndarray"]
@@ -55,7 +55,7 @@
         "el_scale":{
             "nullable": true,
             "required": false,
-            "struct_type": ["float"],
+            "struct_type": ["float", "int"],
             "minlength": 2,
             "maxlength": 2,
             "type": ["tuple", "list", "ndarray"]
@@ -63,7 +63,7 @@
         "time_scale":{
             "nullable": true,
             "required": false,
-            "struct_type": ["float"],
+            "struct_type": ["float", "int"],
             "minlength": 2,
             "maxlength": 2,
             "type": ["tuple", "list", "ndarray"]
@@ -76,7 +76,7 @@
         "figure_size":{
             "nullable": true,
             "required": false,
-            "struct_type": ["float"],
+            "struct_type": ["float", "int"],
             "minlength": 2,
             "maxlength": 2,
             "type": ["list", "tuple", "ndarray"]
@@ -125,7 +125,7 @@
         "figure_size":{
             "nullable": true,
             "required": false,
-            "struct_type": ["float"],
+            "struct_type": ["float", "int"],
             "minlength": 2,
             "maxlength": 2,
             "type": ["list", "tuple", "ndarray"]

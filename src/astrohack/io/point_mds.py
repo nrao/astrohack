@@ -232,6 +232,8 @@ def _create_pointing_figure(input_params):
 def _finalize_pointing_figure(
     input_params, target_column, ant_label, y_labels, axes, fig
 ):
+    azel_unit = input_params["azel_unit"]
+    time_unit = input_params["time_unit"]
     title = f"Pointing [{target_column}] data for: {ant_label}"
     filename = f"{input_params['destination']}/point_{target_column.lower()}_"
     if len(ant_label.split(",")) > 1:
@@ -239,22 +241,16 @@ def _finalize_pointing_figure(
     else:
         filename += f"ant_{ant_label}.png"
     for i_coord, y_label in enumerate(y_labels):
-        axes[i_coord].set_ylabel(
-            f"{y_label.capitalize()} [{input_params["azel_unit"]}]"
-        )
+        axes[i_coord].set_ylabel(f"{y_label.capitalize()} [{azel_unit}]")
         if y_label == "Azimuth":
-
             if input_params["az_scale"] is not None:
                 axes[i_coord].set_ylim(input_params["az_scale"])
-
         else:
             if input_params["el_scale"] is not None:
                 axes[i_coord].set_ylim(input_params["el_scale"])
         if input_params["time_scale"] is not None:
             axes[i_coord].set_xlim(input_params["time_scale"])
-        axes[i_coord].set_xlabel(
-            f"Time Since Observation start [{input_params["time_unit"]}]"
-        )
+        axes[i_coord].set_xlabel(f"Time Since Observation start [{time_unit}]")
         axes[i_coord].legend()
     close_figure(fig, title, filename, input_params["dpi"], input_params["display"])
 

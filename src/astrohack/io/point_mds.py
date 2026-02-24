@@ -222,6 +222,7 @@ class AstrohackPointFile(AstrohackBaseFile):
         input_params = locals()
         plot_array_configuration(input_params, self.root, "point")
 
+    @toolviper.utils.parameter.validate()
     def set_antennas_as_reference(
         self,
         reference_antennas: Union[str, list[str], tuple[str]],

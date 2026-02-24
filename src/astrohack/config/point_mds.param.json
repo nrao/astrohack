@@ -137,5 +137,18 @@
             "min": 1,
             "max": 1200
         }
+    },
+    "AstrohackPointFile.set_antennas_as_reference":{
+        "reference_antennas": {
+            "nullable": false,
+            "required": true,
+            "type": ["list", "tuple", "ndarray", "str"],
+            "struct_type": ["str"]
+        },
+        "write_changes": {
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
     }
 }

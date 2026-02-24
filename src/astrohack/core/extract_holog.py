@@ -695,10 +695,10 @@ def _create_holog_file(
             logger.debug(f"Writing {dataset_label} holog data to {holog_filename}")
             dataset_name = "-".join([map_ant_key, ddi_key, map_key])
 
-            holog_mds.add_node_to_tree(
+            holog_mds.add_node_to_tree_2(
                 xr.DataTree(name=dataset_name, dataset=xds),
-                dump_to_disk=True,
-                running_in_parallel=parallel,
+                # dump_to_disk=True,
+                # running_in_parallel=parallel,
             )
         else:
             logger.warning(f"No holography data for {dataset_label}")

@@ -299,10 +299,10 @@ def extract_pointing_chunk(pnt_params, output_mds):
         "radius": ant_rad,
     }
 
-    output_mds.add_node_to_tree(
+    output_mds.add_node_to_tree_2(
         xr.DataTree(dataset=pnt_xds, name=ant_key),
-        dump_to_disk=True,
-        running_in_parallel=pnt_params["parallel"],
+        # dump_to_disk=True,
+        # running_in_parallel=pnt_params["parallel"],
     )
 
 

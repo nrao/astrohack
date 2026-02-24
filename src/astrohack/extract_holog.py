@@ -14,7 +14,7 @@ from astrohack.core.extract_holog import process_extract_holog_chunk
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.core.holog_obs_dict import HologObsDict
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graph_from_dict_2
 
 from typing import Union, List
 
@@ -219,8 +219,9 @@ def extract_holog(
         )
 
     extract_holog_params["pnt_mds"] = pnt_mds
+    holog_mds.root.attrs["holog_obs_dict"] = used_holog_obs_dict
 
-    executed_graph = create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict_2(
         looping_dict=looping_dict,
         chunk_function=process_extract_holog_chunk,
         param_dict=extract_holog_params,
@@ -228,10 +229,7 @@ def extract_holog(
         output_mds=holog_mds,
     )
 
-    holog_mds.root.attrs["holog_obs_dict"] = used_holog_obs_dict
-
     if executed_graph:
-        holog_mds.write(mode="a")
         return holog_mds
     else:
         return None

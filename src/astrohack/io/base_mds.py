@@ -1,4 +1,5 @@
 import xarray as xr
+import os
 
 from dask.distributed import Lock
 
@@ -283,6 +284,25 @@ class AstrohackBaseFile:
             else:
                 self._dump_to_disk()
         return
+
+    def add_node_to_tree_2(
+        self,
+        new_node,
+    ):
+        """
+        Add a node to root at a position determined by new_node's name
+
+        :param new_node: Node to be included in root
+        :type new_node: xarray.DataTree
+
+        :return: None
+        :rtype: NoneType
+        """
+        assert isinstance(new_node, xr.DataTree)
+        lvls = new_node.name.split("-")
+
+        new_node_path = "/".join([self.filename, *lvls])
+        new_node.to_zarr(new_node_path, mode="w")
 
     def __repr__(self):
         """

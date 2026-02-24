@@ -12,7 +12,7 @@ from astrohack.visualization.array_cfg_plot import plot_array_configuration
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils import param_to_list
+from astrohack.utils import param_to_list, print_dict_types
 from astrohack.utils.validation import custom_unit_checker
 
 
@@ -221,6 +221,51 @@ class AstrohackPointFile(AstrohackBaseFile):
         pathlib.Path(destination).mkdir(exist_ok=True)
         input_params = locals()
         plot_array_configuration(input_params, self.root, "point")
+
+    def set_antennas_as_reference(
+        self,
+        reference_antennas: Union[str, list[str], tuple[str]],
+        write_changes: bool = True,
+    ) -> None:
+        """
+        Modify point_mds data to make specific antennas reference antennas, useful for older datasets that contain \
+        wrong pointing data for reference antennas.
+
+        :param reference_antennas: Antennas to transform into reference antennas
+        :type reference_antennas: Union[str, list[str], tuple[str]]
+
+        :param write_changes: Write the modified mds to disk?
+        :type write_changes: bool, optional
+        """
+
+        if isinstance(reference_antennas, str):
+            reference_antennas = [reference_antennas]
+
+        for ref_ant in reference_antennas:
+            ant_key = f"ant_{ref_ant}"
+            try:
+                ant_xds = self[ant_key].dataset
+            except KeyError:
+                logger.warning(f"Antenna {ref_ant} not found in dataset")
+                continue
+            logger.info(f"Making {ref_ant} a reference antenna")
+            zeroed_pnt = np.zeros_like(ant_xds["POINTING_OFFSET"])
+            ant_xds["POINTING_OFFSET"].values = zeroed_pnt
+            ant_xds["DIRECTIONAL_COSINES"].values = zeroed_pnt
+            ant_xds["TARGET"].values = ant_xds["DIRECTION"].values
+
+            mapping_scans_list = ant_xds.attrs["mapping_scans_obs_dict"]
+
+            for mapping_dict in mapping_scans_list:
+                for ddi_key in mapping_dict:
+                    mapping_dict[ddi_key] = {}
+
+            ant_xds.attrs["mapping_scans_obs_dict"] = mapping_scans_list
+            self[ant_key].dataset = ant_xds
+
+        if write_changes:
+            self.write(mode="a")
+        return
 
 
 def _create_pointing_figure(input_params):

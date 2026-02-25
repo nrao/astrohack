@@ -1,6 +1,6 @@
 import toolviper.utils.parameter
 
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graph_from_dict_2
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.core.locit import (
     locit_separated_chunk,
@@ -181,8 +181,15 @@ def locit(
     position_mds = AstrohackPositionFile.create_from_input_parameters(
         locit_params["position_name"], locit_params
     )
+    position_mds.root.attrs.update(
+        {
+            "combined": combined,
+            "telescope_name": locit_mds.root.attrs["telescope_name"],
+            "reference_antenna": locit_mds.root.attrs["reference_antenna"],
+        }
+    )
 
-    executed_graph = create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict_2(
         looping_dict=locit_mds,
         chunk_function=function,
         param_dict=locit_params,
@@ -191,14 +198,6 @@ def locit(
         parallel=parallel,
     )
     if executed_graph:
-        position_mds.root.attrs.update(
-            {
-                "combined": combined,
-                "telescope_name": locit_mds.root.attrs["telescope_name"],
-                "reference_antenna": locit_mds.root.attrs["reference_antenna"],
-            }
-        )
-        position_mds.write(mode="a")
         return position_mds
     else:
         return None

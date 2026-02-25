@@ -21,49 +21,6 @@ def _factorized_graph_execution_return(status, ret_list, fetch_ret):
         return status
 
 
-def _consolidate_a_level(key_path):
-    if pathlib.Path(key_path).is_dir():
-        key = key_path.split("/")[-1]
-        this_lvl_xdt = xr.DataTree(name=key)
-        this_lvl_xdt.to_zarr(key_path)
-        del this_lvl_xdt
-        this_zarr_group = zarr.open(key_path, mode="r+")
-        zarr.convenience.consolidate_metadata(this_zarr_group.store)
-    else:
-        logger.warning(f"There is an unexpected entity at {key_path}")
-
-
-def _consolidate_output_mds(key_order, output_mds):
-    mds_path = output_mds.filename
-    logger.info(f"Consolidating {mds_path}...")
-
-    # Hardcoded number of levels of extract_holog products as they are 3 leveled but execution is 2 leveled.
-    if output_mds.root.attrs["origin_info"]["creator_function"] == "extract_holog":
-        n_lvls = 3
-    elif output_mds.root.attrs["origin_info"]["creator_function"] == "combine":
-        n_lvls = 2
-    else:
-        n_lvls = len(key_order)
-
-    if n_lvls == 1:
-        pass
-    elif n_lvls == 2 or n_lvls == 3:
-        lvl_0_list = glob.glob(f"{mds_path}/*")
-        for key_path_0 in lvl_0_list:
-            if n_lvls == 3:
-                lvl_1_list = glob.glob(f"{key_path_0}/*")
-                for key_path_1 in lvl_1_list:
-                    _consolidate_a_level(key_path_1)
-            _consolidate_a_level(key_path_0)
-    else:
-        raise NotImplementedError(f"Unsupported number of levels: {n_lvls}")
-
-    root_group = zarr.open(mds_path, mode="r+")  # Open in read/write mode
-    zarr.convenience.consolidate_metadata(root_group.store)
-
-    output_mds.open()
-
-
 def _construct_general_graph_recursively(
     looping_dict,
     chunk_function,
@@ -160,7 +117,7 @@ def create_and_execute_graph_from_dict(
             return_list.append(function(*args))
 
     if output_mds is not None:
-        _consolidate_output_mds(key_order, output_mds)
+        output_mds.consolidate(key_order)
 
         if len(output_mds.keys()) == 0:
             logger.warning("Processing did not yield any data")

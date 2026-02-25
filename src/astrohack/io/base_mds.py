@@ -1,8 +1,7 @@
-import xarray
 import xarray as xr
-import os
-
-from dask.distributed import Lock
+import zarr
+import pathlib
+import glob
 
 import toolviper.utils.logger as logger
 
@@ -229,82 +228,6 @@ class AstrohackBaseFile:
         del self.root
         self.open()
 
-    def add_node_to_tree(self, new_node, dump_to_disk=True, running_in_parallel=False):
-        """
-        Add a node to root at a position determined by new_node's name
-
-        :param new_node: Node to be included in root
-        :type new_node: xarray.DataTree
-
-        :param dump_to_disk: Dump root to disk to free up RAM
-        :type dump_to_disk: bool
-
-        :param running_in_parallel: Get dask lock if running in parallel
-        :type running_in_parallel: bool
-
-        :return: None
-        :rtype: NoneType
-        """
-        assert isinstance(new_node, xr.DataTree)
-        lvls = new_node.name.split("-")
-        n_lvls = len(lvls)
-        if n_lvls == 1:
-            lvl_0 = lvls[0]
-            self.root.update({lvl_0: new_node})
-        elif n_lvls == 2:
-            lvl_0, lvl_1 = lvls
-            if lvl_0 in self.keys():
-                self[lvl_0].update({lvl_1: new_node})
-            else:
-                self[lvl_0] = xr.DataTree(name=lvl_0, children={lvl_1: new_node})
-        elif n_lvls == 3:
-            lvl_0, lvl_1, lvl_2 = lvls
-            if lvl_0 in self.keys():
-                if lvl_1 in self[lvl_0].keys():
-                    self[lvl_0][lvl_1].update({lvl_2: new_node})
-                else:
-                    self[lvl_0][lvl_1] = xr.DataTree(
-                        name=lvl_1, children={lvl_2: new_node}
-                    )
-            else:
-                self[lvl_0] = xr.DataTree(
-                    name=lvl_0,
-                    children={
-                        lvl_1: xr.DataTree(name=lvl_1, children={lvl_2: new_node})
-                    },
-                )
-        else:
-            raise NotImplementedError("Cannot handle a case of more than three levels")
-
-        if dump_to_disk:
-            if running_in_parallel:
-                lock = Lock("Root dump lock")
-                lock.acquire(timeout=1)
-                self._dump_to_disk()
-                lock.release()
-            else:
-                self._dump_to_disk()
-        return
-
-    def add_node_to_tree_2(
-        self,
-        new_node: xarray.DataTree,
-    ):
-        """
-        Add a node to root at a position determined by new_node's name
-
-        :param new_node: Node to be included in root
-        :type new_node: xarray.DataTree
-
-        :return: None
-        :rtype: NoneType
-        """
-        assert isinstance(new_node, xr.DataTree)
-        lvls = new_node.name.split("-")
-
-        new_node_path = "/".join([self.filename, *lvls])
-        new_node.to_zarr(new_node_path, mode="w")
-
     def add_node(self, xds_data, key_list):
         assert isinstance(xds_data, xr.Dataset)
         assert isinstance(key_list, (list, tuple))
@@ -357,3 +280,45 @@ class AstrohackBaseFile:
             return False
 
         return is_close
+
+    def consolidate(self, key_order):
+        mds_path = self.filename
+        logger.info(f"Consolidating {mds_path}...")
+
+        # Hardcoded number of levels of extract_holog products as they are 3 leveled but execution is 2 leveled.
+        if self.root.attrs["origin_info"]["creator_function"] == "extract_holog":
+            n_lvls = 3
+        elif self.root.attrs["origin_info"]["creator_function"] == "combine":
+            n_lvls = 2
+        else:
+            n_lvls = len(key_order)
+
+        if n_lvls == 1:
+            pass
+        elif n_lvls == 2 or n_lvls == 3:
+            lvl_0_list = glob.glob(f"{mds_path}/*")
+            for key_path_0 in lvl_0_list:
+                if n_lvls == 3:
+                    lvl_1_list = glob.glob(f"{key_path_0}/*")
+                    for key_path_1 in lvl_1_list:
+                        _consolidate_a_level(key_path_1)
+                _consolidate_a_level(key_path_0)
+        else:
+            raise NotImplementedError(f"Unsupported number of levels: {n_lvls}")
+
+        root_group = zarr.open(mds_path, mode="r+")  # Open in read/write mode
+        zarr.convenience.consolidate_metadata(root_group.store)
+
+        self.open()
+
+
+def _consolidate_a_level(key_path):
+    if pathlib.Path(key_path).is_dir():
+        key = key_path.split("/")[-1]
+        this_lvl_xdt = xr.DataTree(name=key)
+        this_lvl_xdt.to_zarr(key_path)
+        del this_lvl_xdt
+        this_zarr_group = zarr.open(key_path, mode="r+")
+        zarr.convenience.consolidate_metadata(this_zarr_group.store)
+    else:
+        logger.warning(f"There is an unexpected entity at {key_path}")

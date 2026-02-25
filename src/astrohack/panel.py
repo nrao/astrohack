@@ -5,7 +5,7 @@ from astrohack.utils.file import overwrite_file
 from astrohack.core.panel import process_panel_chunk
 from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graph_from_dict_2
 
 from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.io.dio import open_image
@@ -211,7 +211,7 @@ def panel(
         panel_name, panel_params
     )
 
-    executed_graph = create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict_2(
         looping_dict=image_mds,
         chunk_function=process_panel_chunk,
         param_dict=panel_params,

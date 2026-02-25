@@ -2,11 +2,12 @@ import xarray as xr
 
 import toolviper.utils.logger as logger
 
+from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils import create_dataset_label
 
 
-def process_panel_chunk(panel_chunk_params, output_mds):
+def process_panel_chunk(panel_chunk_params: dict, output_mds: AstrohackPanelFile):
     """
     Process a chunk of the holographies, usually a chunk consists of an antenna over a ddi
     Args:
@@ -45,9 +46,4 @@ def process_panel_chunk(panel_chunk_params, output_mds):
     surface.correct_surface()
 
     xds = surface.export_xds()
-    dataset_name = f"{ant_key}-{ddi_key}"
-    output_mds.add_node_to_tree(
-        xr.DataTree(name=dataset_name, dataset=xds),
-        dump_to_disk=True,
-        running_in_parallel=panel_chunk_params["parallel"],
-    )
+    output_mds.add_node(xds, [ant_key, ddi_key])

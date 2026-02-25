@@ -372,10 +372,8 @@ def _export_to_xds(
     }
     xds = xds.assign_coords(coords)
     dataset_name = f"{ant_key}-{ddi_key}"
-    output_mds.add_node_to_tree(
+    output_mds.add_node_to_tree_2(
         xr.DataTree(name=dataset_name, dataset=xds),
-        dump_to_disk=True,
-        running_in_parallel=parallel,
     )
 
 

@@ -5,7 +5,7 @@ from typing import List, Union, Tuple
 import toolviper.utils.parameter
 
 from astrohack.io.dio import open_holog
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graph_from_dict_2
 from astrohack.utils.file import overwrite_file
 from astrohack.core.holog import process_holog_chunk
 from astrohack.utils.text import get_default_file_name
@@ -166,7 +166,7 @@ def holog(
         image_name, holog_params
     )
 
-    executed_graph = create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict_2(
         looping_dict=holog_mds,
         chunk_function=process_holog_chunk,
         param_dict=holog_params,
@@ -175,7 +175,6 @@ def holog(
     )
 
     if executed_graph:
-        image_mds.write(mode="a")
         return image_mds
     else:
         return None

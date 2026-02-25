@@ -14,6 +14,7 @@ from astrohack.utils import (
     calc_coords,
     find_peak_beam_value,
     chunked_average,
+    njit_caching,
 )
 from astrohack.utils.tools import (
     get_str_idx_in_list,
@@ -394,7 +395,7 @@ def grid_1d_data(
         return new_y_data
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _create_new_data_and_weights(dest_ax, y_data):
     """
     Assumes y_data is a list of [n, m] arrays
@@ -412,7 +413,7 @@ def _create_new_data_and_weights(dest_ax, y_data):
     return new_y_data, weights
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_ordered_axis_index(coor, i_pos, axis, half_int):
     if i_pos == axis.shape[0]:
         return -1
@@ -423,7 +424,7 @@ def _get_ordered_axis_index(coor, i_pos, axis, half_int):
     return i_pos
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _linear_interpolate_under_sample(dest_ax, orig_ax, dest_delta, y_data):
     half_int_dest = dest_delta / 2
 
@@ -446,7 +447,7 @@ def _linear_interpolate_under_sample(dest_ax, orig_ax, dest_delta, y_data):
     return new_y_data, weights
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _liner_interpolate_over_sample(dest_ax, orig_ax, orig_delta, y_data):
     half_int_orig = orig_delta / 2
     new_y_data, weights = _create_new_data_and_weights(dest_ax, y_data)
@@ -463,7 +464,7 @@ def _liner_interpolate_over_sample(dest_ax, orig_ax, orig_delta, y_data):
     return new_y_data, weights
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _gaussian_convolution_1d_jit(dest_ax, orig_ax, hpkw, y_data):
     kernel = _create_exponential_kernel(hpkw, hpkw)
     new_y_data, weights = _create_new_data_and_weights(dest_ax, y_data)
@@ -519,7 +520,7 @@ def _convolution_gridding(
     return beam
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _convolution_gridding_jit(
     visibilities, lmvis, weights, sky_cell_size, l_axis, m_axis, beam_size, avg_chan
 ):
@@ -577,7 +578,7 @@ def _convolution_gridding_jit(
     return beam_grid, weig_grid
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _find_nearest(value, array):
     """
     Find nearest array element to value (array must be sorted)
@@ -593,7 +594,7 @@ def _find_nearest(value, array):
     return idx
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _create_exponential_kernel(
     beam_size, sky_cell_size, exponent=2, oversampling=100, hpbw_width=4
 ):
@@ -641,7 +642,7 @@ def _create_exponential_kernel(
     return ker_dict
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _compute_kernel_range(kernel, coor, axis):
     """
     Compute the range of pixels over which to perform the convolution
@@ -664,7 +665,7 @@ def _compute_kernel_range(kernel, coor, axis):
     return i_min, i_max
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _convolution_factor(kernel, delta):
     """
     Compute the convolution factor for a specific pixel
@@ -683,7 +684,7 @@ def _convolution_factor(kernel, delta):
         return kernel["kernel"][ikern]
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _compute_kernel_correction(kernel, grid_size):
     """
     Compute kernel's fourier transform convolution correction
@@ -729,7 +730,7 @@ def _compute_beam_size(diameter, frequency):
     return size
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_normalized_correction(u_corr, v_corr):
     """
     Compute full grid convolution grid correction
@@ -752,7 +753,7 @@ def _get_normalized_correction(u_corr, v_corr):
     return norm_corr
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _gridding_correction_jit(aperture, beam_size, sky_cell_size, u_axis, v_axis):
     """
     Actual convolution gridding correction numba jitted for speed

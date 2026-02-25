@@ -12,7 +12,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils.text import format_angular_distance, create_dataset_label
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils.constants import pi, twopi
+from astrohack.utils.constants import pi, twopi, njit_caching
 
 
 def tokenize_version_number(version_number):
@@ -279,7 +279,7 @@ def least_squares(system, vector, return_sigma=False):
         return result, variance, residuals
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def least_squares_jit(system, vector):
     """
     Least squares fitting of a system of linear equations

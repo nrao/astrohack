@@ -1,6 +1,9 @@
 import numpy as np
 import scipy.constants as constants
 
+# njit cache status
+njit_caching = True
+
 # Physical constants
 clight = constants.speed_of_light
 notavail = "N/A"

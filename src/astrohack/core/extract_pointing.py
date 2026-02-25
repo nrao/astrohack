@@ -16,6 +16,7 @@ from astrohack.utils import (
 )
 from astrohack.utils.conversion import convert_dict_from_numba
 from astrohack.utils.tools import get_valid_state_ids
+from astrohack.utils.constants import njit_caching
 
 
 def extract_pointing_preprocessing(input_params):
@@ -337,7 +338,7 @@ def _extract_scan_time_dict(time, scan_ids, state_ids, ddi_ids, mapping_state_id
 
 
 @convert_dict_from_numba
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _extract_scan_time_dict_jit(time, scan_ids, state_ids, ddi_ids, mapping_state_ids):
     """For each ddi get holography scan start and end times. A holography scan is detected when a scan_ids appears in
     mapping_state_ids.

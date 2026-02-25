@@ -7,7 +7,7 @@ from astrohack.utils.algorithms import (
     phase_wrapping,
 )
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils.constants import clight
+from astrohack.utils.constants import clight, njit_caching
 from astrohack.utils.tools import get_str_idx_in_list
 
 import toolviper.utils.logger as logger
@@ -459,7 +459,7 @@ def _correct_phase(
     return corrected_phase, phase_model
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _matrix_coeffs(u_val, v_val, magnification, focal_length, phase_slope):
     """
     Computes the matrix coefficients used when building the design matrix and correcting the phase image
@@ -519,7 +519,7 @@ def _matrix_coeffs(u_val, v_val, magnification, focal_length, phase_slope):
     return x_focus, y_focus, z_focus, x_tilt, y_tilt, x_cass, y_cass
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _build_design_matrix_block(
     pols,
     inrad,
@@ -745,7 +745,7 @@ def _ignore_non_fitted_block(ignored, matrix, vector):
 
 
 # Change is needed here
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _correct_phase_block(
     pols,
     phase_image,
@@ -936,7 +936,7 @@ def _build_astigmatism_matrix(
     return matrix, vector, sel
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _perturbed_fit_jit(matrix, vector, fit_offset):
     perturbed = np.empty_like(vector)
     for i_par in range(fit_offset.shape[0]):
@@ -946,7 +946,7 @@ def _perturbed_fit_jit(matrix, vector, fit_offset):
     return result, sigma
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _fit_perturbation_loop_jit(
     start, radius, wave_number, solving_matrix, solving_vector, npar, step=1e-3
 ):
@@ -1064,7 +1064,7 @@ def clic_like_phase_fitting(
     return phase, best_fit
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def phase_wrapping_jit(phase):
     """
     Wraps phase to the -pi to pi interval

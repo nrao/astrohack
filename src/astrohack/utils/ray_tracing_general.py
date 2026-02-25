@@ -12,6 +12,7 @@ from astrohack.utils.algorithms import (
     regrid_data_onto_2d_grid,
 )
 from astrohack.visualization.plot_tools import *
+from astrohack.utils.constants import njit_caching
 
 nanvec3d = np.array([np.nan, np.nan, np.nan])
 return_line = "\033[F"
@@ -138,7 +139,7 @@ def qps_compute_point_and_normal(pnt, qps_coeffs, pcd):
     return new_pnt, normal
 
 
-@njit()
+@njit(cache=njit_caching)
 def qps_compute_point_and_normal_jit(pnt, qps_coeffs, pcd):
     npnt = pcd.shape[0]
     acoeffs = qps_coeffs[:npnt]
@@ -170,7 +171,7 @@ def qps_compute_point_and_normal_jit(pnt, qps_coeffs, pcd):
     return new_pnt, normal
 
 
-@njit()
+@njit(cache=njit_caching)
 def qps_compute_normal_jit(pnt, qps_coeffs, pcd):
     npnt = pcd.shape[0]
     acoeffs = qps_coeffs[:npnt]
@@ -190,7 +191,7 @@ def qps_compute_normal_jit(pnt, qps_coeffs, pcd):
     return normal
 
 
-@njit()
+@njit(cache=njit_caching)
 def local_qps_image_jit(global_pcd, local_qps_coeffs, local_pcds, points):
     npnt = points.shape[0]
     new_zval = np.empty(npnt, dtype=np.float64)
@@ -209,7 +210,7 @@ def local_qps_image_jit(global_pcd, local_qps_coeffs, local_pcds, points):
     return new_zval, new_norm
 
 
-@njit()
+@njit(cache=njit_caching)
 def global_qps_image_jit(pcd, qps_coeffs, points):
     npnt = points.shape[0]
     new_zval = np.empty(npnt, dtype=np.float64)
@@ -225,7 +226,7 @@ def global_qps_image_jit(pcd, qps_coeffs, points):
     return new_zval, new_norm
 
 
-@njit()
+@njit(cache=njit_caching)
 def global_qps_normal_image_jit(pcd, qps_coeffs, points):
     npnt = points.shape[0]
     new_norm = np.empty((npnt, 3), dtype=np.float64)

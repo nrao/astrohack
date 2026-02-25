@@ -20,7 +20,7 @@ from astrohack.utils.algorithms import calculate_optimal_grid_parameters
 from astrohack.utils.conversion import casa_time_to_mjd
 from astrohack.utils.constants import twopi, clight
 from astrohack.utils.gridding import grid_1d_data
-from astrohack.utils.constants import pol_str
+from astrohack.utils.constants import pol_str, njit_caching
 from astrohack.core.holog_obs_dict import HologObsDict
 
 
@@ -383,7 +383,7 @@ def _get_map_ref_dict(
     return map_dict
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_time_intervals(time_vis_row, scan_list, time_interval):
     unq_scans = np.unique(scan_list)
     scan_time_ranges = []
@@ -409,7 +409,7 @@ def _get_time_intervals(time_vis_row, scan_list, time_interval):
     return time_samples, scan_time_ranges, unq_scans
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _extract_holog_chunk_jit(
     vis_data,
     weight,
@@ -748,7 +748,7 @@ def _extract_pointing_chunk(
     return pnt_map_dict
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_time_index(data_time, i_time, time_axis, half_int):
     if i_time == time_axis.shape[0]:
         return -1

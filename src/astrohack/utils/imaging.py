@@ -11,7 +11,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils.algorithms import calc_coords
 from astrohack.utils.gridding import gridding_correction
-from astrohack.utils.constants import clight
+from astrohack.utils.constants import clight, njit_caching
 
 
 def calculate_parallactic_angle_chunk(
@@ -328,7 +328,7 @@ def _pad_beam_image(grid, padding_factor):
     return padded_grid
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _apodize_beam(unpadded_beam, degree=2):
     """
     Apodize beam image to avoid artefacts in aperture image

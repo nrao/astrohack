@@ -5,7 +5,7 @@ from toolviper.utils.parameter import validate
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graph_from_dict_2
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.dio import open_holog
 from astrohack.utils.validation import custom_plots_checker
@@ -124,7 +124,7 @@ def beamcut(
     )
 
     holog_mds = open_holog(holog_name)
-    executed_graph = create_and_execute_graph_from_dict(
+    executed_graph = create_and_execute_graph_from_dict_2(
         looping_dict=holog_mds,
         chunk_function=process_beamcut_chunk,
         param_dict=beamcut_params,
@@ -133,7 +133,40 @@ def beamcut(
         parallel=parallel,
     )
     if executed_graph:
-        beamcut_mds.write(mode="a")
+        if destination is not None:
+            beamcut_mds.plot_beamcut_in_amplitude(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                y_scale=y_scale,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.plot_beamcut_in_attenuation(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                y_scale=y_scale,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.plot_beam_cuts_over_sky(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.create_beam_fit_report(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                parallel=parallel,
+            )
+
         return beamcut_mds
     else:
         return None

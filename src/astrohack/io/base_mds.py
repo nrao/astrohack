@@ -315,8 +315,12 @@ class AstrohackBaseFile:
 def _consolidate_a_level(key_path):
     if pathlib.Path(key_path).is_dir():
         key = key_path.split("/")[-1]
-        this_lvl_xdt = xr.DataTree(name=key)
-        this_lvl_xdt.to_zarr(key_path)
+        try:
+            this_lvl_xdt = xr.open_datatree(key_path, mode="r+", engine="zarr")
+        except FileNotFoundError:
+            this_lvl_xdt = xr.DataTree(name=key)
+            this_lvl_xdt.to_zarr(key_path)
+
         del this_lvl_xdt
         this_zarr_group = zarr.open(key_path, mode="r+")
         zarr.convenience.consolidate_metadata(this_zarr_group.store)

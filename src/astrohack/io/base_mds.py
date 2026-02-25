@@ -305,6 +305,13 @@ class AstrohackBaseFile:
         new_node_path = "/".join([self.filename, *lvls])
         new_node.to_zarr(new_node_path, mode="w")
 
+    def add_node(self, xds_data, key_list):
+        assert isinstance(xds_data, xr.Dataset)
+        assert isinstance(key_list, (list, tuple))
+        final_key = key_list[-1]
+        new_node_path = "/".join([self.filename, *key_list])
+        xr.DataTree(dataset=xds_data, name=final_key).to_zarr(new_node_path, mode="w")
+
     def __repr__(self):
         """
         Simple printing function to glance at the datatree inside

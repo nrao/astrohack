@@ -10,6 +10,7 @@ from numba.core import types
 
 from casacore import tables as ctables
 
+from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna import get_proper_telescope
 from astrohack.utils import (
@@ -210,7 +211,9 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
     return looping_dict, holog_obs_dict
 
 
-def process_extract_holog_chunk(extract_holog_params, holog_mds):
+def process_extract_holog_chunk(
+    extract_holog_params: dict, holog_mds: AstrohackHologFile
+):
     """Perform data query on holography data chunk and get unique time and state_ids/
 
     Args:
@@ -364,7 +367,6 @@ def process_extract_holog_chunk(extract_holog_params, holog_mds):
         scan_time_ranges,
         unq_scans,
         holog_mds,
-        extract_holog_params["parallel"],
     )
 
     logger.info(f"Finished extracting holography chunk for DDI {ddi_id}, {map_key}.")
@@ -601,8 +603,7 @@ def _create_holog_file(
     map_ref_dict,
     scan_time_ranges,
     unq_scans,
-    holog_mds,
-    parallel,
+    holog_mds: AstrohackHologFile,
 ):
     """Create holog-structured, formatted output file and save to zarr.
 
@@ -693,13 +694,7 @@ def _create_holog_file(
             holog_filename = holog_name
 
             logger.debug(f"Writing {dataset_label} holog data to {holog_filename}")
-            dataset_name = "-".join([map_ant_key, ddi_key, map_key])
-
-            holog_mds.add_node_to_tree_2(
-                xr.DataTree(name=dataset_name, dataset=xds),
-                # dump_to_disk=True,
-                # running_in_parallel=parallel,
-            )
+            holog_mds.add_node(xds, [map_ant_key, ddi_key, map_key])
         else:
             logger.warning(f"No holography data for {dataset_label}")
 

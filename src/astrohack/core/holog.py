@@ -2,6 +2,8 @@ import numpy as np
 import xarray as xr
 
 from copy import deepcopy
+
+from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.utils import format_angular_distance
 from astrohack.antenna.telescope import get_proper_telescope, RingedCassegrain
 from astrohack.utils.text import create_dataset_label
@@ -23,7 +25,7 @@ from astrohack.utils.phase_fitting import (
 import toolviper.utils.logger as logger
 
 
-def process_holog_chunk(holog_chunk_params, output_mds):
+def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile):
     """Process chunk holography data along the antenna axis. Works with holography file to properly grid , normalize,
         average and correct data and returns the aperture pattern.
 
@@ -245,7 +247,6 @@ def process_holog_chunk(holog_chunk_params, output_mds):
         zernike_n_order,
         summary,
         output_mds,
-        holog_chunk_params["parallel"],
     )
 
     logger.info(f"Finished processing {label}")
@@ -324,8 +325,7 @@ def _export_to_xds(
     zernike_rms,
     zernike_n_order,
     summary,
-    output_mds,
-    parallel,
+    output_mds: AstrohackImageFile,
 ):
     # Todo: Add Parallactic angle as a non-dimension coordinate dependant on time.
     xds = xr.Dataset()
@@ -371,10 +371,7 @@ def _export_to_xds(
         "osa": osa_coeff_list,
     }
     xds = xds.assign_coords(coords)
-    dataset_name = f"{ant_key}-{ddi_key}"
-    output_mds.add_node_to_tree_2(
-        xr.DataTree(name=dataset_name, dataset=xds),
-    )
+    output_mds.add_node(xds, [ant_key, ddi_key])
 
 
 def _get_aperture_summary(u_axis, v_axis, aperture_resolution):

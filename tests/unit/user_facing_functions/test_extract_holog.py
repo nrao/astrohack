@@ -168,3 +168,60 @@ class TestExtractHolog:
                 parallel=False,
                 overwrite=True,
             )
+
+    def test_append(self):
+        f_ant_id = "ea25"
+        s_ant_id = "ea06"
+        f_ant_key = f"ant_{f_ant_id}"
+        s_ant_key = f"ant_{s_ant_id}"
+
+        f_ddi_id = 0
+        s_ddi_id = 1
+        f_ddi_key = f"ddi_{f_ddi_id}"
+        s_ddi_key = f"ddi_{s_ddi_id}"
+
+        hlg_mds = extract_holog(
+            self.ms_name,
+            point_name=self.pnt_name,
+            holog_name=self.def_hlg_name,
+            ddi=f_ddi_id,
+            ant=f_ant_id,
+            overwrite=True,
+            parallel=False,
+        )
+        assert len(hlg_mds.keys()) == 1, "A single antenna should be present."
+        assert len(hlg_mds[f_ant_key].keys()) == 1, "A single ddi should be present."
+
+        hlg_mds = extract_holog(
+            self.ms_name,
+            point_name=self.pnt_name,
+            holog_name=self.def_hlg_name,
+            ddi=s_ddi_id,
+            ant=f_ant_id,
+            append=True,
+        )
+        ant_key_list = list(hlg_mds.keys())
+        assert len(ant_key_list) == 1, "A single antenna should be present."
+        assert f_ant_key in ant_key_list, f"{f_ant_key} should be present."
+        ddi_key_list = list(hlg_mds[f_ant_key].keys())
+        assert len(ddi_key_list) == 2, "Two ddis should be present."
+        assert f_ddi_key in ddi_key_list, f"{f_ddi_key} should be present."
+        assert s_ddi_key in ddi_key_list, f"{s_ddi_key} should be present."
+
+        hlg_mds = extract_holog(
+            self.ms_name,
+            point_name=self.pnt_name,
+            holog_name=self.def_hlg_name,
+            ddi="all",
+            ant=s_ant_id,
+            append=True,
+        )
+        ant_key_list = list(hlg_mds.keys())
+        assert len(ant_key_list) == 2, "Two antennas should be present."
+        assert f_ant_key in ant_key_list, f"{f_ant_key} should be present."
+        assert s_ant_key in ant_key_list, f"{s_ant_key} should be present."
+
+        ddi_key_list = list(hlg_mds[f_ant_key].keys())
+        assert len(ddi_key_list) == 2, "Two ddis should be present."
+        assert f_ddi_key in ddi_key_list, f"{f_ddi_key} should be present."
+        assert s_ddi_key in ddi_key_list, f"{s_ddi_key} should be present."

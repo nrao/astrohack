@@ -51,22 +51,8 @@ def process_beamcut_chunk(beamcut_chunk_params: dict, output_mds: AstrohackBeamc
 
     _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel)
 
-    # destination = beamcut_chunk_params["destination"]
-    # if destination is not None:
-    #     logger.info(f"Producing plots for {datalabel}")
-    #     plot_beamcut_in_amplitude_chunk(beamcut_chunk_params, cut_xdtree)
-    #     plot_beamcut_in_attenuation_chunk(beamcut_chunk_params, cut_xdtree)
-    #     plot_cuts_in_lm_chunk(beamcut_chunk_params, cut_xdtree)
-    #     create_report_chunk(beamcut_chunk_params, cut_xdtree)
-    #     logger.info(f"Completed plots for {datalabel}")
-
-    for cut_key, xdt in cut_xdtree.items():
-        output_mds.add_node(xdt.dataset, [ant_key, ddi_key, cut_key])
-    # output_mds.add_node_to_tree(
-    #     cut_xdtree,
-    #     dump_to_disk=True,
-    #     running_in_parallel=beamcut_chunk_params["parallel"],
-    # )
+    cut_xdtree_path = "/".join([output_mds.filename, ant_key, ddi_key])
+    cut_xdtree.to_zarr(cut_xdtree_path, mode="w")
 
 
 ###########################################################
@@ -542,8 +528,3 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
 
             cut_xds[f"{parallel_hand}_amp_fit"] = xr.DataArray(fit, dims="lm_dist")
     return
-
-
-###########################################################
-### Plot utilities
-###########################################################

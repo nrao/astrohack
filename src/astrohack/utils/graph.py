@@ -174,7 +174,6 @@ def create_and_execute_graph_from_dict_2(
         )  # Open in read/write mode
         zarr.convenience.consolidate_metadata(root_group.store)
         output_mds.open()
-        print(output_mds)
 
         if len(output_mds.keys()) == 0:
             logger.warning("Processing did not yield any data")

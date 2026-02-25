@@ -11,6 +11,7 @@ from scipy import spatial
 
 import toolviper.utils.logger as logger
 
+from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.utils import (
     compute_antenna_baseline_distance_matrix_dict,
 )
@@ -133,13 +134,13 @@ def extract_pointing_preprocessing(input_params):
     return ant_dist_matrix, looping_dict, pnt_params, mapping_state_ids
 
 
-def extract_pointing_chunk(pnt_params, output_mds):
+def extract_pointing_chunk(pnt_params: dict, output_mds: AstrohackPointFile):
     """Extract subset of pointing table data into a dictionary of xarray data arrays. This is written to disk as a
     zarr file. This function processes a chunk the overall data and is managed by Dask.
 
     Args:
         pnt_params(dict): extract_pointing parameters
-        output_mds: Output AstrohackPointFile
+        output_mds(AstrohackPointFile): Output AstrohackPointFile
     """
     data_dict = pnt_params["dic_data"]
     ms_name = pnt_params["ms_name"]
@@ -300,11 +301,7 @@ def extract_pointing_chunk(pnt_params, output_mds):
         "radius": ant_rad,
     }
 
-    output_mds.add_node_to_tree_2(
-        xr.DataTree(dataset=pnt_xds, name=ant_key),
-        # dump_to_disk=True,
-        # running_in_parallel=pnt_params["parallel"],
-    )
+    output_mds.add_node(pnt_xds, [ant_key])
 
 
 def _extract_scan_time_dict(time, scan_ids, state_ids, ddi_ids, mapping_state_ids):

@@ -301,30 +301,9 @@ class AstrohackBaseFile:
         """
         assert isinstance(new_node, xr.DataTree)
         lvls = new_node.name.split("-")
-        n_lvls = len(lvls)
-        lvl_0 = lvls[0]
-        zero_lvl_path = f"{self.filename}/{lvl_0}"
-        if n_lvls == 1:
-            new_node.to_zarr(zero_lvl_path, mode="w")
-        else:
-            lvl_1 = lvls[1]
-            try:
-                zero_lvl_xdt = xarray.open_datatree(
-                    zero_lvl_path, mode="r+", engine="zarr", chunks="auto"
-                )
-            except FileNotFoundError:
-                zero_lvl_xdt = xr.DataTree(name=lvl_0)
-            if n_lvls == 2:
-                zero_lvl_xdt[lvl_1] = new_node
-            elif n_lvls == 3:
-                lvl_2 = lvls[2]
-                if lvl_1 in zero_lvl_xdt.keys():
-                    zero_lvl_xdt[lvl_1][lvl_2] = new_node
-                else:
-                    zero_lvl_xdt[lvl_1] = xarray.DataTree(
-                        name=lvl_1, children={lvl_2: new_node}
-                    )
-            zero_lvl_xdt.to_zarr(zero_lvl_path, mode="a")
+
+        new_node_path = "/".join([self.filename, *lvls])
+        new_node.to_zarr(new_node_path, mode="w")
 
     def __repr__(self):
         """

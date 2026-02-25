@@ -1,13 +1,65 @@
 import shutil
-
+import pathlib
 import dask
 import xarray as xr
 import toolviper.utils.logger as logger
 import copy
 import zarr
+import glob
 
 from astrohack.utils.text import approve_prefix
 from astrohack.utils.text import param_to_list
+
+
+def _factorized_graph_execution_return(status, ret_list, fetch_ret):
+    if fetch_ret:
+        if status:
+            return status, ret_list
+        else:
+            return status, None
+    else:
+        return status
+
+
+def _consolidate_a_level(key_path):
+    if pathlib.Path(key_path).is_dir():
+        key = key_path.split("/")[-1]
+        this_lvl_xdt = xr.DataTree(name=key)
+        this_lvl_xdt.to_zarr(key_path)
+        del this_lvl_xdt
+        this_zarr_group = zarr.open(key_path, mode="r+")
+        zarr.convenience.consolidate_metadata(this_zarr_group.store)
+    else:
+        logger.warning(f"There is an unexpected entity at {key_path}")
+
+
+def _consolidate_output_mds(key_order, output_mds):
+    mds_path = output_mds.filename
+    logger.info(f"Consolidating {mds_path}...")
+
+    # Hardcoded number of levels of extract_holgo products as they are 3 leveled but execution is 2 leveled.
+    if output_mds.root.attrs["origin_info"]["creator_function"] == "extract_holog":
+        n_lvls = 3
+    else:
+        n_lvls = len(key_order)
+
+    if n_lvls == 1:
+        pass
+    elif n_lvls == 2 or n_lvls == 3:
+        lvl_0_list = glob.glob(f"{mds_path}/*")
+        for key_path_0 in lvl_0_list:
+            if n_lvls == 3:
+                lvl_1_list = glob.glob(f"{key_path_0}/*")
+                for key_path_1 in lvl_1_list:
+                    _consolidate_a_level(key_path_1)
+            _consolidate_a_level(key_path_0)
+    else:
+        raise NotImplementedError(f"Unsupported number of levels: {n_lvls}")
+
+    root_group = zarr.open(mds_path, mode="r+")  # Open in read/write mode
+    zarr.convenience.consolidate_metadata(root_group.store)
+
+    output_mds.open()
 
 
 def _construct_general_graph_recursively(
@@ -76,14 +128,6 @@ def create_and_execute_graph_from_dict(
     parallel=False,
     fetch_returns=False,
 ):
-    def _factorized_return(status, ret_list, fetch_ret):
-        if fetch_ret:
-            if status:
-                return status, ret_list
-            else:
-                return status, None
-        else:
-            return status
 
     if hasattr(looping_dict, "root"):
         looping_dict = looping_dict.root
@@ -102,7 +146,7 @@ def create_and_execute_graph_from_dict(
 
     if len(delayed_list) == 0:
         logger.warning(f"List of delayed processing jobs is empty: No data to process")
-        return _factorized_return(False, [], fetch_returns)
+        return _factorized_graph_execution_return(False, [], fetch_returns)
 
     if parallel:
         return_list = dask.compute(delayed_list)[0]
@@ -114,11 +158,11 @@ def create_and_execute_graph_from_dict(
     if output_mds is not None:
         if len(output_mds.keys()) == 0:
             logger.warning("Processing did not yield any data")
-            return _factorized_return(False, return_list, fetch_returns)
+            return _factorized_graph_execution_return(False, return_list, fetch_returns)
         else:
-            return _factorized_return(True, return_list, fetch_returns)
+            return _factorized_graph_execution_return(True, return_list, fetch_returns)
 
-    return _factorized_return(True, return_list, fetch_returns)
+    return _factorized_graph_execution_return(True, return_list, fetch_returns)
 
 
 def create_and_execute_graph_from_dict_2(
@@ -130,15 +174,6 @@ def create_and_execute_graph_from_dict_2(
     parallel=False,
     fetch_returns=False,
 ):
-    def _factorized_return(status, ret_list, fetch_ret):
-        if fetch_ret:
-            if status:
-                return status, ret_list
-            else:
-                return status, None
-        else:
-            return status
-
     if hasattr(looping_dict, "root"):
         looping_dict = looping_dict.root
 
@@ -159,7 +194,7 @@ def create_and_execute_graph_from_dict_2(
 
     if len(delayed_list) == 0:
         logger.warning(f"List of delayed processing jobs is empty: No data to process")
-        return _factorized_return(False, [], fetch_returns)
+        return _factorized_graph_execution_return(False, [], fetch_returns)
 
     if parallel:
         return_list = dask.compute(delayed_list)[0]
@@ -169,21 +204,17 @@ def create_and_execute_graph_from_dict_2(
             return_list.append(function(*args))
 
     if output_mds is not None:
-        root_group = zarr.open(
-            output_mds.filename, mode="r+"
-        )  # Open in read/write mode
-        zarr.convenience.consolidate_metadata(root_group.store)
-        output_mds.open()
+        _consolidate_output_mds(key_order, output_mds)
 
         if len(output_mds.keys()) == 0:
             logger.warning("Processing did not yield any data")
-            # shutil.rmtree(output_mds.filename)
-            return _factorized_return(False, return_list, fetch_returns)
+            shutil.rmtree(output_mds.filename)
+            return _factorized_graph_execution_return(False, return_list, fetch_returns)
         else:
 
-            return _factorized_return(True, return_list, fetch_returns)
+            return _factorized_graph_execution_return(True, return_list, fetch_returns)
 
-    return _factorized_return(True, return_list, fetch_returns)
+    return _factorized_graph_execution_return(True, return_list, fetch_returns)
 
 
 def compute_graph_from_lists(

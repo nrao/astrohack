@@ -4,7 +4,7 @@ import toolviper.utils.parameter
 
 from astrohack import open_image
 from astrohack.core.combine import process_combine_chunk
-from astrohack.utils.graph import create_and_execute_graph_from_dict_2
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.image_mds import AstrohackImageFile
@@ -96,7 +96,7 @@ def combine(
         combine_name, combine_params
     )
 
-    executed_graph = create_and_execute_graph_from_dict_2(
+    executed_graph = create_and_execute_graph_from_dict(
         looping_dict=image_mds,
         chunk_function=process_combine_chunk,
         param_dict=combine_params,

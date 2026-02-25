@@ -5,7 +5,7 @@ from toolviper.utils.parameter import validate
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name
 from astrohack.utils.file import overwrite_file
-from astrohack.utils.graph import create_and_execute_graph_from_dict_2
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.dio import open_holog
 from astrohack.utils.validation import custom_plots_checker
@@ -124,7 +124,7 @@ def beamcut(
     )
 
     holog_mds = open_holog(holog_name)
-    executed_graph = create_and_execute_graph_from_dict_2(
+    executed_graph = create_and_execute_graph_from_dict(
         looping_dict=holog_mds,
         chunk_function=process_beamcut_chunk,
         param_dict=beamcut_params,

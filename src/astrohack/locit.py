@@ -1,6 +1,6 @@
 import toolviper.utils.parameter
 
-from astrohack.utils.graph import create_and_execute_graph_from_dict_2
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.core.locit import (
     locit_separated_chunk,
@@ -189,7 +189,7 @@ def locit(
         }
     )
 
-    executed_graph = create_and_execute_graph_from_dict_2(
+    executed_graph = create_and_execute_graph_from_dict(
         looping_dict=locit_mds,
         chunk_function=function,
         param_dict=locit_params,

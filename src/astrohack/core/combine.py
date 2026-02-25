@@ -5,12 +5,13 @@ import xarray as xr
 
 import toolviper.utils.logger as logger
 
+from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.utils import create_dataset_label, clight
 from scipy.interpolate import griddata
 from astrohack.utils.text import param_to_list
 
 
-def process_combine_chunk(combine_chunk_params, output_mds):
+def process_combine_chunk(combine_chunk_params: dict, output_mds: AstrohackImageFile):
     """
     Process a combine chunk
     Args:
@@ -172,12 +173,7 @@ def process_combine_chunk(combine_chunk_params, output_mds):
         out_ddi_key = "ddi_99"
         out_xds.attrs["ddi"] = out_ddi_key
         out_xds.attrs["summary"] = _merge_summary_dict(summary_dict, ddi_ref_key)
-        out_dataset_name = f"{ant_key}-{out_ddi_key}"
-        output_mds.add_node_to_tree(
-            xr.DataTree(name=out_dataset_name, dataset=out_xds),
-            dump_to_disk=True,
-            running_in_parallel=combine_chunk_params["parallel"],
-        )
+        output_mds.add_node(out_xds, [ant_key, out_ddi_key])
 
 
 def _merge_summary_dict(summary_dict, ddi_ref_key):

@@ -37,9 +37,11 @@ def _consolidate_output_mds(key_order, output_mds):
     mds_path = output_mds.filename
     logger.info(f"Consolidating {mds_path}...")
 
-    # Hardcoded number of levels of extract_holgo products as they are 3 leveled but execution is 2 leveled.
+    # Hardcoded number of levels of extract_holog products as they are 3 leveled but execution is 2 leveled.
     if output_mds.root.attrs["origin_info"]["creator_function"] == "extract_holog":
         n_lvls = 3
+    elif output_mds.root.attrs["origin_info"]["creator_function"] == "combine":
+        n_lvls = 2
     else:
         n_lvls = len(key_order)
 

@@ -8,11 +8,12 @@ from casacore import tables as ctables
 from astropy.coordinates import SkyCoord, CIRS
 from astropy.time import Time
 
+from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
 from astrohack.utils.constants import twopi
 
 
-def extract_antenna_data(extract_locit_parms, locit_mds):
+def extract_antenna_data(extract_locit_parms: dict, locit_mds: AstrohackLocitFile):
     """
     Extract antenna information from the ANTENNA sub table of the cal table
     Args:
@@ -79,9 +80,8 @@ def extract_antenna_data(extract_locit_parms, locit_mds):
                     "offset": ant_off[i_ant].tolist(),
                 }
                 ant_xdtree.attrs["antenna_info"] = ant_info
-                locit_mds.add_node_to_tree(
-                    ant_xdtree, dump_to_disk=True, running_in_parallel=False
-                )
+                ant_xdt_name = "/".join([locit_mds.filename, ant_key])
+                ant_xdtree.to_zarr(ant_xdt_name, mode="w")
 
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:

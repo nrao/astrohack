@@ -35,14 +35,7 @@ def process_combine_chunk(combine_chunk_params: dict, output_mds: AstrohackImage
             logger.info(
                 f"{dataset_label} has a single ddi to be combined, data copied from input file"
             )
-            ddi_xdt = xr.DataTree(
-                name=f"{ant_key}-{ddi_key}", dataset=ant_xdt[ddi_key].dataset
-            )
-            output_mds.add_node_to_tree(
-                ddi_xdt,
-                dump_to_disk=True,
-                running_in_parallel=combine_chunk_params["parallel"],
-            )
+            output_mds.add_node(ant_xdt[ddi_key].dataset, [ant_key, ddi_key])
         else:
             logger.warning(
                 f"{dataset_label} has no {ddi_key}, nothing to process for this antenna"

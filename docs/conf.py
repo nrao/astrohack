@@ -72,6 +72,7 @@ autoapi_keep_files = True
 autoapi_ignore = [
     "*/_panel_classes/*",
     "*/utils/*",
+    "*/core/*",
     "*/visualization/*",
     "*/__pycache__/*",
     "*/data/_*",

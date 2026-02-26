@@ -7,27 +7,11 @@ from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,
 )
+from .io import *
 
 from .beamcut import beamcut
-from astrohack.io.beamcut_mds import AstrohackBeamcutFile
-from astrohack.io.locit_mds import AstrohackLocitFile
-from astrohack.io.position_mds import AstrohackPositionFile
-from astrohack.io.panel_mds import AstrohackPanelFile
-from astrohack.io.holog_mds import AstrohackHologFile
-from astrohack.io.image_mds import AstrohackImageFile
-from astrohack.io.point_mds import AstrohackPointFile
-
 from .extract_pointing import extract_pointing
 from .holog import holog
-from astrohack.io.dio import (
-    open_holog,
-    open_image,
-    open_pointing,
-    open_panel,
-    open_locit,
-    open_position,
-    open_beamcut,
-)
 from .panel import panel
 from .combine import combine
 from .locit import locit

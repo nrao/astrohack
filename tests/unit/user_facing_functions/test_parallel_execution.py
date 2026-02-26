@@ -51,7 +51,6 @@ class TestExtractHolog:
         toolviper.utils.data.download(file=cls.lct_name, folder=cls.data_dir)
         toolviper.utils.data.download(file=cls.ref_pos_name, folder=cls.data_dir)
         toolviper.utils.data.download(file=cls.bmc_ms_name, folder=cls.data_dir)
-        toolviper.utils.data.download(file=cls.ref_bmc_name, folder=cls.data_dir)
 
         add_data_folder_to_names_in_class(cls)
 
@@ -61,13 +60,13 @@ class TestExtractHolog:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        # shutil.rmtree(cls.data_dir)
+        shutil.rmtree(cls.data_dir)
         cls.client.close()
 
     def test_extract_pointing(self):
         new_pnt_mds = extract_pointing(
             ms_name=self.ms_name,
-            pnt_name=self.def_pnt_name,
+            point_name=self.def_pnt_name,
             overwrite=True,
             parallel=True,
         )
@@ -162,7 +161,7 @@ class TestExtractHolog:
             parallel=True,
         )
 
-        new_bmc_mds = beamcut(
+        parallel_mds = beamcut(
             holog_name=self.bmc_hlg_name,
             beamcut_name=self.def_bmc_name,
             parallel=True,
@@ -173,7 +172,14 @@ class TestExtractHolog:
             self.def_bmc_name
         ).is_dir(), f"A .beamcut.zarr file named {self.def_bmc_name} does not exist."
 
-        ref_bmc_mds = open_beamcut(self.ref_bmc_name)
-        assert new_bmc_mds.is_close_to(
-            ref_bmc_mds
-        ), "Reference and new mdses are different."
+        serial_mds = beamcut(
+            holog_name=self.bmc_hlg_name,
+            beamcut_name=f"{self.data_dir}/serial.beamcut.zarr",
+            parallel=False,
+            overwrite=True,
+            destination=None,
+        )
+
+        assert parallel_mds.is_close_to(
+            serial_mds
+        ), "parallel and serial mdses are different."

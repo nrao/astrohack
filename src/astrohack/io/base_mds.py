@@ -345,11 +345,10 @@ class AstrohackBaseFile:
 
         root_group = zarr.open(mds_path, mode="r+")  # Open in read/write mode
         zarr.convenience.consolidate_metadata(root_group.store)
-
         self.open()
 
 
-def _consolidate_a_level(key_path):
+def _consolidate_a_level(key_path: str):
     """
     Consolidate a level containing data trees onto a single unified data tree entity.
 

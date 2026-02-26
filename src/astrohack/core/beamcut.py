@@ -51,8 +51,7 @@ def process_beamcut_chunk(beamcut_chunk_params: dict, output_mds: AstrohackBeamc
 
     _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel)
 
-    cut_xdtree_path = "/".join([output_mds.filename, ant_key, ddi_key])
-    cut_xdtree.to_zarr(cut_xdtree_path, mode="w")
+    output_mds.add_node(cut_xdtree, [ant_key, ddi_key])
 
 
 ###########################################################

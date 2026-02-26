@@ -1,4 +1,5 @@
 import contextlib
+import inspect
 import io
 import numpy as np
 import xarray as xr
@@ -246,3 +247,103 @@ def add_data_folder_to_names_in_class(class_ref):
 
 def relative_difference(result, expected):
     return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
+
+
+def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
+    """analyse summary file"""
+    summ_str = capture_prints_from_function(mds_obj.summary)
+    n_input_pars = len(exp_input_pars.keys())
+
+    i_start_input = 15
+    i_end_input = i_start_input + n_input_pars
+    i_start_orig = 6
+    i_end_orig = 9
+    inside_method_table = False
+    inside_antenna_table = False
+    exp_orig_info = _create_origin_dict("test_summary")
+
+    method_list = inspect.getmembers(mds_obj, predicate=inspect.ismethod)
+    exp_method_list = []
+    for name, method in method_list:
+        if name[0] == "_":
+            continue
+        else:
+            exp_method_list.append(name)
+
+    this_method_list = []
+    this_ant_list = []
+    this_input_pars = {}
+    this_orig_info = {}
+    this_filename = None
+    for i_line, line in enumerate(summ_str.splitlines()):
+        if i_line == 2:
+            this_filename = line.split()[1]
+        if i_start_orig <= i_line < i_end_orig:
+            wrds = line.split(":")
+            key = wrds[0].strip()
+            value = wrds[1].strip()
+            this_orig_info[key] = value
+        elif i_start_input <= i_line < i_end_input:
+            wrds = line.split("|")
+            key = wrds[1].strip()
+            value = wrds[2].strip()
+            this_input_pars[key] = value
+        elif line.strip() == "Available methods:":
+            inside_method_table = True
+        elif inside_method_table:
+            if line.strip() == "":
+                inside_method_table = False
+            elif line[0] == "+":
+                pass
+            else:
+                method_wrd = line.split("|")[1].strip()
+                if method_wrd == "" or method_wrd == "Methods":
+                    pass
+                else:
+                    this_method_list.append(method_wrd)
+        elif line.strip() == "Data Contents:":
+            inside_antenna_table = True
+        elif inside_antenna_table:
+            if line.strip() == "":
+                inside_antenna_table = False
+            elif line[0] == "+":
+                pass
+            else:
+                ant_wrd = line.split("|")[1].strip()
+                if ant_wrd == "" or ant_wrd == "Antenna":
+                    pass
+                else:
+                    this_ant_list.append(ant_wrd)
+        else:
+            pass
+
+    assert (
+        this_filename == exp_file_name
+    ), "File name in Summary should be equal to the expected one"
+
+    assert are_dicts_close(
+        this_input_pars, exp_input_pars
+    ), "Input parameter dictionaries should identical"
+
+    assert are_dicts_close(
+        this_orig_info, exp_orig_info
+    ), "Origin info dictionaries should be identical"
+
+    assert are_lists_equal(
+        this_ant_list, exp_ant_keys_list
+    ), "Antenna list should be equal to the expected one"
+
+    assert are_lists_equal(
+        this_method_list, exp_method_list
+    ), "Method list should be equal to the expected one"
+
+
+def _create_origin_dict(caller):
+    from astrohack import __version__ as astroversion
+
+    orig_dict = {
+        "origin": "astrohack",
+        "version": astroversion,
+        "creator_function": caller,
+    }
+    return orig_dict

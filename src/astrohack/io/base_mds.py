@@ -1,3 +1,5 @@
+from typing import Union
+
 import xarray as xr
 import zarr
 import pathlib
@@ -202,6 +204,7 @@ class AstrohackBaseFile:
         outstr += get_method_list_string(self)
         outstr += get_data_content_string(self.root)
         print(outstr)
+        return outstr
 
     @classmethod
     def create_from_input_parameters(cls, file_name: str, input_parameters: dict):
@@ -223,17 +226,39 @@ class AstrohackBaseFile:
         data_obj.root.attrs["input_parameters"] = input_parameters
         return data_obj
 
-    def _dump_to_disk(self):
-        self.write(mode="a")
-        del self.root
-        self.open()
+    def add_node(
+        self,
+        xarray_data: Union[xr.Dataset, xr.DataTree],
+        key_list: Union[list[str], tuple[str]],
+    ):
+        """
+        Add a node to the data tree file structure, however this node is not yet consolidated into the data tree \
+        structure, consolidate must be called to integrate all nodes writen by add_node onto the tree structure.
 
-    def add_node(self, xds_data, key_list):
-        assert isinstance(xds_data, xr.Dataset)
+        :param xarray_data: XDS or XDT to be included into the data tree structure.
+        :type xarray_data: xr.DataSet, xr.DataTree
+
+        :param key_list: list of data identifying keys to determine where to add node
+        :type key_list: list, tuple
+
+        :return: None
+        :rtype: NoneType
+        """
         assert isinstance(key_list, (list, tuple))
         final_key = key_list[-1]
         new_node_path = "/".join([self.filename, *key_list])
-        xr.DataTree(dataset=xds_data, name=final_key).to_zarr(new_node_path, mode="w")
+
+        if isinstance(xarray_data, xr.Dataset):
+            xr.DataTree(dataset=xarray_data, name=final_key).to_zarr(
+                new_node_path, mode="w"
+            )
+        elif isinstance(xarray_data, xr.DataTree):
+            xarray_data.name = final_key
+            xarray_data.to_zarr(new_node_path, mode="w")
+        else:
+            raise NotImplementedError(
+                f"Don't know how to handle nodes of type {type(xarray_data)}"
+            )
 
     def __repr__(self):
         """
@@ -281,7 +306,19 @@ class AstrohackBaseFile:
 
         return is_close
 
-    def consolidate(self, key_order):
+    def consolidate(self, key_order: list[str]):
+        """
+        Traverse own file structure on disk consolidating metadata to create a unified data tree entity.
+
+        :param key_order: Order in which keys appear in file structure, ordered by depth.
+        :type key_order: list
+
+        :return: None
+        :rtype: NoneType
+        """
+
+        # This function would be more robust if it were recursive, then a key order list probably wouldn't even be
+        # necessary.
         mds_path = self.filename
         logger.info(f"Consolidating {mds_path}...")
 
@@ -313,6 +350,15 @@ class AstrohackBaseFile:
 
 
 def _consolidate_a_level(key_path):
+    """
+    Consolidate a level containing data trees onto a single unified data tree entity.
+
+    :param key_path: path at which to consolidate
+    :type key_path: str
+
+    :return: None
+    :rtype: NoneType
+    """
     if pathlib.Path(key_path).is_dir():
         key = key_path.split("/")[-1]
         try:

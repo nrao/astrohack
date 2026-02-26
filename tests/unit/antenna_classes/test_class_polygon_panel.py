@@ -47,7 +47,7 @@ class TestPolygonPanel:
         assert np.all(np.isclose(margin_poly, margin_reference))
 
         with pytest.raises(ValueError):
-            test_panel = PolygonPanel(
+            PolygonPanel(
                 self.label, "corotated_paraboloid", self.panel_info, self.panel_margin
             )
 
@@ -55,17 +55,17 @@ class TestPolygonPanel:
         """
         Test over the is_inside test for a point
         """
-        issample, isinpanel = self.panel.is_inside(0.5, 0.5)
+        is_sample, is_in_panel = self.panel.is_inside(0.5, 0.5)
         assert (
-            issample and isinpanel
+            is_sample and is_in_panel
         ), "center of the panel must be a sample and inside panel"
 
-        issample, isinpanel = self.panel.is_inside(2.0, 2.0)
+        is_sample, is_in_panel = self.panel.is_inside(2.0, 2.0)
         assert (
-            not issample and not isinpanel
+            not is_sample and not is_in_panel
         ), "Point outside panel must not be inside panel"
 
-        issample, isinpanel = self.panel.is_inside(0.95, 0.95)
+        is_sample, is_in_panel = self.panel.is_inside(0.95, 0.95)
         assert (
-            not issample and isinpanel
+            not is_sample and is_in_panel
         ), "Point at margin must be inside but not a sample"

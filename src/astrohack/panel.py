@@ -1,18 +1,14 @@
-import os
-import pathlib
 import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
-from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-
-from astrohack.utils.data import write_meta_data
+from astrohack.utils.file import overwrite_file
 from astrohack.core.panel import process_panel_chunk
 from astrohack.utils.validation import custom_panel_checker
 from astrohack.utils.text import get_default_file_name
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 
-from astrohack.io.mds import AstrohackPanelFile, AstrohackImageFile
+from astrohack.io.panel_mds import AstrohackPanelFile
+from astrohack.io.dio import open_image
 
 from typing import Union, List
 
@@ -50,7 +46,7 @@ def panel(
     passing a dictionary, default is 3 (appropriate for sigma clipping)
     :type clip_level: float, dict, optional
 
-    :param use_detailed_mask: Use a detailed aperture mask, ie. include arm shadows for the VLA or include regions \
+    :param use_detailed_mask: Use a detailed aperture mask, i.e. include arm shadows for the VLA or include regions \
     outside central circular aperture for the ngvla, default is True.
     :type use_detailed_mask: bool, optional
 
@@ -202,57 +198,29 @@ def panel(
         )
 
     """
-    check_if_file_can_be_opened(image_name, "0.7.2")
 
     # Doing this here allows it to get captured by locals()
-    if panel_name is None:
-        panel_name = get_default_file_name(
-            input_file=image_name, output_type=".panel.zarr"
-        )
+    panel_name = get_default_file_name(image_name, ".panel.zarr", panel_name)
 
     panel_params = locals()
 
-    input_params = panel_params.copy()
-    assert pathlib.Path(panel_params["image_name"]).exists() is True, logger.error(
-        f"File {panel_params['image_name']} does not exists."
+    image_mds = open_image(image_name)
+
+    overwrite_file(panel_name, overwrite)
+    panel_mds = AstrohackPanelFile.create_from_input_parameters(
+        panel_name, panel_params
     )
 
-    image_mds = AstrohackImageFile(panel_params["image_name"])
-    image_mds.open()
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=image_mds,
+        chunk_function=process_panel_chunk,
+        param_dict=panel_params,
+        key_order=["ant", "ddi"],
+        output_mds=panel_mds,
+    )
 
-    overwrite_file(panel_params["panel_name"], panel_params["overwrite"])
-
-    if PANEL_MODEL_DICT[panel_model]["experimental"]:
-        logger.warning(f"Using experimental panel fitting model {panel_model}")
-
-    if os.path.exists(panel_params["image_name"] + "/.aips"):
-        panel_params["origin"] = "AIPS"
-        process_panel_chunk(panel_params)
-
-        panel_mds = AstrohackPanelFile(panel_params["panel_name"])
-        panel_mds.open()
-
+    if executed_graph:
+        panel_mds.write(mode="a")
         return panel_mds
-
     else:
-        panel_params["origin"] = "astrohack"
-        panel_params["version"] = image_mds._input_pars["version"]
-        if compute_graph(
-            image_mds,
-            process_panel_chunk,
-            panel_params,
-            ["ant", "ddi"],
-            parallel=parallel,
-        ):
-            logger.info("Finished processing")
-            output_attr_file = "{name}/{ext}".format(
-                name=panel_params["panel_name"], ext=".panel_input"
-            )
-            write_meta_data(output_attr_file, input_params)
-            panel_mds = AstrohackPanelFile(panel_params["panel_name"])
-            panel_mds.open()
-
-            return panel_mds
-        else:
-            logger.warning("No data to process")
-            return None
+        return None

@@ -1,16 +1,13 @@
 import pathlib
-import json
-import xarray as xr
-
-import toolviper.utils.logger as logger
 
 from toolviper.utils.parameter import validate
 
 from astrohack.core.beamcut import process_beamcut_chunk
-from astrohack.utils import get_default_file_name, add_caller_and_version_to_dict
-from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
-from astrohack.utils.graph import compute_graph, compute_graph_to_mds_tree
+from astrohack.utils import get_default_file_name
+from astrohack.utils.file import overwrite_file
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.dio import open_holog
 from astrohack.utils.validation import custom_plots_checker
 
 from typing import Union, List
@@ -21,7 +18,7 @@ def beamcut(
     holog_name: str,
     beamcut_name: str = None,
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[str]] = "all",
+    ddi: Union[int, List[int], str] = "all",
     destination: str = None,
     lm_unit: str = "amin",
     azel_unit: str = "deg",
@@ -113,45 +110,63 @@ def beamcut(
         )
     """
 
-    check_if_file_can_be_opened(holog_name, "0.9.5")
+    beamcut_name = get_default_file_name(holog_name, ".beamcut.zarr", beamcut_name)
 
-    if beamcut_name is None:
-        beamcut_name = get_default_file_name(
-            input_file=holog_name, output_type=".beamcut.zarr"
-        )
+    beamcut_params = locals()
 
     if destination is not None:
         pathlib.Path(destination).mkdir(exist_ok=True)
 
-    beamcut_params = locals()
+    overwrite_file(beamcut_name, overwrite)
 
-    input_params = beamcut_params.copy()
-    assert pathlib.Path(beamcut_params["holog_name"]).exists() is True, logger.error(
-        f"File {beamcut_params['holog_name']} does not exists."
-    )
-
-    json_data = "/".join((beamcut_params["holog_name"], ".holog_json"))
-
-    with open(json_data, "r") as json_file:
-        holog_json = json.load(json_file)
-
-    overwrite_file(beamcut_params["beamcut_name"], beamcut_params["overwrite"])
     beamcut_mds = AstrohackBeamcutFile.create_from_input_parameters(
         beamcut_params["beamcut_name"], beamcut_params
     )
 
-    executed_graph = compute_graph_to_mds_tree(
-        holog_json,
-        process_beamcut_chunk,
-        beamcut_params,
-        ["ant", "ddi"],
-        beamcut_mds,
+    holog_mds = open_holog(holog_name)
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=holog_mds,
+        chunk_function=process_beamcut_chunk,
+        param_dict=beamcut_params,
+        key_order=["ant", "ddi"],
+        output_mds=beamcut_mds,
         parallel=parallel,
     )
-
     if executed_graph:
-        beamcut_mds.write()
+        if destination is not None:
+            beamcut_mds.plot_beamcut_in_amplitude(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                y_scale=y_scale,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.plot_beamcut_in_attenuation(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                y_scale=y_scale,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.plot_beam_cuts_over_sky(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.create_beam_fit_report(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                parallel=parallel,
+            )
+
         return beamcut_mds
     else:
-        logger.warning("No data to process")
         return None

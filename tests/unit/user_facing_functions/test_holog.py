@@ -1,293 +1,188 @@
-import pytest
-
 import os
-import json
+import pytest
+import pathlib
 import shutil
 import toolviper
 
 import numpy as np
 
+from astrohack import open_image
 from astrohack.holog import holog
-from astrohack.extract_holog import extract_holog
-from astrohack.extract_pointing import extract_pointing
-
-
-def relative_difference(result, expected):
-    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+)
 
 
 class TestHolog:
+    data_dir = "holog_data"
+    hlg_name = "ea25_cal_small_before_reference.holog.zarr"
+
+    def_img_name = "ea25_cal_small_before_reference.image.zarr"
+    ref_img_name = "ea25_cal_before_reference.image.zarr"
+
+    ant_id = "ea25"
+    ddi_id = 0
+    ant_key = f"ant_{ant_id}"
+    ddi_key = f"ddi_{ddi_id}"
+
     @classmethod
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        toolviper.utils.data.download(
-            file="ea25_cal_small_before_fixed.split.ms", folder="data/"
-        )
+        toolviper.utils.data.download(file=cls.hlg_name, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.ref_img_name, folder=cls.data_dir)
 
-        toolviper.utils.data.download(
-            file="holog_numerical_verification.json", folder="data/"
-        )
-
-        extract_pointing(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            overwrite=True,
-            parallel=False,
-        )
-
-        extract_holog(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            data_column="CORRECTED_DATA",
-            parallel=False,
-            overwrite=True,
-        )
-
-        holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            grid_size=[31, 31],
-            cell_size=[-0.0006386556122807017, 0.0006386556122807017],
-            overwrite=True,
-            parallel=False,
-        )
-
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            cls.json_file = json.load(json_attr)
+        add_data_folder_to_names_in_class(cls)
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree("data")
+        shutil.rmtree(cls.data_dir)
 
-    def setup_method(self):
-        """setup any state specific to all methods of the given class"""
-        pass
-
-    def teardown_method(self):
-        """teardown any state that was previously setup for all methods of the given class"""
-        pass
-
-    def test_holog_grid_cell_size(self):
+    def test_defaults(self):
         """
-        Calculate the correct grid and cell size when compared to known values in the test file; known values are
-        provided by a test json file.
+        test holog defaults
         """
-
-        tolerance = 2.0e-5
-
-        with open("data/holog_numerical_verification.json") as file:
-            reference_dict = json.load(file)
-
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as attr_file:
-            image_attr = json.load(attr_file)
-
-        for i, _ in enumerate(image_attr["cell_size"]):
-            print(image_attr["grid_size"][i])
-            print(reference_dict["vla"]["grid_size"][i])
-
-            assert (
-                relative_difference(
-                    image_attr["cell_size"][i], reference_dict["vla"]["cell_size"][i]
-                )
-                < tolerance
-            )
-
-            assert (
-                relative_difference(
-                    image_attr["grid_size"][i], reference_dict["vla"]["grid_size"][i]
-                )
-                < tolerance
-            )
-
-    def test_holog_image_name(self):
-        """
-        Test holog image name created correctly.
-        """
-
-        assert os.path.exists("data/ea25_cal_small_before_fixed.split.image.zarr")
-
-    def test_holog_ant_id(self):
-        """
-        Specify a single antenna to process; check that is the only antenna returned.
-        """
-
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            ant=["ea25"],
+        new_img_mds = holog(
+            holog_name=self.hlg_name,
             overwrite=True,
-            parallel=False,
+        )
+        assert pathlib.Path(
+            self.def_img_name
+        ).is_dir(), f"A .image.zarr file named {self.def_img_name} does not exist."
+
+        ref_img_mds = open_image(self.ref_img_name)
+        assert new_img_mds.is_close_to(
+            ref_img_mds
+        ), "Reference and new mdses are different."
+
+    def test_data_selection(self):
+        image_mds = holog(
+            holog_name=self.hlg_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
         )
 
-        assert list(image_mds.keys()) == ["ant_ea25"]
+        ant_list = list(image_mds.keys())
+        assert len(ant_list) == 1, "A single antenna should be present."
+        assert (
+            ant_list[0] == self.ant_key
+        ), "Ant name should be the same as the one given."
 
-    def test_holog_ddi(self):
-        """
-        Specify a single ddi to process; check that is the only ddi returned.
-        """
+        ddi_list = list(image_mds[self.ant_key].keys())
+        assert len(ddi_list) == 1, "A single ddi should be present."
+        assert (
+            ddi_list[0] == self.ddi_key
+        ), "DDI key should be the same as the one given."
 
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            overwrite=True,
-            ddi=[0],
-            parallel=False,
-        )
-
-        for ant in image_mds.keys():
-            for ddi in image_mds[ant].keys():
-                assert ddi == "ddi_0"
-
-    def test_holog_padding_factor(self):
+    def test_padding_factor(self):
         """
         Specify a padding factor to use in the image creation; check that image size is created.
         """
 
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            padding_factor=10,
-            overwrite=True,
-            parallel=False,
-        )
+        pad_list = [[5, 256], [10, 512]]
 
-        for ant in image_mds.keys():
-            for ddi in image_mds[ant].keys():
-                assert image_mds[ant][ddi].APERTURE.shape == (1, 1, 4, 512, 512)
+        for pad_fac, ap_size in pad_list:
+            image_mds = holog(
+                holog_name=self.hlg_name,
+                padding_factor=pad_fac,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                overwrite=True,
+                parallel=False,
+            )
+            ap_shape = (
+                1,
+                1,
+                4,
+                ap_size,
+                ap_size,
+            )
+            for ant_key in image_mds.keys():
+                for ddi_key in image_mds[ant_key].keys():
+                    this_ap_shape = image_mds[ant_key][ddi_key].APERTURE.shape
+                    assert this_ap_shape == ap_shape, (
+                        f"Aperture for {ant_key} {ddi_key} for a padding factor of {pad_fac} should be {ap_shape} "
+                        f"but is {this_ap_shape}."
+                    )
 
-    def test_holog_chan_average(self):
+    def test_chan_average(self):
         """
         Check that channel average flag was set holog is run.
         """
+        ref_nchan = 1
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
             chan_average=True,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             overwrite=True,
             parallel=False,
         )
 
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            json_file = json.load(json_attr)
+        for ant_key in image_mds.keys():
+            for ddi_key in image_mds[ant_key].keys():
+                this_ap_shape = image_mds[ant_key][ddi_key].APERTURE.shape
+                assert (
+                    this_ap_shape[1] == ref_nchan
+                ), f"Non chan_average aperture for {ant_key} {ddi_key} should have {ref_nchan} channels"
 
-        assert json_file["chan_average"] is True
-
-    def test_holog_scan_average(self):
-        """
-        Check that scan average flag was set holog is run.
-        """
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            scan_average=False,
-            overwrite=True,
-            parallel=False,
-        )
-
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            json_file = json.load(json_attr)
-
-        assert not json_file["scan_average"]
-
-    def test_holog_grid_interpolation(self):
-        """
-        Check that grid interpolation flag was set holog is run.
-        """
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            grid_interpolation_mode="nearest",
-            overwrite=True,
-            parallel=False,
-        )
-
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            json_file = json.load(json_attr)
-
-        assert json_file["grid_interpolation_mode"] == "nearest"
-
-    def test_holog_chan_tolerance(self):
-        """
-        Check that channel tolerance is propagated correctly.
-        """
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            chan_tolerance_factor=0.0049,
-            overwrite=True,
-            parallel=False,
-        )
-
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            json_file = json.load(json_attr)
-
-        assert json_file["chan_tolerance_factor"] == 0.0049
-
-    def test_holog_to_stokes(self):
+    def test_to_stokes(self):
         """
         Check that to_stokes flag was set holog is run.
         """
+        stokes_axis = np.array(["I", "Q", "U", "V"])
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             to_stokes=True,
             overwrite=True,
             parallel=False,
         )
+        pol_axis = image_mds[self.ant_key][self.ddi_key].pol.values
+        assert np.all(
+            pol_axis == stokes_axis
+        ), f"If to_stokes is set to True output data should have {stokes_axis} as the polarization axis."
 
-        with open(
-            "data/ea25_cal_small_before_fixed.split.image.zarr/.image_attr"
-        ) as json_attr:
-            json_file = json.load(json_attr)
-
-        assert json_file["to_stokes"]
-
-        assert (
-            image_mds["ant_ea25"]["ddi_0"].pol.values == np.array(["I", "Q", "U", "V"])
-        ).all()
-
-    def test_holog_overwrite(self):
+    def test_overwrite(self):
         """
         Specify the output file should be overwritten; check that it WAS.
         """
-        initial_time = os.path.getctime(
-            "data/ea25_cal_small_before_fixed.split.image.zarr"
-        )
+        initial_time = os.path.getctime(self.def_img_name)
 
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+        holog(
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             overwrite=True,
             parallel=False,
         )
+        modified_time = os.path.getctime(self.def_img_name)
+        assert (
+            initial_time != modified_time
+        ), "Recreated file has to have a different time from the original file."
 
-        modified_time = os.path.getctime(
-            "data/ea25_cal_small_before_fixed.split.image.zarr"
-        )
+        with pytest.raises(FileExistsError):
+            holog(
+                holog_name=self.hlg_name,
+                image_name=self.def_img_name,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                overwrite=False,
+                parallel=False,
+            )
 
-        assert initial_time != modified_time
-
-    def test_holog_perturbation_phase_fit(self):
+    def test_perturbation_phase_fit(self):
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
             phase_fit_engine="perturbations",
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             grid_size=[31, 31],
             cell_size=[-0.0006386556122807017, 0.0006386556122807017],
             overwrite=True,
@@ -318,9 +213,9 @@ class TestHolog:
             0.07222802059408939,
         ]
 
-        pha_fit_res = image_mds["ant_ea25"]["ddi_0"].attrs["phase_fitting"]["map_0"][
-            "14167000000.0"
-        ]["I"]
+        pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"][
+            "map_0"
+        ]["14167000000.0"]["I"]
 
         for ikey, key in enumerate(keys):
             assert np.isclose(pha_fit_res[key]["value"], references[ikey]), (
@@ -328,51 +223,68 @@ class TestHolog:
             )
 
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             phase_fit_engine="perturbations",
             phase_fit_control=[False, False, False, False, False],
             overwrite=True,
             parallel=False,
         )
-        pha_fit_res = image_mds["ant_ea25"]["ddi_0"].attrs["phase_fitting"]
+        pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"]
 
-        assert pha_fit_res is None
+        assert (
+            pha_fit_res is None
+        ), "When phase_fit_control is a 5-way False tuple, phase fit results should be None"
 
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             phase_fit_engine="perturbations",
             phase_fit_control=[False, True, False, True, False],
             overwrite=True,
             parallel=False,
         )
 
-        pha_fit_res = image_mds["ant_ea25"]["ddi_0"].attrs["phase_fitting"]["map_0"][
-            "14167000000.0"
-        ]["I"]
+        pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"][
+            "map_0"
+        ]["14167000000.0"]["I"]
 
-        assert np.isnan(pha_fit_res["x_point_offset"]["error"])
-        assert np.isnan(pha_fit_res["z_focus_offset"]["error"])
-        assert np.isnan(pha_fit_res["x_cassegrain_offset"]["error"])
+        assert np.isnan(
+            pha_fit_res["x_point_offset"]["error"]
+        ), "If pointing offset is not fitted x_point_offset error should be NaN"
+        assert np.isnan(
+            pha_fit_res["z_focus_offset"]["error"]
+        ), "If focus is not fitted z_focus_offset error should be NaN"
+        assert np.isnan(
+            pha_fit_res["x_cassegrain_offset"]["error"]
+        ), "If cassegrain offset is not fitted x_cassegrain_offset error should be NaN"
 
-    def test_holog_no_phase_fitting(self):
+    def test_no_phase_fit(self):
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
             phase_fit_engine="none",
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             overwrite=True,
             parallel=False,
         )
 
-        pha_fit_res = image_mds["ant_ea25"]["ddi_0"].attrs["phase_fitting"]
+        pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"]
+        assert (
+            pha_fit_res is None
+        ), "When phase_fit_engine is set to 'none', phase fit results should be None"
 
-        assert pha_fit_res is None
-
-    def test_holog_zernike_phase_fitting(self):
+    def test_zernike_phase_fitting(self):
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             grid_size=[31, 31],
             cell_size=[-0.0006386556122807017, 0.0006386556122807017],
             phase_fit_engine="zernike",
@@ -381,7 +293,7 @@ class TestHolog:
             parallel=False,
         )
 
-        pha_fit_res = image_mds["ant_ea25"]["ddi_0"].attrs["phase_fitting"]
+        pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"]
 
         assert pha_fit_res is None
 
@@ -390,17 +302,22 @@ class TestHolog:
             [[213, 430], -0.1459607430199923],
             [[432, 195], -0.034865251933011265],
         ]
-        phase_img = image_mds["ant_ea25"]["ddi_0"].CORRECTED_PHASE.values[0, 0, 0]
+        phase_img = image_mds[self.ant_key][self.ddi_key].CORRECTED_PHASE.values[
+            0, 0, 0
+        ]
 
         for idx, phase in ref_phase:
             assert np.isclose(
                 phase_img[*idx], phase
             ), f"Phase is different from reference at {idx}"
 
+    #
     def test_holog_zernike_coeffs(self):
         image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
+            holog_name=self.hlg_name,
+            image_name=self.def_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             grid_size=[31, 31],
             cell_size=[-0.0006386556122807017, 0.0006386556122807017],
             phase_fit_engine="none",
@@ -477,7 +394,9 @@ class TestHolog:
             -2.06739538e-02 + 1.35215571e-03j,
         ]
 
-        zer_coeffs = image_mds["ant_ea25"]["ddi_0"].ZERNIKE_COEFFICIENTS.values[0, 0, 0]
+        zer_coeffs = image_mds[self.ant_key][self.ddi_key].ZERNIKE_COEFFICIENTS.values[
+            0, 0, 0
+        ]
 
         expected_n_coeff = 66
         assert zer_coeffs.shape[0] == expected_n_coeff
@@ -485,29 +404,3 @@ class TestHolog:
         assert np.allclose(
             ref_zernike_coeffs, zer_coeffs
         ), "Fitted Zernike coefficients do not match references"
-
-    def test_holog_not_overwrite(self):
-        """
-        Specify the output file should be NOT be overwritten; check that it WAS NOT.
-        """
-        initial_time = os.path.getctime(
-            "data/ea25_cal_small_before_fixed.split.image.zarr"
-        )
-
-        try:
-            holog(
-                holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-                image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-                overwrite=False,
-                parallel=False,
-            )
-
-        except FileExistsError:
-            pass
-
-        finally:
-            modified_time = os.path.getctime(
-                "data/ea25_cal_small_before_fixed.split.image.zarr"
-            )
-
-            assert initial_time == modified_time

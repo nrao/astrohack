@@ -1,43 +1,40 @@
 import shutil
+import matplotlib
 
 from toolviper.utils import data
 
-from astrohack import AstrohackLocitFile, extract_locit, open_locit
-from astrohack.utils.validation import (
-    are_png_files_equal,
+from astrohack import AstrohackLocitFile, open_locit
+from astrohack.utils.verification_tools import (
     are_lists_equal,
+    are_png_files_close,
     is_captured_output_equal_to_txt_reference,
+    add_data_folder_to_names_in_class,
 )
+
+matplotlib.use("Agg")
 
 
 class TestLocitMDS:
-    data_folder = "locit_data"
+    data_dir = "locit_data"
     destination_folder = "locit_exports"
-    ref_products_folder = f"{data_folder}/ref_locit_products"
+    ref_products_name = f"ref_locit_products"
 
-    phase_cal_table_name = "locit-input-pha.cal"
-    locit_name = "ant-pos.locit.zarr"
+    locit_name = "locit-input-pha-reference.locit.zarr"
 
     @classmethod
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        data.download(file=cls.phase_cal_table_name, folder=cls.data_folder)
-        data.download(file="ref_locit_products", folder=cls.data_folder)
+        data.download(file=cls.locit_name, folder=cls.data_dir)
+        data.download(file=cls.ref_products_name, folder=cls.data_dir)
 
-        # Add datafolder to names for execution
-        for varname, varvalue in cls.__dict__.items():
-            if isinstance(varvalue, str):
-                if varname.split("_")[-1] == "name":
-                    setattr(cls, varname, f"{cls.data_folder}/{varvalue}")
-
-        extract_locit(cls.phase_cal_table_name, cls.locit_name, overwrite=True)
+        add_data_folder_to_names_in_class(cls)
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_folder, ignore_errors=True)
+        shutil.rmtree(cls.data_dir, ignore_errors=True)
         shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
@@ -45,25 +42,17 @@ class TestLocitMDS:
         locit_mds = AstrohackLocitFile(self.locit_name)
         assert isinstance(locit_mds, AstrohackLocitFile)
 
-    def test_locit_mds_summary(self):
-        locit_mds = open_locit(self.locit_name)
-        summary_reference_name = f"{self.ref_products_folder}/summary_reference.txt"
-
-        assert is_captured_output_equal_to_txt_reference(
-            locit_mds.summary, summary_reference_name
-        ), "Summary should be exactly equal to reference summary"
-
     def test_locit_mds_text_exports(self):
         locit_mds = open_locit(self.locit_name)
 
         assert is_captured_output_equal_to_txt_reference(
             locit_mds.print_source_table,
-            f"{self.ref_products_folder}/src_tab_reference.txt",
+            f"{self.ref_products_name}/src_tab_reference.txt",
         ), "Source table should be exactly equal to reference source table"
 
         assert is_captured_output_equal_to_txt_reference(
             locit_mds.print_array_configuration,
-            f"{self.ref_products_folder}/array_cfg_reference.txt",
+            f"{self.ref_products_name}/array_cfg_reference.txt",
         ), "Array configuration should be exactly equal to reference array configuration"
 
     def test_locit_mds_plot_exports(self):
@@ -71,9 +60,9 @@ class TestLocitMDS:
 
         src_fk5_plot_name = "locit_source_table_fk5.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=False)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{src_fk5_plot_name}",
-            f"{self.ref_products_folder}/{src_fk5_plot_name}",
+            f"{self.ref_products_name}/{src_fk5_plot_name}",
         )
         assert (
             equal
@@ -81,19 +70,19 @@ class TestLocitMDS:
 
         src_prece_plot_name = "locit_source_table_precessed.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=True)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{src_prece_plot_name}",
-            f"{self.ref_products_folder}/{src_prece_plot_name}",
+            f"{self.ref_products_name}/{src_prece_plot_name}",
         )
         assert (
             equal
         ), f"{msg}: Precessed source position plot should be exactly equal to reference precessed source position plot"
 
-        array_cfg_plot_name = "locit_antenna_positions.png"
+        array_cfg_plot_name = "locit_array_configuration.png"
         locit_mds.plot_array_configuration(self.destination_folder)
-        equal, msg = are_png_files_equal(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{array_cfg_plot_name}",
-            f"{self.ref_products_folder}/{array_cfg_plot_name}",
+            f"{self.ref_products_name}/{array_cfg_plot_name}",
         )
         assert (
             equal

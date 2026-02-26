@@ -1,13 +1,26 @@
 import os
 import shutil
+import pytest
+import pathlib
 
 import toolviper
+
+from astrohack import open_locit
 from astrohack.extract_locit import extract_locit
+from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
 
 
 class TestExtractLocit:
-    cal_table = "./data/locit-input-pha.cal"
-    locit_name = "./data/locit-input-pha.locit.zarr"
+    data_dir = "extract_locit_data"
+    cal_table_name = "locit-input-pha.cal"
+
+    def_lct_name = "locit-input-pha.locit.zarr"
+    ref_lct_name = "locit-input-pha-reference.locit.zarr"
+
+    ant_id = "ea17"
+    ant_key = f"ant_{ant_id}"
+    ddi_id = 0
+    ddi_key = f"ddi_{ddi_id}"
 
     @classmethod
     def setup_class(cls):
@@ -16,127 +29,80 @@ class TestExtractLocit:
         such as fetching test data
         """
 
-        toolviper.utils.data.download(file="locit-input-pha.cal", folder="data")
+        toolviper.utils.data.download(file=cls.cal_table_name, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.ref_lct_name, folder=cls.data_dir)
+
+        add_data_folder_to_names_in_class(cls)
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree("data")
+        shutil.rmtree(cls.data_dir)
 
-    def teardown_method(self):
-        shutil.rmtree(self.locit_name)
-
-    def test_extract_locit_creation(self):
+    def test_defaults(self):
         """
         Create locit file with a cal-table and check it is created correctly.
         """
 
         # Create locit_mds and check the dictionary structure
-        locit_mds = extract_locit(cal_table=self.cal_table, locit_name=self.locit_name)
+        new_lct_mds = extract_locit(cal_table=self.cal_table_name, overwrite=True)
+        assert pathlib.Path(
+            self.def_lct_name
+        ).is_dir(), f"A .locit.zarr file named {self.def_lct_name} does not exist."
 
-        expected_keys = [
-            "observation_info",
-            "antenna_info",
-            "ant_ea01",
-            "ant_ea02",
-            "ant_ea04",
-            "ant_ea05",
-            "ant_ea06",
-            "ant_ea07",
-            "ant_ea08",
-            "ant_ea09",
-            "ant_ea10",
-            "ant_ea11",
-            "ant_ea12",
-            "ant_ea13",
-            "ant_ea15",
-            "ant_ea16",
-            "ant_ea17",
-            "ant_ea18",
-            "ant_ea19",
-            "ant_ea20",
-            "ant_ea21",
-            "ant_ea22",
-            "ant_ea23",
-            "ant_ea24",
-            "ant_ea25",
-            "ant_ea26",
-            "ant_ea27",
-            "ant_ea28",
-        ]
+        ref_lct_mds = open_locit(self.ref_lct_name)
+        assert new_lct_mds.is_close_to(
+            ref_lct_mds
+        ), "Reference and new mdses are different."
 
-        for key in locit_mds.keys():
-            assert key in expected_keys
-
-        assert os.path.exists(self.locit_name)
-
-    def test_extract_locit_antenna_select(self):
+    def test_data_selection(self):
         """
         Check that only specified antenna is processed.
         """
 
-        locit_mds = extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, ant="ea17"
+        new_lct_mds = extract_locit(
+            cal_table=self.cal_table_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
         )
 
-        # There should only be 1 antenna in the dict named ea17
-        assert len(locit_mds.keys()) == 1
+        ant_list = list(new_lct_mds.keys())
+        assert len(ant_list) == 1, "A single antenna should be present."
+        assert (
+            ant_list[0] == self.ant_key
+        ), "Ant name should be the same as the one given."
 
-        # Check that only the specific antenna is in the keys.
-        assert list(locit_mds.keys()) == [
-            "ant_ea17",
-        ]
+        ddi_list = list(new_lct_mds[self.ant_key].keys())
+        assert len(ddi_list) == 1, "A single ddi should be present."
+        assert (
+            ddi_list[0] == self.ddi_key
+        ), "DDI key should be the same as the one given."
 
-    def test_extract_locit_ddi(self):
-        """
-        Check that only specified ddi is processed.
-        """
-
-        locit_mds = extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, ddi=0
-        )
-
-        # Check that only the specific ddi is in the keys.
-        assert len(locit_mds["ant_ea01"].keys()) == 1
-        assert list(locit_mds["ant_ea01"].keys()) == ["ddi_0"]
-
-    def test_extract_locit_overwrite(self):
+    def test_overwrite(self):
         """
         Specify the output file should be overwritten; check that it WAS.
         """
-
-        extract_locit(cal_table=self.cal_table, locit_name=self.locit_name)
-
         # To check this properly we need to not only know an exception was not thrown but that the file is ACTUALLY
         # overwritten. We do this by checking the modification time.
-        initial_time = os.path.getctime(self.locit_name)
+        initial_time = os.path.getctime(self.def_lct_name)
 
         extract_locit(
-            cal_table=self.cal_table, locit_name=self.locit_name, overwrite=True
+            cal_table=self.cal_table_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
         )
+        modified_time = os.path.getctime(self.def_lct_name)
+        assert (
+            initial_time != modified_time
+        ), "Recreated file has to have a different time from the original file."
 
-        modified_time = os.path.getctime(self.locit_name)
-
-        assert initial_time != modified_time
-
-    def test_extract_locit_no_overwrite(self):
-        """
-        Specify the output file should be NOT be overwritten; check that it WAS NOT.
-        """
-        extract_locit(cal_table=self.cal_table, locit_name=self.locit_name)
-
-        initial_time = os.path.getctime(self.locit_name)
-
-        try:
+        with pytest.raises(FileExistsError):
             extract_locit(
-                cal_table=self.cal_table, locit_name=self.locit_name, overwrite=False
+                cal_table=self.cal_table_name,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                overwrite=False,
             )
-
-        except FileExistsError:
-            pass
-
-        finally:
-            modified_time = os.path.getctime(self.locit_name)
-
-            assert initial_time == modified_time

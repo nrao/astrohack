@@ -6,7 +6,8 @@
         },
         "position_name":{
             "type":["str"],
-            "required": false
+            "required": false,
+            "nullable": true
         },
         "elevation_limit":{
             "type":["float"],

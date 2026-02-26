@@ -9,10 +9,9 @@ import time
 
 import toolviper.utils.logger as logger
 
-from skimage.draw import disk
-from astrohack.utils.algorithms import calc_coords, least_squares
+from astrohack.utils.algorithms import calc_coords
 from astrohack.utils.gridding import gridding_correction
-from astrohack.utils.constants import clight, sig_2_fwhm
+from astrohack.utils.constants import clight, njit_caching
 
 
 def calculate_parallactic_angle_chunk(
@@ -78,7 +77,7 @@ def parallactic_derotation(data, parallactic_angle_dict):
     # Find the middle index of the array. This is calculated because there might be a desire to change
     # the array length at some point and I don't want to hard code the middle value.
     #
-    # It is assumed, and should be true, that the parallacitc angle array size is consistent over map.
+    # It is assumed, and should be true, that the parallactic angle array size is consistent over map.
     maps = list(parallactic_angle_dict.keys())
 
     # Get the median index for the first map (this should be the same for every map).
@@ -154,7 +153,7 @@ def calculate_near_field_aperture(
 
     Args:
         grid (numpy.ndarray): gridded beam data
-        sky_cell_size (float): incremental spacing between lm values, ie. delta_l = l_(n+1) - l_(n)
+        sky_cell_size (float): incremental spacing between lm values, i.e. delta_l = l_(n+1) - l_(n)
         padding_factor (int, optional): Padding to apply to beam data grid before FFT. Padding is applied on outer edges
                                         of each beam data grid and not between layers. Defaults to 20.
         distance: distance to holographic tower
@@ -201,8 +200,8 @@ def calculate_near_field_aperture(
     #
     phase = np.angle(aperture_grid[0, 0, 0, ...])
     amp = np.absolute(aperture_grid[0, 0, 0, ...])
-    # dishhorn_artefact = fit_dishhorn_beam_artefact(amp, telescope.inlim, u_axis, v_axis)
-    # amp -= dishhorn_artefact
+    # dish horn_artefact = fit_dish horn_beam_artefact(amp, telescope.inlim, u_axis, v_axis)
+    # amp -= dish horn_artefact
 
     phase = _feed_correction(phase, u_axis, v_axis, telescope.focus)
     # fitted_amp = fit_illumination_pattern(amp, u_axis, v_axis, telescope.diam, blockage)
@@ -329,7 +328,7 @@ def _pad_beam_image(grid, padding_factor):
     return padded_grid
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _apodize_beam(unpadded_beam, degree=2):
     """
     Apodize beam image to avoid artefacts in aperture image
@@ -450,6 +449,7 @@ def _compute_non_fresnel_corrections(
     Returns:
         Aperture with non fresnel corrections
     """
+    mega_max_it = 6
     if verbose:
         logger.info("Applying non-fresnel corrections...")
     wave_vector = factor
@@ -461,6 +461,9 @@ def _compute_non_fresnel_corrections(
 
     it = 1
     while it < max_it:
+        corr_term = None
+        if it < 1 or it >= mega_max_it:
+            raise RuntimeError(f"Maximum number of iterations is {mega_max_it}")
         fft_work_array = padded_grid[0, 0, 0, ...].copy()
         if it == 1:
             fft_work_array *= lmesh

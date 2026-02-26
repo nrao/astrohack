@@ -1,22 +1,30 @@
 import pathlib
-
+import numpy as np
 from typing import List, Union
 
 from toolviper.utils.parameter import validate
 
 from .base_mds import AstrohackBaseFile
 
-from astrohack.core.beamcut import (
-    plot_beamcut_in_amplitude_chunk,
-    plot_beamcut_in_attenuation_chunk,
-    create_report_chunk,
-    plot_cuts_in_lm_chunk,
+from astrohack.utils import (
+    create_dataset_label,
+    convert_unit,
+    format_frequency,
+    format_value_unit,
+    to_db,
+    create_pretty_table,
 )
-from astrohack.visualization.textual_data import (
-    generate_observation_summary_for_beamcut,
+from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
+from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
+
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
 )
-from astrohack.utils.graph import compute_graph
+from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
+
+lnbr = "\n"
+spc = " "
 
 
 class AstrohackBeamcutFile(AstrohackBaseFile):
@@ -97,12 +105,13 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
         key_order = ["ant", "ddi"]
-        execution, summary_list = compute_graph(
-            self,
-            generate_observation_summary_for_beamcut,
-            param_dict,
-            key_order,
-            parallel,
+        param_dict["dtype"] = "beamcut"
+        execution, summary_list = create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=generate_observation_summary,
+            param_dict=param_dict,
+            key_order=key_order,
+            parallel=parallel,
             fetch_returns=True,
         )
         full_summary = "".join(summary_list)
@@ -161,11 +170,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_beamcut_in_amplitude_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_beamcut_in_amplitude_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -220,11 +229,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_beamcut_in_attenuation_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_beamcut_in_attenuation_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -275,11 +284,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self,
-            plot_cuts_in_lm_chunk,
-            param_dict,
-            ["ant", "ddi"],
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_cuts_in_lm_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
             parallel=parallel,
         )
         return
@@ -322,7 +331,559 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        compute_graph(
-            self, create_report_chunk, param_dict, ["ant", "ddi"], parallel=parallel
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_create_report_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
         )
         return
+
+
+def _plot_beamcut_in_amplitude_chunk(par_dict):
+    """
+    Produce Amplitude beam cut plots from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
+    cut_xdtree = par_dict["xdt_data"]
+    n_cuts = len(cut_xdtree.children.values())
+    # Loop over cuts
+    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        _plot_single_cut_in_amplitude(cut_xds, axes[icut, :], par_dict)
+
+    # Header creation
+    summary = cut_xdtree.attrs["summary"]
+    title = _create_beamcut_header(summary, par_dict)
+
+    filename = _file_name_factory("amplitude", par_dict)
+    close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
+
+
+def _plot_beamcut_in_attenuation_chunk(par_dict):
+    """
+    Produce attenuation beam cut plots from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+
+    :return: None
+    :rtype: NoneType
+    """
+    cut_xdtree = par_dict["xdt_data"]
+    n_cuts = len(cut_xdtree.children.values())
+    # Loop over cuts
+    fig, axes = create_figure_and_axes([6, 1 + n_cuts * 4], [n_cuts, 1])
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        _plot_single_cut_in_attenuation(cut_xds, axes[icut], par_dict)
+
+    # Header creation
+    summary = cut_xdtree.attrs["summary"]
+    title = _create_beamcut_header(summary, par_dict)
+
+    filename = _file_name_factory("attenuation", par_dict)
+    close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
+
+
+def _plot_cuts_in_lm_chunk(par_dict):
+    """
+    Produce plot of LM offsets in all cuts for antenna and ddi xd tree.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+
+    :return: None
+    :rtype: NoneType
+    """
+    cut_xdtree = par_dict["xdt_data"]
+    _plot_cuts_in_lm_sub(cut_xdtree, par_dict)
+
+
+def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
+    """
+    Produce a report on beamcut fit results from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling report aspects
+    :type par_dict: dict
+
+    :param spacing: Identation
+    :type spacing: int
+
+    :param item_marker: Character to denote a different item in a list
+    :type item_marker: str
+
+    :param precision: Number of decimal places to include in table results
+    :type precision: int
+
+    :return: None
+    :rtype: NoneType
+    """
+    cut_xdtree = par_dict["xdt_data"]
+    outstr = f"{item_marker}{spc}"
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+    summary = cut_xdtree.attrs["summary"]
+
+    items = [
+        "Id",
+        f"Center [{lm_unit}]",
+        "Amplitude [ ]",
+        f"FWHM [{lm_unit}]",
+        "Attenuation [dB]",
+    ]
+    outstr += _create_beamcut_header(summary, par_dict) + 2 * lnbr
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+        for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
+            outstr += f"{spacing*spc}{item_marker}{spc}{parallel_hand} {sub_title}, Beam fit results:{lnbr}"
+            table = create_pretty_table(items, "c")
+            fit_pars = cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"]
+            centers = fit_pars[0::3]
+            amps = fit_pars[1::3]
+            fwhms = fit_pars[2::3]
+            max_amp = np.max(cut_xds[f"{parallel_hand}_amplitude"].values)
+
+            for i_peak in range(cut_xds.attrs[f"{parallel_hand}_n_peaks"]):
+
+                table.add_row(
+                    [
+                        f"{i_peak+1})",  # Id
+                        f"{lm_fac*centers[i_peak]:.{precision}f}",  # center
+                        f"{amps[i_peak]:.{precision}f}",  # Amp
+                        f"{lm_fac*fwhms[i_peak]:.{precision}f}",  # FWHM
+                        f"{to_db(amps[i_peak]/max_amp):.{precision}f}",  # Attenuation
+                    ]
+                )
+            for line in table.get_string().splitlines():
+                outstr += 2 * spacing * spc + line + lnbr
+            outstr += lnbr
+
+    with open(_file_name_factory("report", par_dict), "w") as outfile:
+        outfile.write(outstr)
+
+
+def _file_name_factory(file_type, par_dict):
+    """
+    Generate filenames from file type and execution parameters
+
+    :param file_type: File type description
+    :type file_type: str
+
+    :param par_dict: Paremeter dictionary containing destination, antenna and ddi parameters
+    :type par_dict: dict
+
+    :return: Filename
+    :rtype: str
+    """
+    destination = par_dict["destination"]
+    antenna = par_dict["this_ant"]
+    ddi = par_dict["this_ddi"]
+    if file_type in ["attenuation", "amplitude", "lm_offsets"]:
+        ext = "png"
+    elif file_type == "report":
+        ext = "txt"
+    else:
+        raise ValueError("Invalid file type")
+    return f"{destination}/beamcut_{file_type}_{antenna}_{ddi}.{ext}"
+
+
+def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
+    """
+    Add a secondary X axis on top of the figure representing the LM distances in primary beam FWHMs.
+
+    :param pb_fwhm: Primary beam FWHM
+    :type pb_fwhm: float
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :return: None
+    :rtype: NoneType
+    """
+    if np.isnan(pb_fwhm):
+        return
+    sec_x_axis = ax.secondary_xaxis(
+        "top", functions=(lambda x: x * 1.0, lambda xb: 1 * xb)
+    )
+    sec_x_axis.set_xlabel("Offset in Primary Beam HPBWs\n")
+    sec_x_axis.set_xticks([])
+    y_min, y_max = ax.get_ylim()
+    x_lims = np.array(ax.get_xlim())
+    pb_min, pb_max = np.ceil(x_lims / pb_fwhm)
+    beam_offsets = np.arange(pb_min, pb_max, 1, dtype=int)
+
+    for itk in beam_offsets:
+        ax.axvline(itk * pb_fwhm, color="k", linestyle="--", linewidth=0.5)
+        ax.text(itk * pb_fwhm, y_max, f"{itk:d}", va="bottom", ha="center")
+
+
+def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
+    """
+    Add gaussians identification to plot
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :param centers: Gaussian centers
+    :type centers: list, numpy.array
+
+    :param peaks: Gaussian peaks
+    :type peaks: list, numpy.array
+
+    :param y_off: Y offset to add peak Ids
+    :type y_off: float
+
+    :return: None
+    :rtype: NoneType
+    """
+    for i_peak, peak in enumerate(peaks):
+        ax.text(centers[i_peak], peak + y_off, f"{i_peak+1})", ha="center", va="bottom")
+
+
+def _add_beam_parameters_box(
+    ax,
+    pb_center,
+    pb_fwhm,
+    sidelobe_ratio,
+    lm_unit,
+    alpha=0.8,
+    x_pos=0.05,
+    y_pos=0.95,
+    attenuation_plot=False,
+):
+    """
+    Add text bos with beam parameters
+
+    :param ax: Matplotlib Axes object
+    :type ax: matplotlib.axes.Axes
+
+    :param pb_center: Primary beam center offset
+    :type pb_center: float
+
+    :param pb_fwhm: Primary beam FWHM
+    :type pb_fwhm: float
+
+    :param sidelobe_ratio: First side lobe ratio
+    :type sidelobe_ratio: float
+
+    :param lm_unit: L/M axis unit
+    :type lm_unit: str
+
+    :param alpha: Opacity of text box
+    :type alpha: float
+
+    :param x_pos: Relative x position of the text box
+    :type x_pos: float
+
+    :param y_pos: Relative y position of the text box
+    :type y_pos: float
+
+    :param attenuation_plot: Is this an attenuation plot?
+    :type attenuation_plot: bool
+
+    :return: None
+    :rtype: NoneType
+    """
+    if attenuation_plot:
+        head = "avg "
+    else:
+        head = ""
+    pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n"
+    pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n"
+    pars_str += f"{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}"
+    bounds_box = dict(boxstyle="square", facecolor="white", alpha=alpha)
+    ax.text(
+        x_pos,
+        y_pos,
+        pars_str,
+        transform=ax.transAxes,
+        verticalalignment="top",
+        bbox=bounds_box,
+    )
+
+
+def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
+    """
+    Plot a single beam cut in amplitude with each correlation in a different panel
+
+    :param cut_xds: xarray dataset containing the beamcut
+    :type cut_xds: xarray.Dataset
+
+    :param axes: numpy array with the Matplotlib Axes objects for the different panels
+    :type axes: numpy.array([Matplotlib.axes.Axes])
+
+    :param par_dict: Parameter dictionary containing plot configuration
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
+    # Init
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    max_amp = cut_xds.attrs["all_corr_ymax"]
+    y_off = 0.05 * max_amp
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+
+    # Loop over correlations
+    for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
+        # Init labels
+        this_ax = axes[i_corr]
+        x_data = lm_fac * cut_xds["lm_dist"].values
+        y_data = cut_xds[f"{parallel_hand}_amplitude"].values
+        fit_data = cut_xds[f"{parallel_hand}_amp_fit"].values
+        xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
+        ylabel = f"{parallel_hand} Amplitude [ ]"
+
+        # Call plotting tool
+        if cut_xds.attrs[f"{parallel_hand}_fit_succeeded"]:
+            scatter_plot(
+                this_ax,
+                x_data,
+                xlabel,
+                y_data,
+                ylabel,
+                model=fit_data,
+                model_marker="",
+                title=sub_title,
+                data_marker="+",
+                residuals_marker=".",
+                model_linestyle="-",
+                data_label=f"{parallel_hand} data",
+                model_label=f"{parallel_hand} fit",
+                data_color="red",
+                model_color="blue",
+                residuals_color="black",
+                legend_location="upper right",
+            )
+
+            # Add fit peak identifiers
+            centers = lm_fac * np.array(
+                cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][0::3]
+            )
+            amps = np.array(cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][1::3])
+
+            _add_lobe_identification_to_plot(
+                this_ax,
+                centers,
+                amps,
+                y_off,
+            )
+        else:
+            scatter_plot(
+                this_ax,
+                x_data,
+                xlabel,
+                y_data,
+                ylabel,
+                title=sub_title,
+                data_marker="+",
+                data_label=f"{parallel_hand} data",
+                data_color="red",
+                legend_location="upper right",
+            )
+
+        # equalize Y scale between correlations
+        set_y_axis_lims_from_default(
+            this_ax, par_dict["y_scale"], (-y_off, max_amp + 3 * y_off)
+        )
+
+        _add_secondary_beam_hpbw_x_axis_to_plot(
+            cut_xds.attrs[f"{parallel_hand}_pb_fwhm"] * lm_fac, this_ax
+        )
+
+        # Add bounded box with Beam parameters
+        _add_beam_parameters_box(
+            this_ax,
+            cut_xds.attrs[f"{parallel_hand}_pb_center"] * lm_fac,
+            cut_xds.attrs[f"{parallel_hand}_pb_fwhm"] * lm_fac,
+            cut_xds.attrs[f"{parallel_hand}_first_side_lobe_ratio"],
+            lm_unit,
+        )
+
+
+def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
+    """
+    Plot a single beam cut in attenuation with superposed correlations
+
+    :param cut_xds: xarray dataset containing the beamcut
+    :type cut_xds: xarray.Dataset
+
+    :param ax: Matplotlib Axes object
+    :type ax: Matplotlib.axes.Axes
+
+    :param par_dict: Parameter dictionary containing plot configuration
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+    corr_colors = ["blue", "red"]
+
+    min_attenuation = 1e34
+    pb_center = 0.0
+    pb_fwhm = 0.0
+    fsl_ratio = 0.0
+    xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
+    ylabel = f"Attenuation [dB]"
+
+    # Loop over correlations
+    n_data = 0
+    for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
+        # Init labels
+        x_data = lm_fac * cut_xds["lm_dist"].values
+        amps = cut_xds[f"{parallel_hand}_amplitude"].values
+        max_amp = np.max(amps)
+        y_data = to_db(amps / max_amp)
+        y_min = np.min(y_data)
+        if y_min < min_attenuation:
+            min_attenuation = y_min
+
+        ax.plot(
+            x_data,
+            y_data,
+            label=parallel_hand,
+            color=corr_colors[i_corr],
+            marker=".",
+            ls="",
+        )
+
+        if not np.isnan(pb_center):
+            pb_center += cut_xds.attrs[f"{parallel_hand}_pb_center"]
+            pb_fwhm += cut_xds.attrs[f"{parallel_hand}_pb_fwhm"]
+            fsl_ratio += cut_xds.attrs[f"{parallel_hand}_first_side_lobe_ratio"]
+            n_data += 1
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(sub_title)
+    ax.legend(loc="upper right")
+
+    pb_center /= n_data
+    pb_fwhm /= n_data
+    fsl_ratio /= n_data
+    # equalize Y scale between correlations
+    y_off = 0.1 * np.abs(min_attenuation)
+    set_y_axis_lims_from_default(
+        ax, par_dict["y_scale"], (min_attenuation - y_off, y_off)
+    )
+
+    # Add fit peak identifiers
+    first_corr = cut_xds.attrs["available_corrs"][0]
+
+    _add_secondary_beam_hpbw_x_axis_to_plot(
+        cut_xds.attrs[f"{first_corr}_pb_fwhm"] * lm_fac, ax
+    )
+
+    # Add bounded box with Beam parameters
+    _add_beam_parameters_box(
+        ax,
+        pb_center * lm_fac,
+        pb_fwhm * lm_fac,
+        fsl_ratio,
+        lm_unit,
+        attenuation_plot=True,
+    )
+    return
+
+
+def _plot_cuts_in_lm_sub(cut_xdtree, par_dict):
+    """
+    Produce plot of LM offsets in all cuts for antenna and ddi xd tree.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :param cut_xdtree: Way to deliver a xdtree when not present in par_dict
+    :type cut_xdtree: xr.DataTree
+
+    :return: None
+    :rtype: NoneType
+    """
+    colors = ["blue", "red", "green", "black", "orange", "grey"]
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+
+    fig, ax = create_figure_and_axes(None, [1, 1])
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        lm_offsets = lm_fac * cut_xds["lm_offsets"].values
+        ax.plot(
+            lm_offsets[:, 0],
+            lm_offsets[:, 1],
+            label=f'cut {icut}, {cut_xds.attrs["direction"]}',
+            marker=".",
+            ls="",
+            color=colors[icut],
+        )
+
+    ax.legend(loc="best")
+    ax.set_xlabel(f"L offset [{lm_unit}]")
+    ax.set_ylabel(f"M offset [{lm_unit}]")
+    ax.set_aspect("equal", adjustable="datalim")
+
+    # Header creation
+    summary = cut_xdtree.attrs["summary"]
+    title = _create_beamcut_header(summary, par_dict)
+
+    filename = _file_name_factory("lm_offsets", par_dict)
+    close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
+
+
+def _make_parallel_hand_sub_title(attributes):
+    """
+    Make subtitle for data based on XDS attributes.
+
+    :param attributes: beamcut xds attributes
+    :type attributes: dict
+
+    :return: Subtitle string
+    :rtype: str
+    """
+    direction = attributes["direction"]
+    time_string = attributes["time_string"]
+    return f"{direction}, {time_string} UTC"
+
+
+def _create_beamcut_header(summary, par_dict):
+    """
+    Create a data labeling header for plots and/or reports.
+
+    :param summary: Data summary from xds attributes
+    :type summary: dict
+
+    :param par_dict: Parameter dictionary containing configuration parameters
+    :type par_dict: dict
+
+    :return: Data labeling header for plots and/or reports.
+    :rtype: str
+    """
+    azel_unit = par_dict["azel_unit"]
+
+    antenna = par_dict["this_ant"]
+    ddi = par_dict["this_ddi"]
+    freq_str = format_frequency(summary["spectral"]["rep. frequency"], decimal_places=3)
+    raw_azel = np.array(summary["general"]["az el info"]["mean"])
+    mean_azel = convert_unit("rad", azel_unit, "trigonometric") * raw_azel
+    title = (
+        f"Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, "
+        + r"$\nu$ = "
+        + f"{freq_str}, "
+    )
+    if azel_unit == "rad":
+        decimal_places = 3
+    else:
+        decimal_places = 1
+    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
+    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
+    return title

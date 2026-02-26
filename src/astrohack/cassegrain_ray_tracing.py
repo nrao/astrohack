@@ -6,9 +6,9 @@ from astrohack.core.cassegrain_ray_tracing import *
 from astrohack.utils import (
     convert_unit,
     clight,
-    add_caller_and_version_to_dict,
     regrid_data_onto_2d_grid,
 )
+from astrohack.utils.file import add_caller_and_version_to_dict
 from astrohack.utils.phase_fitting import aips_like_phase_fitting
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from typing import Union

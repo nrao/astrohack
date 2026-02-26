@@ -1,4 +1,3 @@
-import xarray as xr
 from toolviper.utils import logger as logger
 
 import astrohack
@@ -43,11 +42,29 @@ def safe_keyword_fetch(header_dict, keyword):
         return None
 
 
+def read_fits_no_checks(filename):
+    """
+    Brute force reading of a fits file, no checks are performed
+    :param filename: Fits filename
+
+    :return: FITS header as a dict and associated data
+    """
+    hdul = fits.open(filename)
+    head = hdul[0].header
+    data = hdul[0].data
+    hdul.close()
+    header_dict = {}
+    for key, value in head.items():
+        header_dict[key] = value
+    return header_dict, data
+
+
 def read_fits(filename, header_as_dict=True):
     """
     Reads a square FITS file and do sanity checks on its dimensionality
     Args:
         filename: a string containing the FITS file name/path
+        header_as_dict: return header as dictionary
 
     Returns:
     The FITS header and the associated data array
@@ -58,13 +75,13 @@ def read_fits(filename, header_as_dict=True):
     hdul.close()
     if head["NAXIS"] != 1:
         if head["NAXIS"] < 1:
-            raise Exception(filename + " is not bi-dimensional")
+            raise ValueError(filename + " is not bi-dimensional")
         elif head["NAXIS"] > 1:
             for iax in range(2, head["NAXIS"]):
                 if head["NAXIS" + str(iax + 1)] != 1:
-                    raise Exception(filename + " is not bi-dimensional")
+                    raise ValueError(filename + " is not bi-dimensional")
     if head["NAXIS1"] != head["NAXIS2"]:
-        raise Exception(
+        raise ValueError(
             filename + " does not have the same amount of pixels in the x and y axes"
         )
 
@@ -156,6 +173,8 @@ def _reorder_axes_for_fits(data: np.ndarray):
         return np.flip(transpo, 2)
     elif n_dim == 2:
         return np.flipud(data)
+    else:
+        raise RuntimeError("This should be a blocked path")
 
 
 def put_resolution_in_fits_header(header, resolution):
@@ -206,12 +225,14 @@ def put_axis_in_fits_header(header: dict, axis, iaxis, axistype, unit, iswcs=Tru
     else:
         inc = axis[1] - axis[0]
         if inc == 0:
-            logger.error("Axis increment is zero valued")
-            raise Exception
+            msg = "Axis increment is zero valued"
+            logger.error(msg)
+            raise ValueError(msg)
         absdiff = abs((axis[-1] - axis[-2]) - inc) / inc
         if absdiff > 1e-7:
-            logger.error("Axis is not linear!")
-            raise Exception
+            msg = "Axis is not linear!"
+            logger.error(msg)
+            raise ValueError(msg)
 
     ref = naxis // 2
     val = axis[ref]
@@ -255,76 +276,3 @@ def put_stokes_axis_in_fits_header(header, iaxis):
     outheader[f"CUNIT{iaxis}"] = ""
 
     return outheader
-
-
-def _get_aips_headpars(head):
-    """
-    Fetch number of points used in holography and wavelength stored by AIPS on a FITS header
-    Args:
-        head: AIPS FITS header
-
-    Returns:
-    npoint, wavelength
-    """
-    npoint = np.nan
-    wavelength = np.nan
-    for line in head["HISTORY"]:
-        wrds = line.split()
-        if wrds[1] == "Visibilities":
-            npoint = np.sqrt(int(wrds[-1]))
-        elif wrds[1] == "Observing":
-            wavelength = float(wrds[-2])
-    return npoint, wavelength
-
-
-def aips_holog_to_xds(ampname, devname):
-    """
-    Read amplitude and deviation FITS files onto a common Xarray dataset
-    Args:
-        ampname: Name of the amplitude FITS file
-        devname: Name of the deviation FITS file
-
-    Returns:
-    Xarray dataset
-    """
-    amphead, ampdata = read_fits(ampname)
-    devhead, devdata = read_fits(devname)
-    ampdata = np.flipud(ampdata)
-    devdata = np.flipud(devdata)
-
-    if amphead["NAXIS1"] != devhead["NAXIS1"]:
-        raise Exception(ampname + " and " + devname + " have different dimensions")
-    if (
-        amphead["CRPIX1"] != devhead["CRPIX1"]
-        or amphead["CRVAL1"] != devhead["CRVAL1"]
-        or amphead["CDELT1"] != devhead["CDELT1"]
-    ):
-        raise Exception(
-            ampname + " and " + devname + " have different axes descriptions"
-        )
-
-    npoint, wavelength = _get_aips_headpars(devhead)
-    u = (
-        np.arange(-amphead["CRPIX1"], amphead["NAXIS1"] - amphead["CRPIX1"])
-        * amphead["CDELT1"]
-    )
-    v = (
-        np.arange(-amphead["CRPIX2"], amphead["NAXIS2"] - amphead["CRPIX2"])
-        * amphead["CDELT2"]
-    )
-
-    xds = xr.Dataset()
-    xds.attrs["npix"] = amphead["NAXIS1"]
-    xds.attrs["cell_size"] = amphead["CDELT1"]
-    xds.attrs["ref_pixel"] = amphead["CRPIX1"]
-    xds.attrs["ref_value"] = amphead["CRVAL1"]
-    xds.attrs["npoint"] = npoint
-    xds.attrs["wavelength"] = wavelength
-    xds.attrs["amp_unit"] = amphead["BUNIT"].strip()
-    xds.attrs["AIPS"] = True
-    xds.attrs["ant_name"] = amphead["TELESCOP"].strip()
-    xds["AMPLITUDE"] = xr.DataArray(ampdata, dims=["u", "v"])
-    xds["DEVIATION"] = xr.DataArray(devdata, dims=["u", "v"])
-    coords = {"u": u, "v": v}
-    xds = xds.assign_coords(coords)
-    return xds

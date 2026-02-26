@@ -76,7 +76,7 @@ class BasePanel:
         except KeyError:
             msg = f"Unknown model {self.model_name}"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         self.model = PanelModel(model_dict, self.zeta, self.ref_points, self.center)
 
@@ -130,7 +130,7 @@ class BasePanel:
         if not self.solved:
             msg = "Cannot correct a panel that is not solved"
             logger.error(msg)
-            raise Exception(msg)
+            raise RuntimeError(msg)
         self.corr = self.model.correct(self.samples, self.margins)
         return self.corr
 

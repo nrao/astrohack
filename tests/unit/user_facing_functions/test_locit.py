@@ -2,12 +2,17 @@ import os
 
 import shutil
 import toolviper
+import pytest
+import pathlib
 
 import numpy as np
 
+from astrohack import open_position
 from astrohack.locit import locit
-from astrohack.extract_locit import extract_locit
-from astrohack.utils.validation import are_lists_equal
+from astrohack.utils.verification_tools import (
+    are_lists_equal,
+    add_data_folder_to_names_in_class,
+)
 
 
 def relative_difference(result, expected):
@@ -15,94 +20,86 @@ def relative_difference(result, expected):
 
 
 class TestLocit:
+    data_dir = "locit_data"
+
+    lct_name = "locit-input-pha-reference.locit.zarr"
+
+    def_pos_name = "locit-input-pha-reference.position.zarr"
+    ref_pos_name = "locit-reference.position.zarr"
+
+    ant_id = "ea17"
+    ant_key = f"ant_{ant_id}"
+    ddi_id = 0
+    ddi_key = f"ddi_{ddi_id}"
+
     @classmethod
     def setup_class(cls):
         """
         Setup any state specific to the execution of the given test class
         such as fetching test data
         """
-        toolviper.utils.data.download("locit-input-pha.cal", folder="data")
+        toolviper.utils.data.download(cls.lct_name, folder=cls.data_dir)
+        toolviper.utils.data.download(cls.ref_pos_name, folder=cls.data_dir)
 
-        locit_mds = extract_locit(
-            cal_table="data/locit-input-pha.cal",
-            locit_name="data/locit-input-pha.locit.zarr",
-            overwrite=True,
-        )
-
-        position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
-            elevation_limit=10.0,
-            polarization="both",
-            fit_engine="scipy",
-            parallel=False,
-            overwrite=True,
-        )
+        add_data_folder_to_names_in_class(cls)
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree("data")
+        shutil.rmtree(cls.data_dir)
 
-    def setup_method(self):
-        """setup any state specific to all methods of the given class"""
-        pass
-
-    def teardown_method(self):
-        """teardown any state that was previously setup for all methods of the given class"""
-        pass
-
-    def test_locit_name(self):
+    def test_defaults(self):
         """
         Run locit with a specified locit_name and expect a file to be created on disk.
         """
 
-        assert os.path.exists("data/locit-input-pha.locit.zarr")
+        new_pos_mds = locit(locit_name=self.lct_name, overwrite=True)
+        assert pathlib.Path(
+            self.def_pos_name
+        ).is_dir(), f"A .position.zarr file named {self.def_pos_name} does not exist."
 
-    def test_locit_ant_id(self):
+        ref_pos_mds = open_position(self.ref_pos_name)
+        assert new_pos_mds.is_close_to(
+            ref_pos_mds
+        ), "Reference and new mdses are different."
+
+    def test_data_selection(self):
         """
             Run locit with an antenna id and create a file on disk containing delays and position solutions only \
             from that antenna id.
         """
 
-        position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
-            ant=["ea25"],
-            parallel=False,
-            overwrite=True,
-        )
-
-        assert list(position_mds.keys()) == ["ant_ea25"]
-
-    def test_locit_ddi(self):
-        """
-            Run locit with a specified DDI and create a file on disk containing delays and position solutions \
-            only from that DDI.
-        """
-
-        position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
-            ddi=[0],
+        new_pos_mds = locit(
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
             combine_ddis="no",
             parallel=False,
             overwrite=True,
         )
 
-        for ant in position_mds.keys():
-            for ddi in position_mds[ant].keys():
-                assert ddi == "ddi_0"
+        ant_list = list(new_pos_mds.keys())
+        assert len(ant_list) == 1, "A single antenna should be present."
+        assert (
+            ant_list[0] == self.ant_key
+        ), "Ant name should be the same as the one given."
 
-    def test_locit_fit_kterm(self):
+        ddi_list = list(new_pos_mds[self.ant_key].keys())
+        assert len(ddi_list) == 1, "A single ddi should be present."
+        assert (
+            ddi_list[0] == self.ddi_key
+        ), "DDI key should be the same as the one given."
+
+    def test_fit_kterm(self):
         """
         Run locit with fit_kterm=True and expect a file to be created on disk containing a solution for the kterm.
         """
 
         position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
             fit_kterm=True,
             combine_ddis="no",
             parallel=False,
@@ -115,18 +112,18 @@ class TestLocit:
                 # makes what is happening more obvious to others.
                 try:
                     position_mds[ant][ddi].koff_fit
-                except Exception:
-                    raise Exception
+                except KeyError as error:
+                    raise KeyError(error)
 
-    def test_locit_fit_rate(self):
+    def test_fit_rate(self):
         """
             Run locit with fit_rate=False and check that the file created on disk contains no solution for the \
             delay rate.
         """
 
         position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
             fit_delay_rate=True,
             combine_ddis="no",
             parallel=False,
@@ -140,50 +137,51 @@ class TestLocit:
                 try:
                     position_mds[ant]["ddi_0"].rate_fit
 
-                except Exception:
-                    raise Exception
+                except Exception as error:
+                    raise Exception(error)
 
-    def test_locit_elevation_limit(self):
+    def test_elevation_limit(self):
         """
         Run locit with elevation_limit=90 and expect locit to fail because there is no available data.
         """
 
-        assert (
-            locit(
-                locit_name="data/locit-input-pha.locit.zarr",
-                position_name="data/locit-input-pha.position.zarr",
-                elevation_limit=90.0,
-                parallel=False,
-                overwrite=True,
-            )
-            is None
+        new_pos_mds = locit(
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
+            elevation_limit=90.0,
+            parallel=False,
+            overwrite=True,
         )
 
-    def test_locit_polarization(self):
+        assert (
+            new_pos_mds is None
+        ), "There should be no position mds created when elevation limit is 90 degrees"
+
+    def test_polarization(self):
         """
         Run locit with polarization='R' and check that the file created on disk contains only delays for R.
         """
-
+        pol_sel = "R"
         position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
-            polarization="R",
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
+            polarization=pol_sel,
             parallel=False,
             overwrite=True,
         )
 
         for ant in position_mds.keys():
-            assert position_mds[ant].polarization == "R"
+            assert position_mds[ant].polarization == pol_sel
 
-    def test_locit_combine_ddis(self):
+    def test_combine_ddis(self):
         """
           Run locit with combine_ddis=False and check that the file created on disk contains delays and position \
           solutions for all DDIs.
         """
 
         position_mds = locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
             combine_ddis="simple",
             parallel=False,
             overwrite=True,
@@ -200,41 +198,25 @@ class TestLocit:
         for key in position_mds.keys():
             assert are_lists_equal(list(position_mds[key].keys()), ref_list)
 
-    def test_locit_overwrite(self):
+    def test_overwrite(self):
         """
-        Simply check that the file modification time has been changed after being overwritten.
+        Specify the output file should be overwritten; check that it WAS.
         """
-        initial_time = os.path.getctime("data/locit-input-pha.position.zarr")
+        # To check this properly we need to not only know an exception was not thrown but that the file is ACTUALLY
+        # overwritten. We do this by checking the modification time.
+        initial_time = os.path.getctime(self.def_pos_name)
 
         locit(
-            locit_name="data/locit-input-pha.locit.zarr",
-            position_name="data/locit-input-pha.position.zarr",
-            parallel=False,
+            locit_name=self.lct_name,
             overwrite=True,
         )
+        modified_time = os.path.getctime(self.def_pos_name)
+        assert (
+            initial_time != modified_time
+        ), "Recreated file has to have a different time from the original file."
 
-        modified_time = os.path.getctime("data/locit-input-pha.position.zarr")
-
-        assert initial_time != modified_time
-
-    def test_locit_not_overwrite(self):
-        """
-        Run locit with overwrite=False and expect the file created on disk to not be overwritten.
-        """
-        initial_time = os.path.getctime("data/locit-input-pha.position.zarr")
-
-        try:
+        with pytest.raises(FileExistsError):
             locit(
-                locit_name="data/locit-input-pha.locit.zarr",
-                position_name="data/locit-input-pha.position.zarr",
-                parallel=False,
+                locit_name=self.lct_name,
                 overwrite=False,
             )
-
-        except FileExistsError:
-            pass
-
-        finally:
-            modified_time = os.path.getctime("data/locit-input-pha.position.zarr")
-
-            assert initial_time == modified_time

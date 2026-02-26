@@ -147,14 +147,14 @@ class RingPanel(BasePanel):
         print("{0:20s}={1:8.5f}".format("zeta", self.zeta))
         print()
 
-    def plot(self, ax, screws=False, label=False, margins=False, samples=False):
+    def plot(self, ax, screws=False, label=False, _=False, samples=False):
         """
         Plot panel outline to ax
         Args:
             ax: matplotlib axes instance
             screws: Display screws in plot
             label: Add panel labels to plot
-            margins: does nothing (interface compatibility)
+            _: does nothing (interface compatibility)
             samples: plot samples and margins
         """
         x1 = self.inrad * np.sin(self.theta1)

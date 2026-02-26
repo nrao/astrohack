@@ -5,6 +5,12 @@ import xarray as xr
 import pathlib
 
 from astrohack.antenna.telescope import get_proper_telescope
+from astrohack.utils import (
+    convert_unit,
+    create_pretty_table,
+    dynamic_format,
+    string_to_ascii_file,
+)
 from astrohack.utils.text import statistics_to_text
 from astrohack.utils.algorithms import (
     data_statistics,
@@ -135,7 +141,7 @@ class FITSImage:
         elif len(self.data.shape) == 2:
             pass  # image is already as expected
         else:
-            raise Exception(f"FITS image has an unsupported shape: {self.data.shape}")
+            raise ValueError(f"FITS image has an unsupported shape: {self.data.shape}")
 
         self.original_data = np.copy(self.data)
 
@@ -153,7 +159,7 @@ class FITSImage:
             self.y_axis, _, self.y_unit = get_axis_from_fits_header(self.header, 2)
             self.data = np.fliplr(self.data)
         else:
-            raise Exception(f'Unrecognized origin:\n{self.header["origin"]}')
+            raise NotImplementedError(f'Unrecognized origin:\n{self.header["origin"]}')
         self._create_base_mask()
         self.original_x_axis = np.copy(self.x_axis)
         self.original_y_axis = np.copy(self.y_axis)
@@ -328,7 +334,7 @@ class FITSImage:
         base_name = f"{destination}/{self.rootname}"
 
         if self.residuals is None:
-            raise Exception("Cannot plot results as they don't exist yet.")
+            raise RuntimeError("Cannot plot results as they don't exist yet.")
         self._plot_map(
             self.mask_array(self.residuals),
             f"Residuals, {self.reference_name} - {self.filename}",
@@ -385,7 +391,7 @@ class FITSImage:
 
         if plot_percentuals:
             if self.residuals is None:
-                raise Exception("Cannot plot results as they don't exist yet.")
+                raise RuntimeError("Cannot plot results as they don't exist yet.")
             self._plot_map(
                 self.mask_array(self.residuals_percent),
                 f"Residuals in %, {self.reference_name} - {self.filename}",
@@ -511,7 +517,7 @@ class FITSImage:
                 xds.attrs[key] = value
 
             if failed:
-                raise Exception(f"Don't know what to do with: {key}")
+                raise ValueError(f"Don't know what to do with: {key}")
 
         xds = xds.assign_coords(coords)
         return xds
@@ -684,7 +690,7 @@ def image_comparison_chunk(compare_params):
             display=display,
         )
     else:
-        raise Exception(f'Unknown comparison type {compare_params["comparison"]}')
+        raise ValueError(f'Unknown comparison type {compare_params["comparison"]}')
 
     if compare_params["export_to_fits"]:
         image.export_to_fits(destination)
@@ -722,3 +728,50 @@ def extract_rms_from_xds(xds):
 
     rms_dict["original"] = np.nanstd(img_obj.mask_original())
     return rms_dict
+
+
+def create_fits_comparison_rms_table(parameters, xdt):
+    image_list = xdt.children
+    rms_unit = parameters["rms_unit"]
+
+    fields = [
+        "Image",
+        "Reference",
+        f"Original RMS [{rms_unit}]",
+        f"Resampled RMS [{rms_unit}]",
+        f"Reference RMS [{rms_unit}]",
+        f"Residuals RMS [{rms_unit}]",
+    ]
+
+    factor = convert_unit("m", rms_unit, "length")
+
+    table = create_pretty_table(fields)
+    for image in image_list:
+
+        image_xds = xdt[image]["Image"].to_dataset()
+        reference_xds = xdt[image]["Reference"].to_dataset()
+
+        img_rms_dict = extract_rms_from_xds(image_xds)
+        ref_rms_dict = extract_rms_from_xds(reference_xds)
+        values = np.array(
+            [
+                img_rms_dict["original"],
+                img_rms_dict["resampled"],
+                ref_rms_dict["original"],
+                img_rms_dict["residuals"],
+            ]
+        )
+        values *= factor
+
+        row = [image_xds.attrs["filename"], reference_xds.attrs["filename"]]
+        for val in values:
+            row.append(f"{val:{dynamic_format(val)}}")
+
+        table.add_row(row)
+
+    outstr = f'RMS comparison table from {parameters["zarr_data_tree"]}:\n'
+    outstr += table.get_string()
+    string_to_ascii_file(outstr, parameters["table_file"])
+    if parameters["print_table"]:
+        print(table)
+    return

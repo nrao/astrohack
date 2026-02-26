@@ -1,29 +1,17 @@
-import json
-import pathlib
-import toolviper.utils.logger as logger
-
-import numpy as np
-
-from casacore import tables
-from rich.console import Console
-
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.file import (
     check_if_file_can_be_opened,
-    check_if_file_can_be_opened_2,
 )
-from astrohack.io.mds import AstrohackImageFile
-from astrohack.io.mds import AstrohackHologFile
-from astrohack.io.mds import AstrohackPanelFile
-from astrohack.io.mds import AstrohackPointFile
+from astrohack.io.image_mds import AstrohackImageFile
+from astrohack.io.holog_mds import AstrohackHologFile
+from astrohack.io.panel_mds import AstrohackPanelFile
+from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
-from astrohack.utils.text import print_array
+from typing import Union
 
-from typing import Union, List, NewType, Dict, Any, NoReturn
-
-JSON = NewType("JSON", Dict[str, Any])
+xdtree_version = "0.10.1"
 
 
 def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
@@ -58,7 +46,7 @@ def open_beamcut(file: str) -> Union[AstrohackBeamcutFile, None]:
                 ant_n: …
             }
     """
-    check_if_file_can_be_opened_2(file, "beamcut", "0.10.1")
+    check_if_file_can_be_opened(file, "beamcut", xdtree_version)
     _data_file = AstrohackBeamcutFile(file=file)
 
     if _data_file.open():
@@ -86,25 +74,24 @@ def open_holog(file: str) -> Union[AstrohackHologFile, None]:
     .. parsed-literal::
         holog_mds =
             {
-                ddi_0:{
-                    map_0:{
-                         ant_0: holog_ds,
+                ant_0:{
+                    ddi_0:{
+                         map_0: holog_ds,
                              ⋮
-                         ant_n: holog_ds
+                         map_n: holog_ds
                     },
                     ⋮
-                    map_p: …
+                    ddi_p: …
                 },
             ⋮
-            ddi_m: …
+            ant_m: …
             }
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened(file, "extract_holog", xdtree_version)
     _data_file = AstrohackHologFile(file=file)
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 
@@ -138,12 +125,11 @@ def open_image(file: str) -> Union[AstrohackImageFile, None]:
            }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened(file, ["holog", "combine"], xdtree_version)
     _data_file = AstrohackImageFile(file=file)
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 
@@ -177,12 +163,11 @@ def open_panel(file: str) -> Union[AstrohackPanelFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened(file, "panel", xdtree_version)
     _data_file = AstrohackPanelFile(file=file)
 
     if _data_file.open():
         return _data_file
-
     else:
         return None
 
@@ -216,7 +201,7 @@ def open_locit(file: str) -> Union[AstrohackLocitFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "extract_locit", "0.10.1")
+    check_if_file_can_be_opened(file, "extract_locit", xdtree_version)
     _data_file = AstrohackLocitFile(file=file)
 
     if _data_file.open():
@@ -254,7 +239,7 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
-    check_if_file_can_be_opened_2(file, "locit", "0.10.1")
+    check_if_file_can_be_opened(file, "locit", xdtree_version)
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():
@@ -290,187 +275,11 @@ def open_pointing(file: str) -> Union[AstrohackPointFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "0.7.2")
+    check_if_file_can_be_opened(file, "extract_pointing", xdtree_version)
     _data_file = AstrohackPointFile(file=file)
 
     if _data_file.open():
         return _data_file
 
     else:
-        return None
-
-
-def fix_pointing_table(ms_name: str, reference_antenna: List[str]) -> None:
-    """Fix pointing table for a user defined subset of reference antennas.
-
-    :param ms_name: Measurement set name.
-    :type ms_name: str
-
-    :param reference_antenna: List of reference antennas.
-    :type reference_antenna: list
-
-    .. _Description:
-
-    **Example Usage**
-    The `fix_pointing_table` function takes the measurement set name and a list of reference antennas.
-
-    .. parsed-literal::
-        import astrohack
-
-        astrohack.dio.fix_pointing_table(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            reference_antenna=["ea15"]
-        )
-
-
-    """
-
-    path = pathlib.Path(ms_name)
-    ms_name_fullpath = str(path.absolute().resolve())
-
-    if not path.exists():
-        logger.error("Error finding file: {file}".format(file=ms_name_fullpath))
-
-    ms_table = "/".join((ms_name_fullpath, "ANTENNA"))
-
-    query = 'select NAME from "{table}"'.format(table=ms_table)
-
-    ant_names = np.array(tables.taql(query).getcol("NAME"))
-
-    ant_id = np.arange(len(ant_names))
-
-    query_ant = np.searchsorted(ant_names, reference_antenna)
-
-    ms_table = "/".join((ms_name_fullpath, "POINTING"))
-
-    ant_list = " or ".join(["ANTENNA_ID=={ant}".format(ant=ant) for ant in query_ant])
-
-    update = "update {table} set POINTING_OFFSET=0, TARGET=DIRECTION where {antennas}".format(
-        table=ms_table, antennas=ant_list
-    )
-
-    tables.taql(update)
-
-    ms_table = "/".join((ms_name_fullpath, "HISTORY"))
-    tb = tables.table(ms_table, readonly=False)
-
-    message = tb.getcol("MESSAGE")
-
-    if "pnt_tbl:fixed" not in message:
-        tb.addrows(nrows=1)
-        length = len(message)
-        tb.putcol(columnname="MESSAGE", value="pnt_tbl:fixed", startrow=length)
-
-
-def print_json(obj: JSON, indent: int = 6, columns: int = 7) -> None:
-    """Print formatted JSON dictionary (** Deprecated by Console **)
-
-    :param obj: JSON object
-    :type obj: JSON
-
-    :param indent: Indent to be used in JSON dictionary., defaults to 6
-    :type indent: int, optional
-
-    :param columns: Columns used to reshape the antenna list., defaults to 7
-    :type columns: int, optional
-    """
-    import toolviper.utils.console as console
-
-    color = console.Colorize()
-
-    if isinstance(obj, np.ndarray):
-        obj = list(obj)
-
-    if isinstance(obj, list):
-        if indent > 3:
-            list_indent = indent - 3
-        else:
-            list_indent = 0
-
-        print("{open}".format(open="[").rjust(list_indent, " "))
-        print_array(obj, columns=columns, indent=indent + 1)
-        print("{close}".format(close="]").rjust(list_indent, " "))
-
-    else:
-        for key, value in obj.items():
-            key_str = "{key}{open}".format(key=key, open=":{")
-            print("{key}".format(key=key_str).rjust(indent, " "))
-            print_json(value, indent + 4, columns=columns)
-            print("{close}".format(close="}").rjust(indent - 4, " "))
-
-
-def inspect_holog_obs_dict(
-    file: Union[str, JSON] = ".holog_obs_dict.json", style: str = "static"
-) -> Union[NoReturn, JSON]:
-    """ Print formatted holography observation dictionary
-
-    :param file: Input file, can be either JSON file or string., defaults to '.holog_obs_dict.json'
-    :type file: str | JSON, optional
-
-    :param style: Print style of JSON dictionary. This can be static, formatted generalized print out or dynamic, \
-    prints a collapsible formatted dictionary, defaults to static
-    :type style: str, optional
-
-    .. _Description:
-
-    **Example Usage**
-    The `inspect_holog_obs_dict` loads a holography observation dict either from disk or from memory (as an return \
-    value from `generate_holog_obs_dict`) and displays it in a more readable way like JSON.stringify() in javascript.
-
-    .. parsed-literal::
-        import astrohack
-
-        astrohack.dio.inspect_holog_obs_dict(file=holog_obs_obj)
-
-        >> ddi_0:{
-            map_0:{
-                scans:{
-                        [
-                            8,   9,  10,  12,  13,  14,  16
-                            17,  18,  23,  24,  25,  27,  28
-                            29,  31,  32,  33,  38,  39,  40
-                            42,  43,  44,  46,  47,  48,  53
-                            54,  55,  57
-                        ]
-                }
-                ant:{
-                    ea06:{
-                        [
-                            ea04, ea25
-                        ]
-                    }
-                }
-            }
-        } 
-    """
-
-    if not isinstance(file, dict):
-        try:
-            with open(file) as json_file:
-                json_object = json.load(json_file)
-
-        except IsADirectoryError:
-            try:
-                with open(file + "/holog_obs_dict.json") as json_file:
-                    json_object = json.load(json_file)
-            except FileNotFoundError:
-                logger.error(
-                    "holog observations dictionary not found: {file}".format(file=file)
-                )
-        except FileNotFoundError:
-            logger.error(
-                "holog observations dictionary not found: {file}".format(file=file)
-            )
-
-    else:
-        json_object = file
-
-    if style == "dynamic":
-        from IPython.display import JSON
-
-        return JSON(json_object)
-
-    else:
-        console = Console()
-        console.log(json_object, log_locals=False)
         return None

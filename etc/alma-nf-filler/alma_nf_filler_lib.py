@@ -156,7 +156,7 @@ def _get_holography_info(asdm_object):
     try:
         holo_info = asdm_object.holographyTable().get()[0]
     except:
-        raise Exception("ASDM is not a ALMA holography")
+        raise ValueError("ASDM is not a ALMA holography")
 
     corr_axis = []
     for item in holo_info.type():
@@ -538,7 +538,7 @@ def _solve_calibration(cal_time, cal_values, data_time, cal_type):
     elif cal_type in cal_methods.keys():
         return cal_methods[cal_type](cal_time, cal_values, data_time)
     else:
-        raise Exception(f"Unknown calibration solving algorithm {cal_type}")
+        raise ValueError(f"Unknown calibration solving algorithm {cal_type}")
 
 
 def _spline_fit(cal_time, cal_data, data_time):

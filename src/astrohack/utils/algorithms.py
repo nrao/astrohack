@@ -5,11 +5,14 @@ import scipy.constants
 import xarray as xr
 from numba import njit
 
+import pandas as pd
+from scipy.spatial import distance_matrix
+
 import toolviper.utils.logger as logger
 
 from astrohack.utils.text import format_angular_distance, create_dataset_label
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils.constants import pi, twopi
+from astrohack.utils.constants import pi, twopi, njit_caching
 
 
 def tokenize_version_number(version_number):
@@ -22,17 +25,17 @@ def tokenize_version_number(version_number):
         Tokenized version number in 3 element numpy array of integers
     """
     if not isinstance(version_number, str):
-        raise Exception(f"Version number: {version_number} is not a string")
+        raise ValueError(f"Version number: {version_number} is not a string")
     split = version_number.split(".")
     if len(split) != 3:
-        raise Exception(f"Version number: {version_number} is badly formated")
+        raise ValueError(f"Version number: {version_number} is badly formated")
     tokenized = np.ndarray([3], dtype=int)
 
     for itoken in range(len(split)):
         try:
             tokenized[itoken] = int(split[itoken])
         except ValueError:
-            raise Exception(
+            raise ValueError(
                 f"Version number: {version_number} is not composed of integers"
             )
     return tokenized
@@ -254,9 +257,9 @@ def least_squares(system, vector, return_sigma=False):
     The solved system, the variances of the system solution and the sum of the residuals
     """
     if len(system.shape) != 2:
-        raise Exception("System must have 2 dimensions")
+        raise ValueError("System must have 2 dimensions")
     if system.shape[0] < system.shape[1]:
-        raise Exception(
+        raise ValueError(
             "System must have at least the same number of rows as it has of columns"
         )
 
@@ -276,7 +279,7 @@ def least_squares(system, vector, return_sigma=False):
         return result, variance, residuals
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def least_squares_jit(system, vector):
     """
     Least squares fitting of a system of linear equations
@@ -289,9 +292,9 @@ def least_squares_jit(system, vector):
     The solved system, the variances of the system solution and the sum of the residuals
     """
     if len(system.shape) != 2:
-        raise Exception("System must have 2 dimensions")
+        raise ValueError("System must have 2 dimensions")
     if system.shape[0] < system.shape[1]:
-        raise Exception(
+        raise ValueError(
             "System must have at least the same number of rows as it has of columns"
         )
 
@@ -319,9 +322,9 @@ def _least_squares_fit_block(system, vector):
     The solved system and the variances of the system solution
     """
     if len(system.shape) < 2:
-        raise Exception("System block must have at least 2 dimensions")
+        raise ValueError("System block must have at least 2 dimensions")
     if system.shape[-2] < system.shape[-1]:
-        raise Exception(
+        raise ValueError(
             "Systems must have at least the same number of rows as they have of columns"
         )
     shape = system.shape
@@ -422,7 +425,7 @@ def compute_stokes(data, weight, pol_axis):
         stokes_data[:, 3] = 1j * (data[:, 1] - data[:, 2]) / 2
         sigma_amp[:, 3] = sigma_amp[:, 2]
     else:
-        raise Exception("Pol not supported " + str(pol_axis))
+        raise ValueError("Pol not supported " + str(pol_axis))
     stokes_amp = np.absolute(stokes_data)
     stokes_pha = np.angle(stokes_data, deg=True)
     sigma_amp[~np.isfinite(sigma_amp)] = np.nan
@@ -522,7 +525,6 @@ def create_coordinate_images(x_axis, y_axis, create_polar_coordinates=False):
     Returns:
         x_mesh and y_mesh, plus radius_mesh and polar_angle_mesh if create_polar_coordinates
     """
-    x_mesh, y_mesh = np.meshgrid(x_axis, y_axis, indexing="ij")
     shape = [x_axis.shape[0], y_axis.shape[0]]
     x_mesh = np.empty(shape)
     y_mesh = np.empty(shape)
@@ -611,3 +613,19 @@ def regrid_data_onto_2d_grid(x_axis, y_axis, linear_array, grid_idx):
     gridded = np.full(grid_shape, np.nan)
     gridded[grid_idx[:, 0], grid_idx[:, 1]] = linear_array[:]
     return gridded
+
+
+def compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names):
+    """
+    Compute a matrix of antenna position distances from antenna positions
+    :param ant_pos: antenna position array
+    :param ant_names: antenna names array
+    :return: dict with antenna distance matrix
+    """
+    pos_df = pd.DataFrame(ant_pos, columns=["x", "y", "z"], index=ant_names)
+    dist_mat_df = pd.DataFrame(
+        distance_matrix(pos_df.values, pos_df.values),
+        index=pos_df.index,
+        columns=pos_df.index,
+    )
+    return dist_mat_df.to_dict(orient="index")

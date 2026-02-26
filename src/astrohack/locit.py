@@ -1,10 +1,7 @@
-import pathlib
-
 import toolviper.utils.parameter
-import toolviper.utils.logger as logger
 
-from astrohack.utils.graph import compute_graph_to_mds_tree
-from astrohack.utils.file import overwrite_file
+from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.file import overwrite_file, check_if_file_can_be_opened
 from astrohack.core.locit import (
     locit_separated_chunk,
     locit_combined_chunk,
@@ -147,19 +144,15 @@ def locit(
     """
 
     # Doing this here allows it to get captured by locals()
-    if position_name is None:
-        position_name = get_default_file_name(
-            input_file=locit_name, output_type=".position.zarr"
-        )
+    position_name = get_default_file_name(locit_name, ".position.zarr", position_name)
 
     locit_params = locals()
 
     input_params = locit_params.copy()
     attributes = locit_params.copy()
 
-    assert pathlib.Path(locit_params["locit_name"]).exists() is True, logger.error(
-        f'File {locit_params["locit_name"]} does not exists.'
-    )
+    check_if_file_can_be_opened(locit_params["locit_name"], "extract_locit", "0.10.1")
+
     overwrite_file(locit_params["position_name"], locit_params["overwrite"])
 
     locit_mds = AstrohackLocitFile(locit_params["locit_name"])
@@ -181,36 +174,30 @@ def locit(
         combined = False
 
     else:
-        raise Exception(
+        raise RuntimeError(
             "This part of the code should be unreacheable when parameter validation is online."
         )
 
     position_mds = AstrohackPositionFile.create_from_input_parameters(
         locit_params["position_name"], locit_params
     )
+    position_mds.root.attrs.update(
+        {
+            "combined": combined,
+            "telescope_name": locit_mds.root.attrs["telescope_name"],
+            "reference_antenna": locit_mds.root.attrs["reference_antenna"],
+        }
+    )
 
-    executed_graph = compute_graph_to_mds_tree(
-        locit_mds,
-        function,
-        locit_params,
-        key_order,
-        position_mds,
+    executed_graph = create_and_execute_graph_from_dict(
+        looping_dict=locit_mds,
+        chunk_function=function,
+        param_dict=locit_params,
+        key_order=key_order,
+        output_mds=position_mds,
         parallel=parallel,
     )
-    if len(position_mds.keys()) == 0:
-        logger.warning("Processing did not yield any data")
-        executed_graph = False
-
     if executed_graph:
-        position_mds.root.attrs.update(
-            {
-                "combined": combined,
-                "telescope_name": locit_mds.root.attrs["telescope_name"],
-                "reference_antenna": locit_mds.root.attrs["reference_antenna"],
-            }
-        )
-        position_mds.write()
         return position_mds
     else:
-        logger.warning("No data to process")
         return None

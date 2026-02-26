@@ -1,63 +1,36 @@
+import datetime
+import inspect
 import os
 import json
-import copy
-import zarr
 import shutil
 import pathlib
 
-import numpy as np
-import xarray as xr
 
 import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
+import astrohack
 from astrohack.utils import data_from_version_needs_patch
-from astrohack.utils.data import read_meta_data
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()
 
 
-def check_if_file_can_be_opened(filename, minimal_version):
-    meta_list = [
-        ".point_input",
-        ".holog_input",
-        ".panel_input",
-        ".image_input",
-        ".locit_input",
-        ".position_input",
-    ]
+def check_ms_exists(ms_name):
+    ms_path = pathlib.Path(ms_name)
+    if not ms_path.exists():
+        raise FileNotFoundError(f"{ms_name} does not exist.")
+    if not ms_path.is_dir():
+        raise RuntimeError(f"{ms_name} is a file not a directory.")
 
-    if os.path.exists(filename):
-        pass
-    else:
-        raise FileNotFoundError(f"{filename} cannot be found.")
-
-    found_meta = False
-    metadata = None
-
-    for meta_name in meta_list:
-        try:
-            metadata = read_meta_data(f"{filename}/{meta_name}")
-            found_meta = True
-        except FileNotFoundError:
-            continue
-
-    if not found_meta:
-        raise ValueError(
-            f"{filename} does not contain valid metadata, it might not be a valid Astrohack file."
-        )
-
-    file_version = metadata["version"]
-
-    if data_from_version_needs_patch(file_version, minimal_version):
-        raise ValueError(
-            f"{filename} was created by astrohack version {file_version} which has a deprecated file"
-            f" format, please rerun astrohack on this dataset from scratch to access the data in it."
+    ms_tbl_info_path = pathlib.Path(ms_name + "/table.info")
+    if not ms_tbl_info_path.is_file():
+        raise RuntimeError(
+            f"{ms_name} does not contain a table.info file, probably not a proper or cal table."
         )
 
 
-def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
+def check_if_file_can_be_opened(filename, file_creator, minimal_version):
     if os.path.exists(filename):
         pass
     else:
@@ -79,9 +52,11 @@ def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
     if origin_info["origin"] != "astrohack":
         raise ValueError(f"{filename} was not created by astrohack")
 
-    if origin_info["creator_function"] != file_creator:
+    if not isinstance(file_creator, list):
+        file_creator = [file_creator]
+    if origin_info["creator_function"] not in file_creator:
         raise ValueError(
-            f'{filename} was created by {origin_info["creator_function"]} but {file_creator} was expected'
+            f'{filename} was created by {origin_info["creator_function"]} but {" or ".join(file_creator)} was expected'
         )
 
     file_version = origin_info["version"]
@@ -91,173 +66,6 @@ def check_if_file_can_be_opened_2(filename, file_creator, minimal_version):
             f"{filename} was created by astrohack version {file_version} which has a deprecated file"
             f" format, please rerun astrohack on this dataset from scratch to access the data in it."
         )
-
-
-def load_panel_file(file=None, panel_dict=None, dask_load=True):
-    """Open panel file.
-
-    Args:
-        dask_load ():
-        panel_dict ():
-        file (str, optional): Path to panel file. Defaults to None.
-
-    Returns:
-        bool: Nested dictionary containing panel data xds.
-    """
-
-    panel_data_dict = {}
-
-    if panel_dict is not None:
-        panel_data_dict = panel_dict
-
-    ant_list = [dir_name for dir_name in os.listdir(file) if os.path.isdir(file)]
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    for ant in ant_list:
-        if "ant" in ant:
-            ddi_list = [
-                dir_name
-                for dir_name in os.listdir(file + "/" + str(ant))
-                if os.path.isdir(file + "/" + str(ant))
-            ]
-            panel_data_dict[ant] = {}
-
-            for ddi in ddi_list:
-                if "ddi" in ddi:
-                    if dask_load:
-                        panel_data_dict[ant][ddi] = xr.open_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-                    else:
-                        panel_data_dict[ant][ddi] = _open_no_dask_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-
-    return panel_data_dict
-
-
-def load_image_file(file=None, image_dict=None, dask_load=True):
-    """Open holography file.
-
-    Args:
-        file (str, optional): Path to holography file. Defaults to None.
-        image_dict ():
-        dask_load ():
-
-    Returns:
-        bool: bool describing whether the file was opened properly
-
-    """
-
-    ant_data_dict = {}
-
-    if image_dict is not None:
-        ant_data_dict = image_dict
-
-    ant_list = [dir_name for dir_name in os.listdir(file) if os.path.isdir(file)]
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    for ant in ant_list:
-        if "ant" in ant:
-            ddi_list = [
-                dir_name
-                for dir_name in os.listdir(file + "/" + str(ant))
-                if os.path.isdir(file + "/" + str(ant))
-            ]
-            ant_data_dict[ant] = {}
-
-            for ddi in ddi_list:
-                if "ddi" in ddi:
-                    if dask_load:
-                        ant_data_dict[ant][ddi] = xr.open_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-                    else:
-                        ant_data_dict[ant][ddi] = _open_no_dask_zarr(
-                            "{name}/{ant}/{ddi}".format(name=file, ant=ant, ddi=ddi)
-                        )
-
-    return ant_data_dict
-
-
-def load_holog_file(
-    file, dask_load=True, load_pnt_dict=True, ant_id=None, ddi_id=None, holog_dict=None
-):
-    """Loads holog file from disk
-
-    Args:
-        holog_dict ():
-        ddi_id ():
-        ant_id ():
-        load_pnt_dict ():
-        dask_load ():
-        file ():
-
-
-    Returns:
-
-    """
-
-    if holog_dict is None:
-        holog_dict = {}
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    if load_pnt_dict:
-        logger.info("Loading pointing dictionary to holog ...")
-        holog_dict["pnt_dict"] = load_point_file(file=file, dask_load=dask_load)
-
-    for ddi in os.listdir(file):
-        if "ddi_" in ddi:
-
-            if ddi_id is None:
-                if ddi not in holog_dict:
-                    holog_dict[ddi] = {}
-            else:
-                if ddi == ddi_id:
-                    holog_dict[ddi] = {}
-                else:
-                    continue
-
-            for holog_map in os.listdir(os.path.join(file, ddi)):
-                if "map_" in holog_map:
-                    if holog_map not in holog_dict[ddi]:
-                        holog_dict[ddi][holog_map] = {}
-                    for ant in os.listdir(os.path.join(file, ddi + "/" + holog_map)):
-                        if "ant_" in ant:
-                            if (ant_id is None) or (ant_id in ant):
-                                mapping_ant_vis_holog_data_name = os.path.join(
-                                    file, ddi + "/" + holog_map + "/" + ant
-                                )
-
-                                if dask_load:
-                                    holog_dict[ddi][holog_map][ant] = xr.open_zarr(
-                                        mapping_ant_vis_holog_data_name
-                                    )
-                                else:
-                                    holog_dict[ddi][holog_map][ant] = (
-                                        _open_no_dask_zarr(
-                                            mapping_ant_vis_holog_data_name
-                                        )
-                                    )
-
-    if ant_id is None:
-        return holog_dict
-
-    return holog_dict, _read_data_from_holog_json(
-        holog_file=file, holog_dict=holog_dict, ant_id=ant_id, ddi_id=ddi_id
-    )
 
 
 def overwrite_file(file, overwrite):
@@ -278,310 +86,21 @@ def overwrite_file(file, overwrite):
             logger.warning(
                 f"{file} may not be valid astrohack file. Check the file name again."
             )
-            raise Exception(f"IncorrectFileType: {file}")
+            raise TypeError(f"IncorrectFileType: {file}")
 
 
-def load_image_xds(file_stem, ant, ddi, dask_load=True):
-    """Load specific image xds
-
-    Args:
-        dask_load ():
-        file_stem (str): File directory
-        ant (int): Antenna ID
-        ddi (int): DDI
-
-    Raises:
-        FileNotFoundError: FileNotFoundError
-
-    Returns:
-        zarr: zarr image file
-    """
-
-    image_path = "{image}/{ant}/{ddi}".format(image=file_stem, ant=ant, ddi=ddi)
-
-    if os.path.isdir(image_path):
-        if dask_load:
-            return xr.open_zarr(image_path)
-        else:
-            return _open_no_dask_zarr(image_path)
+def add_caller_and_version_to_dict(in_dict, direct_call=False):
+    if direct_call:
+        ipos = 1
     else:
-        raise FileNotFoundError("Image file: {} not found".format(image_path))
-
-
-def load_point_file(
-    file, ant_list=None, dask_load=True, pnt_dict=None, diagnostic=False
-):
-    """Load pointing dictionary from disk.
-
-    Args:
-        file (str): Input zarr file containing pointing dictionary.
-        diagnostic (bool):
-        pnt_dict (dict):
-        dask_load (bool):
-        ant_list (list):
-
-    Returns:
-        dict: Pointing dictionary
-    """
-    if pnt_dict is None:
-        pnt_dict = {}
-
-    if not pathlib.Path(file).exists():
-        logger.error("Requested file {} doesn't exist ...".format(colorize.blue(file)))
-
-        raise FileNotFoundError
-
-    pnt_dict["point_meta_ds"] = xr.open_zarr(file)
-
-    for ant in os.listdir(file):
-        if "ant_" in ant:
-            if (ant_list is None) or (ant in ant_list):
-                if dask_load:
-                    pnt_dict[ant] = xr.open_zarr(os.path.join(file, ant))
-                else:
-                    pnt_dict[ant] = _open_no_dask_zarr(os.path.join(file, ant))
-
-    if diagnostic:
-        _check_time_axis_consistency(pnt_dict)
-
-    return pnt_dict
-
-
-def _read_data_from_holog_json(holog_file, holog_dict, ant_id, ddi_id=None):
-    """Read holog file metadata and extract antenna based xds information for each (ddi, holog_map)
-
-    Args:
-        ddi_id ():
-        holog_file (str): holog file name.
-        holog_dict (dict): holog file dictionary containing msxds data.
-        ant_id (int): Antenna id
-
-    Returns:
-        nested dict: nested dictionary (ddi, holog_map, xds) with xds data embedded in it.
-    """
-
-    ant_id_str = str(ant_id)
-
-    holog_meta_data = str(pathlib.Path(holog_file).joinpath(".holog_json"))
-
-    try:
-        with open(holog_meta_data, "r") as json_file:
-            holog_json = json.load(json_file)
-
-    except Exception as error:
-        logger.error(str(error))
-        raise Exception
-
-    ant_data_dict = {}
-
-    for ddi in holog_json[ant_id_str].keys():
-        if "ddi_" in ddi:
-            if (ddi_id is not None) and (ddi != ddi_id):
-                continue
-
-            for holog_map in holog_json[ant_id_str][ddi].keys():
-                if "map_" in holog_map:
-                    ant_data_dict.setdefault(ddi, {})[holog_map] = holog_dict[ddi][
-                        holog_map
-                    ][ant_id]
-
-    return ant_data_dict
-
-
-def _open_no_dask_zarr(zarr_name, slice_dict=None):
-    """
-    Alternative to xarray open_zarr where the arrays are not Dask Arrays.
-
-    slice_dict: A dictionary of slice objects for which values to read form a dimension.
-                For example silce_dict={'time':slice(0,10)} would select the first 10 elements in the time dimension.
-                If a dim is not specified all values are returned.
-    return:
-        xarray.Dataset()
-    """
-
-    if slice_dict is None:
-        slice_dict = {}
-
-    zarr_group = zarr.open_group(store=zarr_name, mode="r")
-    group_attrs = _get_attrs(zarr_group)
-
-    slice_dict_complete = copy.deepcopy(slice_dict)
-    coords = {}
-    xds = xr.Dataset()
-
-    for var_name, var in zarr_group.arrays():
-        var_attrs = _get_attrs(var)
-
-        for dim in var_attrs[DIMENSION_KEY]:
-            if dim not in slice_dict_complete:
-                slice_dict_complete[dim] = slice(None)  # No slicing.
-
-        if (var_attrs[DIMENSION_KEY][0] == var_name) and (
-            len(var_attrs[DIMENSION_KEY]) == 1
-        ):
-            coords[var_name] = var[
-                slice_dict_complete[var_attrs[DIMENSION_KEY][0]]
-            ]  # Dimension coordinates.
-        else:
-            # Construct slicing
-            slicing_list = []
-            for dim in var_attrs[DIMENSION_KEY]:
-                slicing_list.append(slice_dict_complete[dim])
-            slicing_tuple = tuple(slicing_list)
-            xds[var_name] = xr.DataArray(
-                var[slicing_tuple], dims=var_attrs[DIMENSION_KEY]
-            )
-
-    xds = xds.assign_coords(coords)
-
-    xds.attrs = group_attrs
-    return xds
-
-
-def _check_time_axis_consistency(pnt_dict):
-    variable_length = {}
-
-    for ant in pnt_dict.keys():
-        if ant != "point_meta_ds":
-            variable_length[ant] = pnt_dict[ant].POINTING_OFFSET.values.shape[0]
-
-    # Calculate a fractional error
-    std = np.std(list(variable_length.values()))
-    mean = np.mean(list(variable_length.values()))
-    fractional_error = std / mean
-
-    if fractional_error >= 0.01:
-        logger.warning(
-            "There is an inconsistency in the data length along the time axis in one or more of the antennas "
-            "POINTING_OFFSET; for more info run the logger in debug mode."
-        )
-
-        logger.debug("Pointing offset time axis length per antenna")
-        logger.debug(str(variable_length))
-
-
-def _get_attrs(zarr_obj):
-    """Get attributes of zarr obj (groups or arrays)
-
-    Args:
-        zarr_obj (zarr): a zarr_group object
-
-    Returns:
-        dict: a group of zarr attributes
-    """
-    return {k: v for k, v in zarr_obj.attrs.asdict().items() if not k.startswith("_NC")}
-
-
-def _get_ds_metadata(ds):
-    if hasattr(ds, "_input_pars"):
-        metadata = getattr(ds, "_input_pars")
-    elif isinstance(ds, xr.Dataset) or isinstance(ds, xr.DataTree):
-        metadata = getattr(ds, "attrs")
-    else:
-        metadata = ds.root.attrs
-    return metadata
-
-
-def _compare_dictionaries(dict_a, dict_b, metaname):
-    different_keys = False
-    for key in dict_a.keys():
-        if key not in dict_b.keys():
-            different_keys = True
-
-    if different_keys:
-        return True, f"{metaname} keys do not match"
-
-    different_values = False
-    for key, value in dict_a.items():
-        if isinstance(value, np.ndarray) or isinstance(value, xr.DataArray):
-            if isinstance(value, np.ndarray):
-                value_a = value
-                value_b = dict_b[key]
-            else:
-                value_a = value.values
-                value_b = dict_b[key].values
-            is_str_arr = value_a.dtype.char in ["U", "S", "O"]
-            if is_str_arr:
-                different_values = np.any(value_a != value_b)
-            else:
-                different_values = not np.allclose(value_a, value_b, equal_nan=True)
-        else:
-            different_values = value != dict_b[key]
-    if different_values:
-        return True, f"{metaname} values do not match"
-
-    return False, ""
-
-
-def _is_mds_metadata_different(mds_a, mds_b, metaname="metadata"):
-    metadata_a = _get_ds_metadata(mds_a)
-    metadata_b = _get_ds_metadata(mds_b)
-    return _compare_dictionaries(metadata_a, metadata_b, metaname)
-
-
-def _is_xdtree(data):
-    return hasattr(data, "is_leaf")
-
-
-def _get_xds_data_from_dict(data):
-    if isinstance(data, xr.Dataset):
-        return data
-    elif _is_xdtree(data):
-        if data.is_leaf:
-            return data.ds
-        else:
-            return False
-    else:
-        return False
-
-
-def _compare_xds_data(xds_a, xds_b, label):
-    metadata_different, msg = _is_mds_metadata_different(
-        xds_a, xds_b, metaname=f"{label} attribute"
-    )
-    if metadata_different:
-        return True, msg
-
-    else:
-        return _compare_dictionaries(xds_a, xds_b, metaname=f"{label} data variable")
-
-
-def _are_data_dicts_different(dict_a, dict_b, label=""):
-    xds_a = _get_xds_data_from_dict(dict_a)
-    xds_b = _get_xds_data_from_dict(dict_b)
-    compare_dict = not (xds_a or xds_b)
-
-    if compare_dict:
-        for key in dict_a.keys():
-            if key not in dict_b.keys():
-                return True, f"{label[2:]} keys do not match"
-            elif "info" in key:
-                return _compare_dictionaries(dict_a[key], dict_b[key], label)
-            else:
-                data_dicts_are_different, msg = _are_data_dicts_different(
-                    dict_a[key], dict_b[key], label=f"{label}, {key}"
-                )
-                if data_dicts_are_different:
-                    return True, msg
-    else:
-        return _compare_xds_data(xds_a, xds_b, label=label[2:])
-
-    return False, ""
-
-
-def mds_equality_test(mds_a, mds_b):
-    """
-    :param mds_a: First MDS object
-    :param mds_b: Second MDS object
-    :return: Equality test result, error message.
-    """
-
-    metadata_different, msg = _is_mds_metadata_different(mds_a, mds_b)
-    if metadata_different:
-        return False, f"{mds_a.file} and {mds_b.file} {msg}."
-
-    data_dicts_different, msg = _are_data_dicts_different(mds_a, mds_b)
-    if data_dicts_different:
-        return False, f"{mds_a.file} and {mds_b.file} {msg}."
-
-    return True, f"{mds_a.file} and {mds_b.file} are equal"
+        ipos = 2
+    curr_time = datetime.datetime.now()
+    local_tz = curr_time.astimezone().tzinfo
+    time_str = curr_time.strftime(f"%Y-%m-%d %H:%M:%S {local_tz}")
+
+    in_dict["origin_info"] = {
+        "origin": "astrohack",
+        "version": astrohack.__version__,
+        "creator_function": inspect.stack()[ipos].function,
+        "creation_time": time_str,
+    }

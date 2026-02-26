@@ -1,0 +1,154 @@
+{
+    "AstrohackPointFile.plot_pointing_in_time":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "ant":{
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "pointing_key":{
+            "allowed": ["DIRECTION", "DIRECTIONAL_COSINES", "ENCODER", "POINTING_OFFSET", "TARGET"],
+            "nullable": false,
+            "required": false,
+            "type": ["string"]
+        },
+        "plot_antennas_separately":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "azel_unit":{
+            "nullable": false,
+            "required": false,
+            "type": [
+                "string"
+            ],
+            "check allowed with": "units.trig"
+        },
+        "time_unit":{
+            "nullable": false,
+            "required": false,
+            "type": [
+                "string"
+            ],
+            "check allowed with": "units.time"
+        },
+        "az_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float", "int"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["tuple", "list", "ndarray"]
+        },
+        "el_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float", "int"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["tuple", "list", "ndarray"]
+        },
+        "time_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float", "int"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["tuple", "list", "ndarray"]
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "figure_size":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float", "int"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["list", "tuple", "ndarray"]
+        },
+        "dpi": {
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        }
+    },
+    "AstrohackPointFile.plot_array_configuration":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "stations":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "zoff":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.length"
+        },
+        "box_size":{
+            "nullable": true,
+            "required": false,
+            "type": ["int", "float"],
+            "min": 0
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "figure_size":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float", "int"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["list", "tuple", "ndarray"]
+        },
+        "dpi": {
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        }
+    },
+    "AstrohackPointFile.set_antennas_as_reference":{
+        "reference_antennas": {
+            "nullable": false,
+            "required": true,
+            "type": ["list", "tuple", "ndarray", "str"],
+            "struct_type": ["str"]
+        },
+        "write_changes": {
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        }
+    }
+}

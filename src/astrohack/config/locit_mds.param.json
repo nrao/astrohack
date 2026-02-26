@@ -66,7 +66,7 @@
             "check allowed with": "units.length"
         },
         "box_size":{
-            "nullable": false,
+            "nullable": true,
             "required": false,
             "type": ["int", "float"],
             "min": 0

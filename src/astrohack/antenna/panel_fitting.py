@@ -5,7 +5,6 @@ import toolviper.utils.logger as logger
 
 from astrohack.utils import gauss_elimination, least_squares_jit
 
-
 ###################################
 #  General purpose                #
 ###################################
@@ -630,7 +629,7 @@ class PanelModel:
             Array of corrections and the indices linking them to the aperture.
         """
         if not self.fitted:
-            raise Exception("Cannot correct using a panel model that is not fitted")
+            raise RuntimeError("Cannot correct using a panel model that is not fitted")
 
         nsamp = len(samples)
         nmarg = len(margins)

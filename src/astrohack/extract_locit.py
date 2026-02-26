@@ -1,10 +1,10 @@
-import pathlib
+import shutil
 import toolviper.utils.parameter
-import toolviper.utils.logger as logger
-
 from typing import Union, List
 
-from astrohack.utils.file import overwrite_file
+from toolviper.utils import logger
+
+from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_locit import (
     extract_antenna_data,
     extract_spectral_info,
@@ -77,19 +77,13 @@ def extract_locit(
        "myphase.locit.zarr" that will be overwritten if already present.
     """
     # Doing this here allows it to get captured by locals()
-    if locit_name is None:
-        locit_name = get_default_file_name(
-            input_file=cal_table, output_type=".locit.zarr"
-        )
-
+    locit_name = get_default_file_name(cal_table, ".locit.zarr", locit_name)
     extract_locit_params = locals()
 
     input_params = extract_locit_params.copy()
     attributes = extract_locit_params.copy()
 
-    assert (
-        pathlib.Path(extract_locit_params["cal_table"]).exists() is True
-    ), logger.error(f'File {extract_locit_params["cal_table"]} does not exists.')
+    check_ms_exists(cal_table)
 
     overwrite_file(
         extract_locit_params["locit_name"], extract_locit_params["overwrite"]
@@ -103,7 +97,15 @@ def extract_locit(
     extract_antenna_data(extract_locit_params, locit_mds)
     extract_source_and_telescope(extract_locit_params, locit_mds)
 
+    locit_mds.write(mode="a")
+    locit_mds.consolidate(["ant"])
+
     extract_antenna_phase_gains(extract_locit_params, ddi_dict, locit_mds)
 
-    locit_mds.write()
-    return locit_mds
+    if len(locit_mds.keys()) == 0:
+        shutil.rmtree(extract_locit_params["locit_name"])
+        logger.warning("No data produced")
+        return None
+    else:
+        locit_mds.write(mode="a")
+        return locit_mds

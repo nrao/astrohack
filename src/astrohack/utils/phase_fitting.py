@@ -7,13 +7,8 @@ from astrohack.utils.algorithms import (
     phase_wrapping,
 )
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils.constants import clight
+from astrohack.utils.constants import clight, njit_caching
 from astrohack.utils.tools import get_str_idx_in_list
-from matplotlib.patches import Circle
-from astrohack.visualization.plot_tools import (
-    well_positioned_colorbar,
-    get_proper_color_map,
-)
 
 import toolviper.utils.logger as logger
 
@@ -67,7 +62,7 @@ def aips_like_phase_fitting(
         else:
             msg = f"Unknown polarization scheme: {pol_axis}"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         min_wavelength = clight / freq_axis[0]
         results, errors, phase_corrected_angle, _, in_rms, out_rms = (
@@ -147,7 +142,7 @@ def _solve_phase_fitting_controls(phase_fit_par, tel_name):
 
     if isinstance(phase_fit_par, (np.ndarray, list, tuple)):
         if len(phase_fit_par) != 5:
-            raise Exception("Phase fit parameter must have 5 elements")
+            raise ValueError("Phase fit parameter must have 5 elements")
 
         else:
             if np.sum(phase_fit_par) == 0:
@@ -172,7 +167,7 @@ def _solve_phase_fitting_controls(phase_fit_par, tel_name):
                     )
 
     else:
-        raise Exception("Phase fit parameter is not an array of booleans.")
+        raise ValueError("Phase fit parameter is not an array of booleans.")
     return do_phase_fit, [
         do_pnt_off,
         do_xy_foc_off,
@@ -195,14 +190,14 @@ def create_phase_model(parameters, wavelength, telescope, u_axis, v_axis):
     Returns:
 
     """
-    iNPARameters = _external_to_internal_parameters(parameters, wavelength, telescope)
+    internal_pars = _external_to_internal_parameters(parameters, wavelength, telescope)
     dummyphase = np.zeros((u_axis.shape[0], v_axis.shape[0]))
 
     _, model = _correct_phase(
         dummyphase,
         u_axis,
         v_axis,
-        iNPARameters,
+        internal_pars,
         telescope.magnification,
         telescope.focus,
         telescope.surp_slope,
@@ -362,18 +357,18 @@ def _external_to_internal_parameters(exparameters, wavelength, telescope):
     Returns:
         Array in internal units, see _phase_fitting for more details
     """
-    iNPARameters = exparameters
+    internal_pars = exparameters
     # convert from mm
     scaling = wavelength / 0.54
-    iNPARameters[3:] /= scaling
+    internal_pars[3:] /= scaling
     # Sub-reflector tilt from degrees
     rad2deg = convert_unit("rad", "deg", "trigonometric")
-    iNPARameters[6:8] /= rad2deg / (1000.0 * telescope.secondary_distance_to_focus)
+    internal_pars[6:8] /= rad2deg / (1000.0 * telescope.secondary_distance_to_focus)
     # rescale phase ramp to pointing offset
-    iNPARameters[1:3] /= wavelength * rad2deg / 360.0
-    iNPARameters /= rad2deg
+    internal_pars[1:3] /= wavelength * rad2deg / 360.0
+    internal_pars /= rad2deg
 
-    return iNPARameters
+    return internal_pars
 
 
 def _ignore_non_fitted(ignored, matrix, vector):
@@ -464,7 +459,7 @@ def _correct_phase(
     return corrected_phase, phase_model
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _matrix_coeffs(u_val, v_val, magnification, focal_length, phase_slope):
     """
     Computes the matrix coefficients used when building the design matrix and correcting the phase image
@@ -524,7 +519,7 @@ def _matrix_coeffs(u_val, v_val, magnification, focal_length, phase_slope):
     return x_focus, y_focus, z_focus, x_tilt, y_tilt, x_cass, y_cass
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _build_design_matrix_block(
     pols,
     inrad,
@@ -750,7 +745,7 @@ def _ignore_non_fitted_block(ignored, matrix, vector):
 
 
 # Change is needed here
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _correct_phase_block(
     pols,
     phase_image,
@@ -941,7 +936,7 @@ def _build_astigmatism_matrix(
     return matrix, vector, sel
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _perturbed_fit_jit(matrix, vector, fit_offset):
     perturbed = np.empty_like(vector)
     for i_par in range(fit_offset.shape[0]):
@@ -951,7 +946,7 @@ def _perturbed_fit_jit(matrix, vector, fit_offset):
     return result, sigma
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _fit_perturbation_loop_jit(
     start, radius, wave_number, solving_matrix, solving_vector, npar, step=1e-3
 ):
@@ -1069,7 +1064,7 @@ def clic_like_phase_fitting(
     return phase, best_fit
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def phase_wrapping_jit(phase):
     """
     Wraps phase to the -pi to pi interval

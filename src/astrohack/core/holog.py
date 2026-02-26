@@ -1,13 +1,15 @@
 import numpy as np
 import xarray as xr
 
+from copy import deepcopy
+
+from astrohack.io.image_mds import AstrohackImageFile
 from astrohack.utils import format_angular_distance
 from astrohack.antenna.telescope import get_proper_telescope, RingedCassegrain
 from astrohack.utils.text import create_dataset_label
 from astrohack.utils.conversion import convert_5d_grid_to_stokes
 from astrohack.utils.algorithms import phase_wrapping
 from astrohack.utils.zernike_aperture_fitting import fit_zernike_coefficients
-from astrohack.utils.file import load_holog_file
 from astrohack.utils.imaging import (
     calculate_far_field_aperture,
     calculate_near_field_aperture,
@@ -23,31 +25,27 @@ from astrohack.utils.phase_fitting import (
 import toolviper.utils.logger as logger
 
 
-def process_holog_chunk(holog_chunk_params):
+def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile):
     """Process chunk holography data along the antenna axis. Works with holography file to properly grid , normalize,
         average and correct data and returns the aperture pattern.
 
     Args:
         holog_chunk_params (dict): Dictionary containing holography parameters.
+        output_mds: Output mds object
     """
-    holog_file, ant_data_dict = load_holog_file(
-        holog_chunk_params["holog_name"],
-        dask_load=False,
-        load_pnt_dict=False,
-        ant_id=holog_chunk_params["this_ant"],
-        ddi_id=holog_chunk_params["this_ddi"],
-    )
-    label = create_dataset_label(
-        holog_chunk_params["this_ant"], holog_chunk_params["this_ddi"], separator=","
-    )
+
+    ant_key = holog_chunk_params["this_ant"]
+    ddi_key = holog_chunk_params["this_ddi"]
+    ant_ddi_xdt = holog_chunk_params["xdt_data"]
+
+    label = create_dataset_label(ant_key, ddi_key, separator=",")
     logger.info(f"Processing {label}")
-    ddi = holog_chunk_params["this_ddi"]
+
+    summary = deepcopy(ant_ddi_xdt["map_0"].attrs["summary"])
+
     convert_to_stokes = holog_chunk_params["to_stokes"]
-    ref_xds = ant_data_dict[ddi]["map_0"]
-    summary = ref_xds.attrs["summary"]
 
     user_grid_size = holog_chunk_params["grid_size"]
-
     if user_grid_size is None:
         grid_size = np.array(summary["beam"]["grid size"])
     elif isinstance(user_grid_size, int):
@@ -55,10 +53,9 @@ def process_holog_chunk(holog_chunk_params):
     elif isinstance(user_grid_size, (list, np.ndarray)):
         grid_size = np.array(user_grid_size)
     else:
-        raise Exception(
+        raise TypeError(
             f"Don't know what due with grid size of type {type(user_grid_size)}"
         )
-
     logger.info(
         f"{label}: Using a grid of {grid_size[0]} by {grid_size[1]} pixels for the beam"
     )
@@ -73,7 +70,7 @@ def process_holog_chunk(holog_chunk_params):
     elif isinstance(user_cell_size, (list, np.ndarray)):
         cell_size = np.array(user_cell_size)
     else:
-        raise Exception(
+        raise TypeError(
             f"Don't know what due with cell size of type {type(user_cell_size)}"
         )
 
@@ -86,7 +83,7 @@ def process_holog_chunk(holog_chunk_params):
         summary["general"]["telescope name"], summary["general"]["antenna name"]
     )
     try:
-        is_near_field = ref_xds.attrs["near_field"]
+        is_near_field = ant_ddi_xdt["map_0"].attrs["near_field"]
     except KeyError:
         is_near_field = False
 
@@ -100,7 +97,7 @@ def process_holog_chunk(holog_chunk_params):
         grid_corr,
         summary,
     ) = grid_beam(
-        ant_ddi_dict=ant_data_dict[ddi],
+        ant_ddi_xdt=ant_ddi_xdt,
         grid_size=grid_size,
         sky_cell_size=cell_size,
         avg_chan=holog_chunk_params["chan_average"],
@@ -110,10 +107,9 @@ def process_holog_chunk(holog_chunk_params):
         observation_summary=summary,
         label=label,
     )
-
     if not is_near_field:
         beam_grid = parallactic_derotation(
-            data=beam_grid, parallactic_angle_dict=ant_data_dict[ddi]
+            data=beam_grid, parallactic_angle_dict=ant_ddi_xdt
         )
 
     if holog_chunk_params["scan_average"]:
@@ -226,15 +222,14 @@ def process_holog_chunk(holog_chunk_params):
     summary["aperture"] = _get_aperture_summary(
         u_axis, v_axis, _compute_aperture_resolution(l_axis, m_axis, used_wavelength)
     )
-
     _export_to_xds(
         beam_grid,
         aperture_grid,
         amplitude,
         phase_corrected_angle,
-        holog_chunk_params["this_ant"],
+        ant_key,
         time_centroid,
-        ddi,
+        ddi_key,
         phase_fit_results,
         pol_axis,
         freq_axis,
@@ -250,8 +245,8 @@ def process_holog_chunk(holog_chunk_params):
         zernike_model,
         zernike_rms,
         zernike_n_order,
-        holog_chunk_params["image_name"],
         summary,
+        output_mds,
     )
 
     logger.info(f"Finished processing {label}")
@@ -311,9 +306,9 @@ def _export_to_xds(
     aperture_grid,
     amplitude,
     phase_corrected_angle,
-    ant_id,
+    ant_key,
     time_centroid,
-    ddi,
+    ddi_key,
     phase_fit_results,
     pol_axis,
     freq_axis,
@@ -329,10 +324,10 @@ def _export_to_xds(
     zernike_model,
     zernike_rms,
     zernike_n_order,
-    image_name,
     summary,
+    output_mds: AstrohackImageFile,
 ):
-    # Todo: Add Paralactic angle as a non-dimension coordinate dependant on time.
+    # Todo: Add Parallactic angle as a non-dimension coordinate dependant on time.
     xds = xr.Dataset()
 
     xds["BEAM"] = xr.DataArray(beam_grid, dims=["time", "chan", "pol", "l", "m"])
@@ -357,12 +352,11 @@ def _export_to_xds(
         zernike_rms, dims=["time", "chan", "orig_pol"]
     )
 
-    xds.attrs["ant_id"] = ant_id
     xds.attrs["time_centroid"] = np.array(time_centroid)
-    xds.attrs["ddi"] = ddi
     xds.attrs["phase_fitting"] = phase_fit_results
     xds.attrs["zernike_N_order"] = zernike_n_order
     xds.attrs["summary"] = summary
+    xds.attrs["ddi"] = ddi_key
 
     coords = {
         "orig_pol": orig_pol_axis,
@@ -377,9 +371,7 @@ def _export_to_xds(
         "osa": osa_coeff_list,
     }
     xds = xds.assign_coords(coords)
-    xds.to_zarr(
-        f"{image_name}/{ant_id}/{ddi}", mode="w", compute=True, consolidated=True
-    )
+    output_mds.add_node(xds, [ant_key, ddi_key])
 
 
 def _get_aperture_summary(u_axis, v_axis, aperture_resolution):

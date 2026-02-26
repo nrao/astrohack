@@ -1,12 +1,13 @@
 import numpy as np
 import pathlib
 
+from astropy.time import Time
 from typing import Union, Tuple, List
 
 import toolviper.utils.parameter
+import toolviper.utils.logger as logger
 
 from astrohack.antenna import get_proper_telescope
-from astrohack.core.extract_locit import plot_source_table, plot_array_configuration
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils import (
     create_pretty_table,
@@ -14,9 +15,17 @@ from astrohack.utils import (
     rad_to_deg_str,
     compute_antenna_relative_off,
     notavail,
+    figsize,
+    convert_unit,
+)
+from astrohack.visualization.plot_tools import (
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
 )
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.validation import custom_unit_checker
+from astrohack.visualization.array_cfg_plot import plot_array_configuration
 
 
 class AstrohackLocitFile(AstrohackBaseFile):
@@ -189,7 +198,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
             )
             obs_midpoint = None
 
-        plot_source_table(
+        _plot_source_positions_sub(
             filename,
             self.root.attrs["source_dict"],
             precessed=precessed,
@@ -209,7 +218,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         stations: bool = True,
         zoff: bool = False,
         unit: str = "m",
-        box_size: Union[int, float] = 5000,
+        box_size: Union[int, float] = None,
         display: bool = False,
         figure_size: Union[Tuple, List[float], np.array] = None,
         dpi: int = 300,
@@ -228,7 +237,8 @@ class AstrohackLocitFile(AstrohackBaseFile):
         :param unit: Unit for the plot, valid values are length units, default is km
         :type unit: str, optional
 
-        :param box_size: Size of the box for plotting the inner part of the array in unit, default is 5 km
+        :param box_size: Size of the box for plotting the inner part of the array in unit, when none the box size is \
+        20% of the total size of the array, default is None
         :type box_size: int, float, optional
 
         :param display: Display plots inline or suppress, defaults to True
@@ -241,10 +251,78 @@ class AstrohackLocitFile(AstrohackBaseFile):
         :type dpi: int, optional
 
         .. _Description:
-
-
+        Plot the array configuration from the antenna positions.
         """
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        plot_array_configuration(param_dict, self.root)
+        plot_array_configuration(param_dict, self.root, "locit")
         return
+
+
+def _plot_source_positions_sub(
+    filename,
+    src_dict,
+    label=True,
+    precessed=False,
+    obs_midpoint=None,
+    display=True,
+    figure_size=figsize,
+    dpi=300,
+):
+    """Backend function for plotting the source table
+    Args:
+        filename: Name for the png plot file
+        src_dict: The dictionary containing the observed sources
+        label: Add source labels
+        precessed: Plot sources with precessed coordinates
+        obs_midpoint: Time to which precesses the coordiantes
+        display: Display plots in matplotlib
+        figure_size: plot dimensions in inches
+        dpi: Dots per inch (plot resolution)
+    """
+
+    n_src = len(src_dict)
+    radec = np.ndarray((n_src, 2))
+    name = []
+    if precessed:
+        if obs_midpoint is None:
+            msg = "Observation midpoint is missing"
+            logger.error(msg)
+            raise RuntimeError(msg)
+        coorkey = "precessed"
+        time = Time(obs_midpoint, format="mjd")
+        title = f"Coordinates precessed to {time.iso}"
+    else:
+        coorkey = "fk5"
+        title = "FK5 reference frame"
+
+    for i_src, src in src_dict.items():
+        radec[int(i_src)] = src[coorkey]
+        name.append(src["name"])
+
+    fig, ax = create_figure_and_axes(figure_size, [1, 1])
+    radec[:, 0] *= convert_unit("rad", "hour", "trigonometric")
+    radec[:, 1] *= convert_unit("rad", "deg", "trigonometric")
+
+    xlabel = "Right Ascension [h]"
+    ylabel = "Declination [\u00b0]"
+    if label:
+        labels = name
+    else:
+        labels = None
+
+    scatter_plot(
+        ax,
+        radec[:, 0],
+        xlabel,
+        radec[:, 1],
+        ylabel,
+        title=None,
+        labels=labels,
+        xlim=[-0.5, 24.5],
+        ylim=[-95, 95],
+        add_legend=False,
+    )
+
+    close_figure(fig, title, filename, dpi, display)
+    return

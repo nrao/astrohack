@@ -1,170 +1,127 @@
 import os
 import shutil
 import toolviper
+import pathlib
 import pytest
 
-from astrohack.holog import holog
-from astrohack.extract_holog import extract_holog
-from astrohack.extract_pointing import extract_pointing
-from astrohack.extract_holog import generate_holog_obs_dict
-from astrohack.combine import combine
+from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack import combine, open_image
 
 
-@pytest.mark.skip(reason="Fix later")
 class TestCombine:
+    data_dir = "combine_data"
+
+    img_name = "ea25_cal_before_reference.image.zarr"
+
+    def_cmb_name = "ea25_cal_before_reference.combine.zarr"
+    ref_cmb_name = "ea25_before_reference.combine.zarr"
+
+    ant_id = "ea25"
+    ant_key = f"ant_{ant_id}"
+    ddi_id = 0
+    ddi_key = f"ddi_{ddi_id}"
+
+    cmb_ddi_key = "ddi_99"
+
     @classmethod
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        toolviper.utils.data.download(
-            file="ea25_cal_small_before_fixed.split.ms", folder="data"
-        )
 
-        # This gets the remote functionality for now
-        # download(file="combine_weight_array", folder="data")
+        toolviper.utils.data.download(file=cls.img_name, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.ref_cmb_name, folder=cls.data_dir)
 
-        # Generate pointing file
-        extract_pointing(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            overwrite=True,
-            parallel=False,
-        )
-
-        # Generate a holog observations dictionary with a subset of data described by ddi=1
-        holog_obs_dict = generate_holog_obs_dict(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            baseline_average_distance="all",
-            baseline_average_nearest="all",
-            parallel=False,
-        )
-
-        # Extract holography data using holog_obd_dict
-        holog_mds = extract_holog(
-            ms_name="data/ea25_cal_small_before_fixed.split.ms",
-            point_name="data/ea25_cal_small_before_fixed.split.point.zarr",
-            data_column="CORRECTED_DATA",
-            parallel=False,
-            overwrite=True,
-        )
-
-        image_mds = holog(
-            holog_name="data/ea25_cal_small_before_fixed.split.holog.zarr",
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            overwrite=True,
-            parallel=False,
-        )
+        add_data_folder_to_names_in_class(cls)
 
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree("data")
+        shutil.rmtree(cls.data_dir)
 
-    def setup_method(self):
-        """setup any state specific to all methods of the given class"""
+    def test_defaults(self):
+        new_cmb_mds = combine(image_name=self.img_name, overwrite=True)
+        assert pathlib.Path(
+            self.def_cmb_name
+        ).is_dir(), f"A .combine.zarr file named {self.def_cmb_name} does not exist."
 
-        pass
+        ref_cmb_mds = open_image(self.ref_cmb_name)
+        assert new_cmb_mds.is_close_to(
+            ref_cmb_mds
+        ), "Reference and new mdses are different."
 
-    def teardown_method(self):
-        """teardown any state that was previously setup for all methods of the given class"""
-        pass
-
-    @pytest.mark.skip(reason="Fix later")
-    def test_combine_ddi(self):
+    def test_ddi_and_ant_selection(self):
         """
         Specify a ddi value to be process and check that it is the only one processed.
         """
 
-        combine_mds = combine(
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            combine_name="data/ea25_cal_small_before_fixed.split.combine.zarr",
+        cmb_mds = combine(
+            image_name=self.img_name,
+            combine_name=self.def_cmb_name,
             ant="all",
-            ddi=[0],
+            ddi=self.ddi_id,
             weighted=False,
             parallel=False,
             overwrite=True,
         )
 
-        assert list(combine_mds["ant_ea25"].keys()) == ["ddi_0"]
+        exp_ddi_list = [self.ddi_key]
+        for ant_key, ant_xdt in cmb_mds.items():
+            ddi_list = list(ant_xdt.keys())
+            assert (
+                ddi_list == exp_ddi_list
+            ), f"Expected {exp_ddi_list}, but got {ddi_list} for {ant_key}."
 
-    @pytest.mark.skip(reason="Fix later")
-    def test_combine_ant(self):
-        """
-        Specify a ddi value to be process and check that it is the only one processed.
-        """
-
-        combine_mds = combine(
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            combine_name="data/ea25_cal_small_before_fixed.split.combine.zarr",
-            ant="ea25",
+        cmb_mds = combine(
+            image_name=self.img_name,
+            combine_name=self.def_cmb_name,
+            ant=self.ant_id,
             ddi="all",
             weighted=False,
             parallel=False,
             overwrite=True,
         )
 
-        assert list(combine_mds.keys()) == ["ant_ea25"]
-
-    # def test_combine_weighted(self):
-    #    """
-    #        Specify a ddi value to be process and check that it is the only one processed.
-    #    """
-
-    #    combine_mds = combine(
-    #        image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-    #        combine_name="data/ea25_cal_small_before_fixed.split.combine.weighted.zarr",
-    #        ant="ea25",
-    #        ddi="all",
-    #        weighted=True,
-    #        parallel=False,
-    #        overwrite=True
-    #    )
-
-    #    with open("data/combine_weight.npy", "rb") as file:
-    #        combine_weight_array = np.load(file)
-
-    #    combine_mds_values = combine_mds["ant_ea25"]["ddi_0"].AMPLITUDE.values
-
-    #    np.nan_to_num(combine_weight_array, copy=False)
-    #    np.nan_to_num(combine_mds_values, copy=False)
-
-    # assert (combine_weight_array == combine_mds_values).all()
+        exp_ant_list = [self.ant_key]
+        assert (
+            list(cmb_mds.keys())
+        ) == exp_ant_list, f"Expected {exp_ant_list} but got {list(cmb_mds.keys())}"
+        exp_ddi_list = [self.cmb_ddi_key]
+        for ant_key, ant_xdt in cmb_mds.items():
+            ddi_list = list(ant_xdt.keys())
+            assert (
+                ddi_list == exp_ddi_list
+            ), f"Expected {exp_ddi_list}, but got {ddi_list} for {ant_key}."
 
     def test_combine_overwrite(self):
         """
         Specify that the output file should be overwritten if it exists; check that it is overwritten.
         """
 
-        combine_mds = combine(
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            combine_name="data/ea25_cal_small_before_fixed.split.combine.zarr",
-            ant="all",
-            ddi="all",
-            weighted=False,
-            parallel=False,
-            overwrite=True,
-        )
-
-        initial_time = os.path.getctime(
-            "data/ea25_cal_small_before_fixed.split.combine.zarr"
-        )
+        initial_time = os.path.getctime(self.def_cmb_name)
 
         # Combine image data
-        combine_mds = combine(
-            image_name="data/ea25_cal_small_before_fixed.split.image.zarr",
-            combine_name="data/ea25_cal_small_before_fixed.split.combine.zarr",
-            ant="all",
+        combine(
+            image_name=self.img_name,
+            ant=self.ant_id,
             ddi="all",
             weighted=False,
             parallel=False,
             overwrite=True,
         )
 
-        final_time = os.path.getctime(
-            "data/ea25_cal_small_before_fixed.split.combine.zarr"
-        )
+        final_time = os.path.getctime(self.def_cmb_name)
 
-        # Check that the holog file date has changed
-        assert initial_time != final_time
+        assert (
+            initial_time != final_time
+        ), "Recreated file has to have a different time from the original file."
+
+        with pytest.raises(FileExistsError):
+            combine(
+                image_name=self.img_name,
+                ant=self.ant_id,
+                ddi="all",
+                weighted=False,
+                parallel=False,
+                overwrite=False,
+            )

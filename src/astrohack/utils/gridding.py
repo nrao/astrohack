@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import xarray
 from toolviper.utils import logger as logger
 from scipy.interpolate import griddata
 from numba import njit
@@ -13,6 +14,7 @@ from astrohack.utils import (
     calc_coords,
     find_peak_beam_value,
     chunked_average,
+    njit_caching,
 )
 from astrohack.utils.tools import (
     get_str_idx_in_list,
@@ -23,7 +25,7 @@ from astrohack.utils.tools import (
 
 
 def grid_beam(
-    ant_ddi_dict,
+    ant_ddi_xdt: xarray.DataTree,
     grid_size,
     sky_cell_size,
     avg_chan,
@@ -37,7 +39,7 @@ def grid_beam(
     Grids the visibilities onto a 2D plane based on their Sky coordinates, using scipy griddata or a gaussian
     convolution
     Args:
-        ant_ddi_dict: Dictionary with the description of the data
+        ant_ddi_xdt: Xarray DataTree containing the visibilities
         grid_size: The size of the beam image grid (pixels)
         sky_cell_size: Size of the beam grid cell in the sky (radians)
         avg_chan: Average cahnnels? (boolean)
@@ -52,12 +54,12 @@ def grid_beam(
         necessity of gridding corrections after fourier transform.
     """
 
-    n_holog_map = len(ant_ddi_dict.keys())
-    map0 = list(ant_ddi_dict.keys())[0]
-    freq_axis = ant_ddi_dict[map0].chan.values
-    pol_axis = ant_ddi_dict[map0].pol.values
-    n_chan = ant_ddi_dict[map0].sizes["chan"]
-    n_pol = ant_ddi_dict[map0].sizes["pol"]
+    n_holog_map = len(ant_ddi_xdt.keys())
+    map_0_key = list(ant_ddi_xdt.keys())[0]
+    freq_axis = ant_ddi_xdt[map_0_key].chan.values
+    pol_axis = ant_ddi_xdt[map_0_key].pol.values
+    n_chan = ant_ddi_xdt[map_0_key].sizes["chan"]
+    n_pol = ant_ddi_xdt[map_0_key].sizes["pol"]
 
     observation_summary["beam"]["grid size"] = [int(grid_size[0]), int(grid_size[1])]
     observation_summary["beam"]["cell size"] = [sky_cell_size[0], sky_cell_size[1]]
@@ -82,13 +84,12 @@ def grid_beam(
 
     time_centroid = []
     grid_corr = False
-    for holog_map_index, holog_map in enumerate(ant_ddi_dict.keys()):
-        ant_xds = ant_ddi_dict[holog_map]
+    for holog_map_index, map_xdt in enumerate(ant_ddi_xdt.values()):
         # Grid the data
-        vis = ant_xds.VIS.values
+        vis = map_xdt.VIS.values
         vis[vis == np.nan] = 0.0
-        lm = ant_xds.DIRECTIONAL_COSINES.values
-        weight = ant_xds.WEIGHT.values
+        lm = map_xdt.DIRECTIONAL_COSINES.values
+        weight = map_xdt.WEIGHT.values
 
         if avg_chan:
             vis_avg, weight_sum = chunked_average(
@@ -129,12 +130,10 @@ def grid_beam(
         else:
             msg = f"Unknown grid type {grid_interpolation_mode}."
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
-        time_centroid_index = ant_ddi_dict[holog_map].sizes["time"] // 2
-        time_centroid.append(
-            ant_ddi_dict[holog_map].coords["time"][time_centroid_index].values
-        )
+        time_centroid_index = map_xdt.sizes["time"] // 2
+        time_centroid.append(map_xdt.coords["time"][time_centroid_index].values)
 
         beam_grid[holog_map_index, ...] = _normalize_beam(
             beam_grid[holog_map_index, ...], n_chan, pol_axis
@@ -263,13 +262,13 @@ def _normalize_beam(beam_grid, n_chan, pol_axis):
         else:
             msg = f"Unknown polarization scheme: {pol_axis}"
             logger.error(msg)
-            raise Exception(msg)
+            raise ValueError(msg)
 
         for chan in range(n_chan):
             try:
                 p1_peak = find_peak_beam_value(beam_grid[chan, i_p1, ...], scaling=0.25)
                 p2_peak = find_peak_beam_value(beam_grid[chan, i_p2, ...], scaling=0.25)
-            except Exception:
+            except IndexError:
                 center_pixel = np.array(beam_grid.shape[-2:]) // 2
                 p1_peak = beam_grid[chan, i_p1, center_pixel[0], center_pixel[1]]
                 p2_peak = beam_grid[chan, i_p2, center_pixel[0], center_pixel[1]]
@@ -396,7 +395,7 @@ def grid_1d_data(
         return new_y_data
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _create_new_data_and_weights(dest_ax, y_data):
     """
     Assumes y_data is a list of [n, m] arrays
@@ -414,7 +413,7 @@ def _create_new_data_and_weights(dest_ax, y_data):
     return new_y_data, weights
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_ordered_axis_index(coor, i_pos, axis, half_int):
     if i_pos == axis.shape[0]:
         return -1
@@ -425,7 +424,7 @@ def _get_ordered_axis_index(coor, i_pos, axis, half_int):
     return i_pos
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _linear_interpolate_under_sample(dest_ax, orig_ax, dest_delta, y_data):
     half_int_dest = dest_delta / 2
 
@@ -448,7 +447,7 @@ def _linear_interpolate_under_sample(dest_ax, orig_ax, dest_delta, y_data):
     return new_y_data, weights
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _liner_interpolate_over_sample(dest_ax, orig_ax, orig_delta, y_data):
     half_int_orig = orig_delta / 2
     new_y_data, weights = _create_new_data_and_weights(dest_ax, y_data)
@@ -465,7 +464,7 @@ def _liner_interpolate_over_sample(dest_ax, orig_ax, orig_delta, y_data):
     return new_y_data, weights
 
 
-@njit(cache=True, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _gaussian_convolution_1d_jit(dest_ax, orig_ax, hpkw, y_data):
     kernel = _create_exponential_kernel(hpkw, hpkw)
     new_y_data, weights = _create_new_data_and_weights(dest_ax, y_data)
@@ -521,7 +520,7 @@ def _convolution_gridding(
     return beam
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _convolution_gridding_jit(
     visibilities, lmvis, weights, sky_cell_size, l_axis, m_axis, beam_size, avg_chan
 ):
@@ -579,7 +578,7 @@ def _convolution_gridding_jit(
     return beam_grid, weig_grid
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _find_nearest(value, array):
     """
     Find nearest array element to value (array must be sorted)
@@ -595,7 +594,7 @@ def _find_nearest(value, array):
     return idx
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _create_exponential_kernel(
     beam_size, sky_cell_size, exponent=2, oversampling=100, hpbw_width=4
 ):
@@ -643,7 +642,7 @@ def _create_exponential_kernel(
     return ker_dict
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _compute_kernel_range(kernel, coor, axis):
     """
     Compute the range of pixels over which to perform the convolution
@@ -666,7 +665,7 @@ def _compute_kernel_range(kernel, coor, axis):
     return i_min, i_max
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _convolution_factor(kernel, delta):
     """
     Compute the convolution factor for a specific pixel
@@ -685,7 +684,7 @@ def _convolution_factor(kernel, delta):
         return kernel["kernel"][ikern]
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _compute_kernel_correction(kernel, grid_size):
     """
     Compute kernel's fourier transform convolution correction
@@ -731,7 +730,7 @@ def _compute_beam_size(diameter, frequency):
     return size
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _get_normalized_correction(u_corr, v_corr):
     """
     Compute full grid convolution grid correction
@@ -754,7 +753,7 @@ def _get_normalized_correction(u_corr, v_corr):
     return norm_corr
 
 
-@njit(cache=False, nogil=True)
+@njit(cache=njit_caching, nogil=True)
 def _gridding_correction_jit(aperture, beam_size, sky_cell_size, u_axis, v_axis):
     """
     Actual convolution gridding correction numba jitted for speed

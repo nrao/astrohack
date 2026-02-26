@@ -1,7 +1,8 @@
 API
 ======================================================
 
-Currently we only provide API reference to user facing functions.
+Below are listed the API for all user facing functions and for the data
+classes created by astrohack's user facing functions.
 
 .. toctree::
    :maxdepth: 2
@@ -17,5 +18,12 @@ Currently we only provide API reference to user facing functions.
    ../_api/autoapi/astrohack/cassegrain_ray_tracing/index
    ../_api/autoapi/astrohack/image_comparison_tool/index
    ../_api/autoapi/astrohack/io/dio/index
-   ../_api/autoapi/astrohack/io/mds/index
+   ../_api/autoapi/astrohack/io/base_mds/index
    ../_api/autoapi/astrohack/io/beamcut_mds/index
+   ../_api/autoapi/astrohack/io/holog_mds/index
+   ../_api/autoapi/astrohack/io/image_mds/index
+   ../_api/autoapi/astrohack/io/locit_mds/index
+   ../_api/autoapi/astrohack/io/panel_mds/index
+   ../_api/autoapi/astrohack/io/point_mds/index
+   ../_api/autoapi/astrohack/io/position_mds/index
+

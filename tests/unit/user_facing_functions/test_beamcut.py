@@ -2,12 +2,16 @@ import pathlib
 import numpy as np
 import shutil
 import glob
-
+import matplotlib
 from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
-from astrohack.utils.file import mds_equality_test
-from astrohack.utils.validation import are_lists_equal
+from astrohack.utils.verification_tools import (
+    are_lists_equal,
+    add_data_folder_to_names_in_class,
+)
+
+matplotlib.use("Agg")
 
 
 def retrieve_data_from_report(report):
@@ -32,7 +36,7 @@ def retrieve_data_from_report(report):
 
 
 class TestBeamcut:
-    data_folder = "beamcut_data"
+    data_dir = "beamcut_data"
     destination_folder = "beamcut_exports"
 
     ms_name = "kband_beamcut_small.ms"
@@ -46,14 +50,10 @@ class TestBeamcut:
     def setup_class(cls):
         """setup any state specific to the execution of the given test class
         such as fetching test data"""
-        data.download(file=cls.ms_name, folder=cls.data_folder)
-        data.download(file=cls.remote_beamcut_name, folder=cls.data_folder)
+        data.download(file=cls.ms_name, folder=cls.data_dir)
+        data.download(file=cls.remote_beamcut_name, folder=cls.data_dir)
 
-        # Add datafolder to names for execution
-        for varname, varvalue in cls.__dict__.items():
-            if isinstance(varvalue, str):
-                if varname.split("_")[-1] == "name":
-                    setattr(cls, varname, f"{cls.data_folder}/{varvalue}")
+        add_data_folder_to_names_in_class(cls)
 
         extract_pointing(
             ms_name=cls.ms_name,
@@ -76,20 +76,22 @@ class TestBeamcut:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_folder, ignore_errors=True)
+        shutil.rmtree(cls.data_dir, ignore_errors=True)
         shutil.rmtree(cls.destination_folder, ignore_errors=True)
 
     def test_results(self):
         # Has to be run first
-        local_beamcut_mds = beamcut(
+        new_bmc_mds = beamcut(
             holog_name=self.holog_name,
             beamcut_name=self.local_beamcut_name,
+            ddi=0,
+            ant="ea15",
             overwrite=True,
         )
 
-        remote_beamcut_mds = open_beamcut(self.remote_beamcut_name)
-        assertion, msg = mds_equality_test(remote_beamcut_mds, local_beamcut_mds)
-        assert assertion, msg
+        ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
+        assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
+        assert assertion, "Reference and new mdses are not close enough."
 
     def test_destination(self):
         # Deleting destination if it exists just to make test more robust
@@ -240,7 +242,7 @@ class TestBeamcut:
             self.remote_beamcut_name
         ).is_dir(), "If no beamcut_name is given, beamcut should create an output file named {self.remote_beamcut_name}"
 
-        crazy_name = self.data_folder + "/crazy_name.beamcut.zarr"
+        crazy_name = self.data_dir + "/crazy_name.beamcut.zarr"
 
         beamcut(
             holog_name=self.holog_name,

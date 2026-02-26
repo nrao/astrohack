@@ -11,6 +11,8 @@ from astrohack.antenna.telescope import RingedCassegrain, get_proper_telescope
 
 
 class TestClassTelescope:
+    silly_name = "teletubies"
+
     def test_get_proper_telescope(self):
         """
         Test the initialization of a Telescope object using the VLA as a test case
@@ -23,7 +25,7 @@ class TestClassTelescope:
         assert tel.diameter == 25.0, "Telescope diameter loaded incorrectly"
 
         with pytest.raises(Exception):
-            vla_ns = get_proper_telescope("vla", "teletubies")
+            vla_ns = get_proper_telescope("vla", self.silly_name)
 
         ngvla = get_proper_telescope("VLA", "na")
         assert (
@@ -43,10 +45,10 @@ class TestClassTelescope:
             alma_ns = get_proper_telescope("ALMA")
 
         with pytest.raises(Exception):
-            alma_ns = get_proper_telescope("ALMA", "teletubies")
+            alma_ns = get_proper_telescope("ALMA", self.silly_name)
 
-        newtel = get_proper_telescope("teletubies")
-        assert newtel is None, "Nonsense telescope name does not return None"
+        new_tel = get_proper_telescope(self.silly_name)
+        assert new_tel is None, "Nonsense telescope name does not return None"
 
     def test_read(self):
         """
@@ -58,13 +60,13 @@ class TestClassTelescope:
         assert tel.focus == 8.75, "Telescope focus length loaded incorrectly"
 
         with pytest.raises(FileNotFoundError):
-            tel.read("teletubies")
+            tel.read(self.silly_name)
 
     def test_write(self):
         """
-        Test the writting of a hack file containing the telescope atributes
+        Test the writing of a hack file containing the telescope attributes
         """
-        testfile = "teletubies-tel.zarr"
+        testfile = f"{self.silly_name}-tel.zarr"
         tel = get_proper_telescope("vla")
         tel.write(testfile)
         assert os.path.exists(
@@ -73,15 +75,15 @@ class TestClassTelescope:
         assert (
             filecmp.cmp(tel.file_path + "/vlba.zarr/.zattrs", testfile + "/.zattrs")
             == 0
-        ), ("Telescope configuration " "file is not equal to the " "reference")
+        ), "Telescope configuration file is not equal to the reference"
         shutil.rmtree(testfile)
 
-        tel.name = "teletubies"
+        tel.name = self.silly_name
         tel.write_to_distro()
         assert os.path.exists(
-            tel.file_path + "/teletubies.zarr"
+            tel.file_path + f"/{self.silly_name}.zarr"
         ), "Telescope configuration file not created at the proper location"
-        shutil.rmtree(tel.file_path + "/teletubies.zarr")
+        shutil.rmtree(tel.file_path + f"/{self.silly_name}.zarr")
 
     def test_ringed_consistency(self):
         """

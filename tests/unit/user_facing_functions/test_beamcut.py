@@ -84,6 +84,8 @@ class TestBeamcut:
         new_bmc_mds = beamcut(
             holog_name=self.holog_name,
             beamcut_name=self.local_beamcut_name,
+            ddi=0,
+            ant="ea15",
             overwrite=True,
         )
 

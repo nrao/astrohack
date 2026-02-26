@@ -265,7 +265,7 @@ def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
     i_end_orig = 9
     inside_method_table = False
     inside_antenna_table = False
-    exp_orig_info = _create_origin_dict("test_summary")
+    exp_orig_info = create_origin_dict("test_summary")
 
     method_list = inspect.getmembers(mds_obj, predicate=inspect.ismethod)
     exp_method_list = []
@@ -343,7 +343,7 @@ def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
     ), "Method list should be equal to the expected one"
 
 
-def _create_origin_dict(caller):
+def create_origin_dict(caller):
     from astrohack import __version__ as astroversion
 
     orig_dict = {

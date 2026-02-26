@@ -4,120 +4,19 @@ import shutil
 import pytest
 import xarray
 import pathlib
-import inspect
 
 from collections.abc import KeysView, ValuesView, ItemsView
 
 from toolviper.utils import data
 
-import astrohack
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     are_dicts_close,
-    capture_prints_from_function,
+    analyse_summary,
     are_lists_equal,
+    create_origin_dict,
 )
-
-
-def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
-    """analyse summary file"""
-    summ_str = capture_prints_from_function(mds_obj.summary)
-    n_input_pars = len(exp_input_pars.keys())
-
-    i_start_input = 15
-    i_end_input = i_start_input + n_input_pars
-    i_start_orig = 6
-    i_end_orig = 9
-    inside_method_table = False
-    inside_antenna_table = False
-    exp_orig_info = create_origin_dict("test_summary")
-
-    full_method_list = method_list = inspect.getmembers(
-        mds_obj, predicate=inspect.ismethod
-    )
-    exp_method_list = []
-    for name, method in method_list:
-        if name[0] == "_":
-            continue
-        else:
-            exp_method_list.append(name)
-
-    this_method_list = []
-    this_ant_list = []
-    this_input_pars = {}
-    this_orig_info = {}
-    this_filename = None
-    for i_line, line in enumerate(summ_str.splitlines()):
-        if i_line == 2:
-            this_filename = line.split()[1]
-        if i_start_orig <= i_line < i_end_orig:
-            wrds = line.split(":")
-            key = wrds[0].strip()
-            value = wrds[1].strip()
-            this_orig_info[key] = value
-        elif i_start_input <= i_line < i_end_input:
-            wrds = line.split("|")
-            key = wrds[1].strip()
-            value = wrds[2].strip()
-            this_input_pars[key] = value
-        elif line.strip() == "Available methods:":
-            inside_method_table = True
-        elif inside_method_table:
-            if line.strip() == "":
-                inside_method_table = False
-            elif line[0] == "+":
-                pass
-            else:
-                method_wrd = line.split("|")[1].strip()
-                if method_wrd == "" or method_wrd == "Methods":
-                    pass
-                else:
-                    this_method_list.append(method_wrd)
-        elif line.strip() == "Data Contents:":
-            inside_antenna_table = True
-        elif inside_antenna_table:
-            if line.strip() == "":
-                inside_antenna_table = False
-            elif line[0] == "+":
-                pass
-            else:
-                ant_wrd = line.split("|")[1].strip()
-                if ant_wrd == "" or ant_wrd == "Antenna":
-                    pass
-                else:
-                    this_ant_list.append(ant_wrd)
-        else:
-            pass
-
-    assert (
-        this_filename == exp_file_name
-    ), "File name in Summary should be equal to the expected one"
-
-    assert are_dicts_close(
-        this_input_pars, exp_input_pars
-    ), "Input parameter dictionaries should identical"
-
-    assert are_dicts_close(
-        this_orig_info, exp_orig_info
-    ), "Origin info dictionaries should be identical"
-
-    assert are_lists_equal(
-        this_ant_list, exp_ant_keys_list
-    ), "Antenna list should be equal to the expected one"
-
-    assert are_lists_equal(
-        this_method_list, exp_method_list
-    ), "Method list should be equal to the expected one"
-
-
-def create_origin_dict(caller):
-    orig_dict = {
-        "origin": "astrohack",
-        "version": astrohack.__version__,
-        "creator_function": caller,
-    }
-    return orig_dict
 
 
 class TestBaseMds:
@@ -282,10 +181,9 @@ class TestBaseMds:
         ), "Antenna subtree in writen file should be equal to the one given to it"
 
     def test_incremental_write_and_closeness(self):
-        shutil.rmtree(self.output_file_name)
+        shutil.rmtree(self.output_file_name, ignore_errors=True)
         base_mds = AstrohackBaseFile(self.pos_mds_name)
         base_mds.open()
-        any_ant_tree = base_mds[self.get_ant_key]
 
         new_mds = AstrohackBaseFile.create_from_input_parameters(
             self.output_file_name, self.ref_input_pars
@@ -299,33 +197,57 @@ class TestBaseMds:
             self.output_file_name
         ).is_dir(), f"{self.output_file_name} should not exist on disk at this point"
 
-        new_mds.add_node_to_tree(
-            any_ant_tree, dump_to_disk=False, running_in_parallel=False
-        )
-        exp_n_keys = 1
-        assert (
-            len(new_mds.keys()) == exp_n_keys
-        ), f"new_mds should have {exp_n_keys} keys at this moment."
-
-        new_ant_tree = copy.deepcopy(any_ant_tree)
-        new_ant_tree.name = self.set_ant_key
-
-        new_mds.add_node_to_tree(
-            new_ant_tree, dump_to_disk=True, running_in_parallel=False
-        )
-        exp_n_keys = 2
-        assert (
-            len(new_mds.keys()) == exp_n_keys
-        ), f"new_mds should have {exp_n_keys} keys at this moment."
+        new_mds.write(mode="w")
         assert pathlib.Path(
             self.output_file_name
         ).is_dir(), f"{self.output_file_name} should exist on disk at this point"
 
-        assert new_mds.is_close_to(new_mds), "New mds should be close to itself"
+        ant_key_list = []
+        # Test adding datasets
+        for ant_key, ant_xdt in base_mds.items():
+            xds = ant_xdt.ds
+            new_mds.add_node(xds, [ant_key])
+            ant_key_list.append(ant_key)
+            data_path = pathlib.Path(f"{self.output_file_name}/{ant_key}")
+            assert data_path.is_dir(), f"{data_path} should exist on disk at this point"
 
+        assert len(new_mds.keys()) == 0, "Key list should not have grown at this point"
+        new_mds.consolidate(["ant"])
+
+        this_ant_key_list = list(new_mds.keys())
+        assert are_lists_equal(ant_key_list, this_ant_key_list)
+
+        alternative_name = f"{self.data_dir}/by_xdt.base.zarr"
+        by_xdt_mds = AstrohackBaseFile.create_from_input_parameters(
+            alternative_name, self.ref_input_pars
+        )
+        by_xdt_mds.write(mode="w")
+        for ant_key, ant_xdt in base_mds.items():
+            by_xdt_mds.add_node(ant_xdt.copy(), [ant_key])
+            data_path = pathlib.Path(f"{self.output_file_name}/{ant_key}")
+            assert data_path.is_dir(), f"{data_path} should exist on disk at this point"
+        assert (
+            len(by_xdt_mds.keys()) == 0
+        ), "Key list should not have grown at this point"
+        by_xdt_mds.consolidate(["ant"])
+
+        this_ant_key_list = list(by_xdt_mds.keys())
+        assert are_lists_equal(ant_key_list, this_ant_key_list)
+
+        assert by_xdt_mds.is_close_to(
+            new_mds
+        ), "MDSes created using datatrees and datasets should be equal"
+
+        assert new_mds.is_close_to(
+            by_xdt_mds
+        ), "MDSes created using datasets and datatrees should be equal"
+
+        assert new_mds.is_close_to(base_mds), "New mds should be close to base mds"
+
+        new_mds.root.attrs["random"] = 42
         assert not new_mds.is_close_to(
             base_mds
-        ), "New mds should be different from base mds"
+        ), "New mds should not be close to base mds"
 
     def test_summary(self):
         base_mds = AstrohackBaseFile(self.pos_mds_name)

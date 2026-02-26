@@ -220,11 +220,16 @@ def are_data_trees_close(tree_a, tree_b, tol=1e-8):
         try:
             xarray.testing.assert_allclose(tree_a.dataset, tree_b.dataset, rtol=tol)
         except AssertionError:
-            print(f"Failed datasets")
+            print(f"Failed dataset comparison at {tree_a.name}")
             return False
         if tree_a.is_leaf and tree_b.is_leaf:
             pass
         else:
+            a_key_list = list(tree_a.keys())
+            b_key_list = list(tree_b.keys())
+            if not are_lists_equal(a_key_list, b_key_list):
+                print(f"Differing key lists at {tree_a.name}")
+                return False
             for key, subtree_a in tree_a.items():
                 is_close = is_close and are_data_trees_close(
                     subtree_a, tree_b[key], tol

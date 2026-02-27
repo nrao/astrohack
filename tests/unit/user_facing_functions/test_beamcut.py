@@ -109,15 +109,17 @@ class TestBeamcut:
             destination_exists
         ), f"destination folder {self.destination_folder} does not exist"
 
+        exp_n_pngs = 16
         n_pngs = len(glob.glob(f"{self.destination_folder}/*.png"))
         assert (
-            n_pngs == 12
-        ), f"When a destination is given beamcut should prepare 8 pngs, {n_pngs} have been found"
+            n_pngs == exp_n_pngs
+        ), f"When a destination is given beamcut should prepare {exp_n_pngs} pngs, {n_pngs} have been found"
 
+        exp_n_txt = 4
         n_txts = len(glob.glob(f"{self.destination_folder}/*.txt"))
         assert (
-            n_txts == 4
-        ), f"When a destination is given beamcut should prepare 8 pngs, {n_txts} have been found"
+            n_txts == exp_n_txt
+        ), f"When a destination is given beamcut should prepare {exp_n_txt} reports, {n_txts} have been found"
 
     def test_data_selection(self):
         # This test depends on knowing the contents of the original ms

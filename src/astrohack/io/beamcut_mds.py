@@ -293,6 +293,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         )
         return
 
+    @validate(custom_checker=custom_plots_checker)
     def plot_beamcut_in_phase(
         self,
         destination: str,

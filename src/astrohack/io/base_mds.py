@@ -204,7 +204,6 @@ class AstrohackBaseFile:
         outstr += get_method_list_string(self)
         outstr += get_data_content_string(self.root)
         print(outstr)
-        return outstr
 
     @classmethod
     def create_from_input_parameters(cls, file_name: str, input_parameters: dict):

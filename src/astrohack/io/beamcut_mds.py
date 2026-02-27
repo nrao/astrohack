@@ -306,6 +306,43 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
+        """
+        Plot beamcuts contained in the beamcut_mds in phase
+
+        :param destination: Directory into which to save plots.
+        :type destination: str
+
+        :param ant: Antenna ID to use in subselection, e.g. ea25, defaults to "all".
+        :type ant: list or str, optional
+
+        :param ddi: Data description ID to use in subselection, e.g. 0, defaults to "all".
+        :type ddi: list or int, optional
+
+        :param lm_unit: Unit for L/M offsets, default is "amin".
+        :type lm_unit: str, optional
+
+        :param azel_unit: Unit for Az/El information, default is "deg".
+        :type azel_unit: str, optional
+
+        :param phase_unit: Unit for the phase plots, default is "deg".
+        :type phase_unit: str, optional
+
+        :param phase_scale: Scale for the phase plots, in phase_unit, default is None, meaning 1 full cycle.
+        :type phase_scale: Union[List[float], Tuple[float], np.array], optional
+
+        :param display: Display plots during execution, default is False.
+        :type display: bool, optional
+
+        :param dpi: Pixel resolution for plots, default is 300.
+        :type dpi: int, optional
+
+        :param parallel: Run in parallel, defaults to False.
+        :type parallel: bool, optional
+
+        :return: None
+        :rtype: NoneType
+        """
+
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
@@ -787,8 +824,11 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
     phase_scale = par_dict["phase_scale"]
     if phase_scale is None:
         phase_scale = phase_fac * np.array([-np.pi, np.pi])
-    # max_amp = cut_xds.attrs["all_corr_ymax"]
-    y_off = 0.05 * (phase_scale[1] - phase_scale[0])
+
+    y_range = phase_scale[1] - phase_scale[0]
+    y_off = 0.05 * y_range
+    fit_scale = y_range / 2
+    fit_offset = phase_scale[0] + y_range / 4
 
     # Loop over correlations
     for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
@@ -798,7 +838,7 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
         y_data = phase_fac * cut_xds[f"{parallel_hand}_phase"].values
         raw_fit_data = cut_xds[f"{parallel_hand}_amp_fit"].values
         max_fit_data = np.max(raw_fit_data)
-        fit_data = phase_fac * ((np.pi * raw_fit_data / max_fit_data) - np.pi / 2)
+        fit_data = (fit_scale * raw_fit_data / max_fit_data) + fit_offset
         xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
         ylabel = f"{parallel_hand} Phase [{phase_unit}]"
 
@@ -817,7 +857,7 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
                 model_linestyle="-",
                 data_label=f"{parallel_hand} phase",
                 model_label=f"{parallel_hand} amp. fit",
-                hlines=[phase_fac * (-np.pi / 2)],
+                hlines=[fit_offset],
                 hv_linestyle="--",
                 hv_color="black",
                 data_color="red",

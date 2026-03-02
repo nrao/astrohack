@@ -66,6 +66,7 @@ class TestBeamcutMDS:
         amp_plot_name = f"beamcut_amplitude_ant_{ant}_ddi_{ddi}.png"
         att_plot_name = f"beamcut_attenuation_ant_{ant}_ddi_{ddi}.png"
         lm_plot_name = f"beamcut_lm_offsets_ant_{ant}_ddi_{ddi}.png"
+        pha_plot_name = f"beamcut_phase_ant_{ant}_ddi_{ddi}.png"
 
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
@@ -96,6 +97,14 @@ class TestBeamcutMDS:
         )
         assert equal, f"{msg}: lm plot png file is different from the expected png file"
 
+        beamcut_mds.plot_beamcut_in_phase(self.destination_folder, ant=ant, ddi=ddi)
+        equal, msg = are_png_files_close(
+            f"{self.destination_folder}/{pha_plot_name}",
+            f"{self.ref_products_name}/{pha_plot_name}",
+        )
+        assert (
+            equal
+        ), f"{msg}: phase plot png file is different from the expected png file"
         return
 
     def test_beamcut_mds_fit_report(self):

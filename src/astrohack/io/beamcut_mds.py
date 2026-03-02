@@ -1,6 +1,6 @@
 import pathlib
 import numpy as np
-from typing import List, Union
+from typing import List, Union, Tuple
 
 from toolviper.utils.parameter import validate
 
@@ -294,6 +294,69 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
+    def plot_beamcut_in_phase(
+        self,
+        destination: str,
+        ant: Union[str, List[str]] = "all",
+        ddi: Union[str, int, List[int]] = "all",
+        lm_unit: str = "amin",
+        azel_unit: str = "deg",
+        phase_unit: str = "deg",
+        phase_scale: Union[List[float], Tuple[float], np.array] = None,
+        display: bool = False,
+        dpi: int = 300,
+        parallel: bool = False,
+    ) -> None:
+        """
+        Plot beamcuts contained in the beamcut_mds in phase
+
+        :param destination: Directory into which to save plots.
+        :type destination: str
+
+        :param ant: Antenna ID to use in subselection, e.g. ea25, defaults to "all".
+        :type ant: list or str, optional
+
+        :param ddi: Data description ID to use in subselection, e.g. 0, defaults to "all".
+        :type ddi: list or int, optional
+
+        :param lm_unit: Unit for L/M offsets, default is "amin".
+        :type lm_unit: str, optional
+
+        :param azel_unit: Unit for Az/El information, default is "deg".
+        :type azel_unit: str, optional
+
+        :param phase_unit: Unit for the phase plots, default is "deg".
+        :type phase_unit: str, optional
+
+        :param phase_scale: Scale for the phase plots, in phase_unit, default is None, meaning 1 full cycle.
+        :type phase_scale: Union[List[float], Tuple[float], np.array], optional
+
+        :param display: Display plots during execution, default is False.
+        :type display: bool, optional
+
+        :param dpi: Pixel resolution for plots, default is 300.
+        :type dpi: int, optional
+
+        :param parallel: Run in parallel, defaults to False.
+        :type parallel: bool, optional
+
+        :return: None
+        :rtype: NoneType
+        """
+
+        param_dict = locals()
+
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+        create_and_execute_graph_from_dict(
+            looping_dict=self,
+            chunk_function=_plot_beamcut_in_phase_chunk,
+            param_dict=param_dict,
+            key_order=["ant", "ddi"],
+            parallel=parallel,
+        )
+        return
+
+    @validate(custom_checker=custom_plots_checker)
     def create_beam_fit_report(
         self,
         destination: str,
@@ -407,6 +470,32 @@ def _plot_cuts_in_lm_chunk(par_dict):
     _plot_cuts_in_lm_sub(cut_xdtree, par_dict)
 
 
+def _plot_beamcut_in_phase_chunk(par_dict):
+    """
+    Produce phase beam cut plots from a xdtree containing beam cuts.
+
+    :param par_dict: Paremeter dictionary controlling plot aspects
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
+    cut_xdtree = par_dict["xdt_data"]
+    n_cuts = len(cut_xdtree.children.values())
+    # Loop over cuts
+    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    for icut, cut_xds in enumerate(cut_xdtree.children.values()):
+        _plot_single_cut_in_phase(cut_xds, axes[icut, :], par_dict)
+
+    # Header creation
+    summary = cut_xdtree.attrs["summary"]
+    title = _create_beamcut_header(summary, par_dict)
+
+    filename = _file_name_factory("phase", par_dict)
+    close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
+    return
+
+
 def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
     """
     Produce a report on beamcut fit results from a xdtree containing beam cuts.
@@ -486,7 +575,7 @@ def _file_name_factory(file_type, par_dict):
     destination = par_dict["destination"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
-    if file_type in ["attenuation", "amplitude", "lm_offsets"]:
+    if file_type in ["attenuation", "amplitude", "lm_offsets", "phase"]:
         ext = "png"
     elif file_type == "report":
         ext = "txt"
@@ -695,6 +784,116 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
         set_y_axis_lims_from_default(
             this_ax, par_dict["y_scale"], (-y_off, max_amp + 3 * y_off)
         )
+
+        _add_secondary_beam_hpbw_x_axis_to_plot(
+            cut_xds.attrs[f"{parallel_hand}_pb_fwhm"] * lm_fac, this_ax
+        )
+
+        # Add bounded box with Beam parameters
+        _add_beam_parameters_box(
+            this_ax,
+            cut_xds.attrs[f"{parallel_hand}_pb_center"] * lm_fac,
+            cut_xds.attrs[f"{parallel_hand}_pb_fwhm"] * lm_fac,
+            cut_xds.attrs[f"{parallel_hand}_first_side_lobe_ratio"],
+            lm_unit,
+        )
+
+
+def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
+    """
+    Plot a single beam cut in phase with each correlation in a different panel
+
+    :param cut_xds: xarray dataset containing the beamcut
+    :type cut_xds: xarray.Dataset
+
+    :param axes: numpy array with the Matplotlib Axes objects for the different panels
+    :type axes: numpy.array([Matplotlib.axes.Axes])
+
+    :param par_dict: Parameter dictionary containing plot configuration
+    :type par_dict: dict
+
+    :return: None
+    :rtype: NoneType
+    """
+    # Init
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    phase_unit = par_dict["phase_unit"]
+    phase_fac = convert_unit("rad", phase_unit, "trigonometric")
+    lm_unit = par_dict["lm_unit"]
+    lm_fac = convert_unit("rad", lm_unit, "trigonometric")
+
+    phase_scale = par_dict["phase_scale"]
+    if phase_scale is None:
+        phase_scale = phase_fac * np.array([-np.pi, np.pi])
+
+    y_range = phase_scale[1] - phase_scale[0]
+    y_off = 0.05 * y_range
+    fit_scale = y_range / 2
+    fit_offset = phase_scale[0] + y_range / 4
+
+    # Loop over correlations
+    for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
+        # Init labels
+        this_ax = axes[i_corr]
+        x_data = lm_fac * cut_xds["lm_dist"].values
+        y_data = phase_fac * cut_xds[f"{parallel_hand}_phase"].values
+        raw_fit_data = cut_xds[f"{parallel_hand}_amp_fit"].values
+        max_fit_data = np.max(raw_fit_data)
+        fit_data = (fit_scale * raw_fit_data / max_fit_data) + fit_offset
+        xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
+        ylabel = f"{parallel_hand} Phase [{phase_unit}]"
+
+        # Call plotting tool
+        if cut_xds.attrs[f"{parallel_hand}_fit_succeeded"]:
+            scatter_plot(
+                this_ax,
+                x_data,
+                xlabel,
+                y_data,
+                ylabel,
+                model=fit_data,
+                model_marker="",
+                title=sub_title,
+                data_marker="+",
+                model_linestyle="-",
+                data_label=f"{parallel_hand} phase",
+                model_label=f"{parallel_hand} amp. fit",
+                hlines=[fit_offset],
+                hv_linestyle="--",
+                hv_color="black",
+                data_color="red",
+                model_color="blue",
+                plot_residuals=False,
+                legend_location="upper right",
+            )
+
+            # Add fit peak identifiers
+            centers = lm_fac * np.array(
+                cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][0::3]
+            )
+            amps = np.array(cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][1::3])
+
+            _add_lobe_identification_to_plot(
+                this_ax,
+                centers,
+                amps,
+                y_off,
+            )
+        else:
+            scatter_plot(
+                this_ax,
+                x_data,
+                xlabel,
+                y_data,
+                ylabel,
+                title=sub_title,
+                data_marker="+",
+                data_label=f"{parallel_hand} phase",
+                data_color="red",
+                legend_location="upper right",
+            )
+
+        this_ax.set_ylim(phase_scale)
 
         _add_secondary_beam_hpbw_x_axis_to_plot(
             cut_xds.attrs[f"{parallel_hand}_pb_fwhm"] * lm_fac, this_ax

@@ -38,6 +38,12 @@
             "type": ["string"],
             "check allowed with": "units.trig"
         },
+        "phase_unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.trig"
+        },
         "dpi":{
             "nullable": false,
             "required": false,
@@ -51,6 +57,21 @@
             "type": ["boolean"]
         },
         "y_scale":{
+            "nullable": true,
+            "required": false,
+            "struct_type": [
+                "float",
+                "int"
+            ],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": [
+                "list",
+                "tuple",
+                "ndarray"
+            ]
+        },
+        "phase_scale":{
             "nullable": true,
             "required": false,
             "struct_type": [

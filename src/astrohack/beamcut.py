@@ -1,4 +1,5 @@
 import pathlib
+import numpy as np
 
 from toolviper.utils.parameter import validate
 
@@ -10,7 +11,7 @@ from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.io.dio import open_holog
 from astrohack.utils.validation import custom_plots_checker
 
-from typing import Union, List
+from typing import Union, List, Tuple
 
 
 @validate(custom_checker=custom_plots_checker)
@@ -22,9 +23,11 @@ def beamcut(
     destination: str = None,
     lm_unit: str = "amin",
     azel_unit: str = "deg",
+    phase_unit: str = "deg",
+    phase_scale: Union[List[float], Tuple[float], np.array] = None,
+    y_scale: list[float] = None,
     dpi: int = 300,
     display: bool = False,
-    y_scale: list[float] = None,
     parallel: bool = False,
     overwrite: bool = False,
 ):
@@ -51,6 +54,12 @@ def beamcut(
 
     :param azel_unit: Unit for Az/El information in plots and report, default is "deg".
     :type azel_unit: str, optional
+
+    :param phase_unit: Unit for phase plots, default is "deg".
+    :type phase_unit: str, optional
+
+    :param phase_scale: Scale for the phase plots, in phase_unit, default is None, meaning 1 full cycle.
+    :type phase_scale: Union[List[float], Tuple[float], np.array], optional
 
     :param dpi: Resolution in pixels, defaults to 300.
     :type dpi: int, optional
@@ -148,6 +157,16 @@ def beamcut(
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
                 y_scale=y_scale,
+                display=display,
+                dpi=dpi,
+                parallel=parallel,
+            )
+            beamcut_mds.plot_beamcut_in_phase(
+                destination,
+                lm_unit=lm_unit,
+                azel_unit=azel_unit,
+                phase_unit=phase_unit,
+                phase_scale=phase_scale,
                 display=display,
                 dpi=dpi,
                 parallel=parallel,

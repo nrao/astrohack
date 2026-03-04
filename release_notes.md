@@ -8,9 +8,9 @@ very cheap to obtain in terms of time.
 ## General
 
 - Documentation has been slightly reorganized.
-  - Tutorials are now found in a dedicated section of the read the
+  * Tutorials are now found in a dedicated section of the read the
     docs pages.
-  - Remaining pages are now all found in one directory inside the docs
+  * Remaining pages are now all found in one directory inside the docs
     root.
     
 - A script for cloudflare file uploading has been added to
@@ -61,7 +61,9 @@ This release contains only fixes to the readthedocs pages.
 
 # v0.9.3
 
-This release contains no changes to the code itself, but it contains needed changes to address the change in the URL for the Astrohack repo.
+This release contains no changes to the code itself, but it contains
+needed changes to address the change in the URL for the Astrohack
+repo.
 
 # v0.9.0
 
@@ -70,79 +72,79 @@ change being the tentative full support for the ngVLA prototype
 holography commissioning tests. A summary of the changes can be found
 below.
 
-- General:
+## General:
 
-  - Telescope objects:
+- Telescope objects:
   
-    - The telescope class has been split up.
+  * The telescope class has been split up.
     
-    - Cassegrain telescopes are now supported by a the
-      RingedCassegrain class.
+  * Cassegrain telescopes are now supported by the `RingedCassegrain`
+    class.
       
-    - The ngvla prototype is supported by the NgvlaPrototype class.
+  * The ngvla prototype is supported by the `NgvlaPrototype` class.
     
-    - Telescope objects may now be initialized with the
-      get_proper_telescope function.
+  * Telescope objects may now be initialized with the
+    global function `get_proper_telescope`.
       
-  - Changed import scopes:
+- Changed import scopes:
   
-    - Now only user intended functions are available at the package
-      level.
+  * Now only user intended functions are available at the package
+    level.
     
-  - Increased test coverage:
+- Increased test coverage:
   
-    - Now 2D gridding and 1D interpolation functions are tested during
-      continuous integration.
+  * Now 2D gridding and 1D interpolation functions are tested during
+	continuous integration.
 
-    - Opening routines for all AstrohackDataFiles are now tested
-      during continuous integration.
+  * Opening routines for all `AstrohackDataFiles` are now tested during
+    continuous integration.
     
-  - Bug fixes:
-  
-    - The creation of file names based on input files now uses
-      str.removesuffix as .rstrip has behaviors that were leading to
-      weirdness in output file names.
-      
-    - check_if_file_can_be_opened now checks if path exists before
-      doing anything.
+- Bug fixes:
 
-- Holography:
-
-  - Panel:
-  
-    - part of the work in processing the apertures done by the
-      AntennaSurface class has now be ported to the new telescope
-      classes as some of the processing differs between Cassegrain and
-      the ngVLA due to their different optics.
-      
-    - Improved PolygonPanel class has been brought to production, this
-      class is used to represent panels that are represented by
-      polygons, such as the ngVLA panels.
-      
-    - Phase to deviation correction for the ngVLA is computed using a
-      Quintic Pseudo Spline (QPS) representation of the surface to
-      compute the cosine of the surface normal to the direction of
-      boresight.
-      
-    - Aperture plot orientation and panel sample coordinates reference
-      frames have been reconciled yeilding cohesive coordinate frames
-      between panel points and the points in aperture plots.
-
-   - Extract_holog:
-
-     - Found a bug in the interpolation of pointings onto visibility
-       times that allowed for NaNs in the interpolated pointings.
-
-     - Added a new method to interpolate pointings onto visibility
-       times using a gaussian convolution, this is also the fallback
-       behavior when NaNs are detected in the linear interpolation of
-       the pointings.
-
-   - Extract_pointing:
-
-     - extract_pointing now raises a warning when the pointing tables
-       have irregular sampling times.
+  * The creation of file names based on input files now uses
+    str.removesuffix as .rstrip has behaviors that were leading to
+    weirdness in output file names.
     
+  * `check_if_file_can_be_opened` now checks if path exists before doing
+    anything.
+
+## Holography:
+
+- Panel:
+
+  * part of the work in processing the apertures done by the
+    AntennaSurface class has now be ported to the new telescope
+    classes as some of the processing differs between Cassegrain and
+    the ngVLA due to their different optics.
+    
+  * Improved `PolygonPanel` class has been brought to production, this
+    class is used to represent panels that are represented by
+    polygons, such as the ngVLA panels.
+    
+  * Phase to deviation correction for the ngVLA is computed using a
+    Quintic Pseudo Spline (QPS) representation of the surface to
+    compute the cosine of the surface normal to the direction of
+    boresight.
+    
+  * Aperture plot orientation and panel sample coordinates reference
+    frames have been reconciled yeilding cohesive coordinate frames
+    between panel points and the points in aperture plots.
+
+- Extract_holog:
+
+  * Found a bug in the interpolation of pointings onto visibility
+    times that allowed for NaNs in the interpolated pointings.
+
+  * Added a new method to interpolate pointings onto visibility
+    times using a gaussian convolution, this is also the fallback
+    behavior when NaNs are detected in the linear interpolation of
+    the pointings.
+
+- Extract_pointing:
+
+  * `extract_pointing` now raises a warning when the pointing tables
+    have irregular sampling times.
+  
 
 # v0.8.0
 

@@ -1,4 +1,11 @@
-## Release Notes: Astrohack v0.4.1
+# v0.4.3
+
+- Fixed issue with dropping antenna messing with antenna indexing.
+- Updated default calculation for grid and cell size.
+- Filter out SYSTEM_CONFIGURATION scans.
+- Add time smoothing of the visibilities and pointing data.
+
+# v0.4.1
 
 - Fixed missing import of extract_pointing in memory test.
 

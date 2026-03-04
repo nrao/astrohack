@@ -1,34 +1,59 @@
 # v0.10.0
 
-This release brings a new functionality to astrohack, the ability to analyze beam cuts. Beam cuts are extremely useful as they are in a sense a type of very poor resolution holography while but also are very cheap to obtain in terms of time.
+This release brings a new functionality to astrohack, the ability to
+analyze beam cuts. Beam cuts are extremely useful as they are in a
+sense a type of very poor resolution holography while but also are
+very cheap to obtain in terms of time.
 
-- General
-  - Documentation has been slightly reorganized.
-    - Tutorials are now found in a dedicated section of the read the docs pages.
-    - Remaining pages are now all found in one directory inside the docs root.
+## General
+
+- Documentation has been slightly reorganized.
+  - Tutorials are now found in a dedicated section of the read the
+    docs pages.
+  - Remaining pages are now all found in one directory inside the docs
+    root.
     
-  - A script for cloudflare file uploading has been added to astrohack/etc/test_data_upload, it relies on the user setting cloudflare account info and tokens as environment variables
+- A script for cloudflare file uploading has been added to
+  astrohack/etc/test_data_upload, it relies on the user setting
+  cloudflare account info and tokens as environment variables
 
-  - Added a deep checking tool to verify if 2 mdses are equal, it works with both regular dict based mdses and newer data tree based mdses.
+- Added a deep checking tool to verify if 2 mdses are equal, it works
+  with both regular dict based mdses and newer data tree based mdses.
 
-  - Python files containing IO, and in memory data storage functions and classes that are user facing have been moved to a sub directory called IO.
+- Python files containing IO, and in memory data storage functions and
+  classes that are user facing have been moved to a sub directory
+  called IO.
 
-  - Fixed numpy version to <= 2.2 as Numba does not support numpy 2.3 or 2.4.
+- Fixed numpy version to <= 2.2 as Numba does not support numpy 2.3 or
+  2.4.
 
-  - Tutorial notebooks now close their clients at the end of execution.
-
-
-- Beam cuts
-  - A beam cut calibration pipeline can be found at astrohack/etc/beamcuts.
-  - `beamcut` is a new astohack function to process .holog.zarr files that contain beam cut measurements.
-  - `open_beamcut` is a new astrohack function to process .beamcut.zarr files created by `beamcut`.
-  - The newly introduced `AstrohackBeamcutFile` class uses Xarray Data Trees to store that in memory and uses Xarray interfaces to save it to disk.
-  - A beam cut tutorial has been included and can be found on the new tutorial section of astrohack.readthedocs.io.
+- Tutorial notebooks now close their clients at the end of execution.
 
 
-- Holography
+## Beam cuts
 
-  - `extract_holog` now stores scan information in the output .holog.zarr files. This change was made to simplify processing of beam cuts. 
+- `beamcut` is a new astohack function to process .holog.zarr files
+  that contain beam cut measurements.
+
+- The newly introduced `AstrohackBeamcutFile` class uses Xarray Data
+  Trees to store that in memory and uses Xarray interfaces to save it
+  to disk.
+
+- `open_beamcut` is a new astrohack function to process .beamcut.zarr
+  files created by `beamcut`.
+
+- A beam cut calibration pipeline can be found at
+  astrohack/etc/beamcuts.
+
+- A beam cut tutorial has been included and can be found on the new
+  tutorial section of astrohack.readthedocs.io.
+
+
+## Holography
+
+- `extract_holog` now stores scan information in the output
+  .holog.zarr files. This change was made to simplify processing of
+  beam cuts.
 
 # v0.9.4
 

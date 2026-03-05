@@ -1,3 +1,149 @@
+# v1.0.0
+
+## General:
+
+- `AstrohackBaseFile`:
+  - New base class for all astrohack data files.
+  
+  - Uses `xarray` Data Trees as its backbone.
+  
+  - All IO: reading, writting, appending, concatenation handled by
+    this class.
+	
+  - Factorized summary creation.
+  
+  - Factorized data file creation.
+  
+  - New tests on most of its functionality
+  
+  - mds objects can now be compared using the `.is_close_to`
+    method implemented in `AstrohackBaseFile`.
+	
+- `plot_array_configuration` methods now have a dynamically sized
+  inner array box with 20% of the linear size of the full array
+  configuration.
+  
+- Revised types of exceptions raised so that no bare exceptions are
+  raised..
+  
+- Testing:
+
+  - New module `utils/verification_tools.py` containing:
+	
+	- PNG file comparison.
+	
+	- TXT file comparison.
+	
+	- FITS file comparison.
+	
+	- Dictionary, equality and closeness comparison.
+	
+	- Data Tree closeness comparison.
+	
+  - Test coverage increased from 49% to 70%.
+  
+  - uploaded reference data files to cloudflare for numerical
+    comparison.
+  
+- Cleanup:
+
+  - Removed unused module `gauss_fitter.py`.
+  
+  - Removed obsolete modules: `visualization/fits.py`; `utils/data.py`
+  
+  - Trimmed down and renamed modules: `visualization/diagnostics.py`
+    becomes `visualization/array_cfg_plot.py`;
+    `visualization/textual_data.py` becomes
+    `visualization/observation_summary.py`.
+	
+  - Trimmed down modules: `utils/conversion.py`; `utils/fits.py`;
+    `utils/file.py`; `utils/text.py`; `utils/tools.py`; `utils/veritas.py`.
+  
+- Documentation:
+
+  - Updated and added new functionality to tutorials.
+
+## Holography:
+
+- `AstrohackPointFile`, `AstrohackHologFile`, `AstrohackImageFile` and
+  `AstrohackPanelFile` rewritten to be based on `AstrohackBaseFile`.
+  
+- Added tests on the products of `AstrohackPointFile`,
+  `AstrohackHologFile`, `AstrohackImageFile` and `AstrohackPanelFile`
+  methods.
+  
+- `extract_pointing`:
+  - Baseline distance matrix is now computed at this step and stored
+    in the `AstrohackPointFile`.
+	
+  - Added method `plot_pointing_in_time` to plot pointing data keys
+    over time for the selected antennas.
+	
+  - Added method to produce an array configuration plot,
+    `plot_array_configuration`.
+	
+  - Added method `set_antennas_as_reference` to replace the obsolete
+    `fix_pointing_table` function that modified the ms directly, now
+    we can achieve the same result without having to modify the ms.
+
+- `extract_holog`:
+  - `holog_obs_dict`:
+	- Code split into is own module `core/holog_obs_dict.py`.
+  
+    - Class re-implemented in a more concise manner.
+	
+	- Creation now only depends on a point_mds file.
+	
+	- No longer saved as a json file, but rather saved as an attribute
+      of `AstrohackHologFile`'s root.
+	
+  - Added selection by antenna to `extract_holog` parameters.
+  
+  - New parameter `append` to add data to a previously created
+    `AstrohackHologFile`
+	
+  - Execution re-factorised into 2 main blocks, serial preprocessing
+    to generate looping dictionary and main parallel execution.
+	
+  - Changed `AstrohackHologFile` depth order from `ddi -> map -> ant`
+    to `ant -> ddi -> map`, putting it in line with the ordering of
+    the other data file classes.
+
+- `combine`:
+  - Regridding is now only performed, if aperture pixel coordinates
+    are different by more than 1e-6 of a pixel.
+	
+  - The output summary of a combined dataset us is an aggregation of
+    the combined DDIs summaries.
+	
+  - The ddi_key for a `combine_xds` is "ddi_99".
+
+
+## Beam cuts:
+
+- `AstrohackBeamcutFile` rewritten to be based on `AstrohackBaseFile`.
+
+- Added tests on the products of `AstrohackBeamcutFile` methods.
+
+- Added new method `plot_beamcut_in_phase` to `AstrohackBeamcutFile`
+  for plotting beamcuts in phase.
+
+## Antenna position corrections:
+
+- `AstrohackLocitFile` and `AstrohackPositionFile` rewritten to be
+  based on `AstrohackBaseFile`.
+  
+- Added tests on the products of `AstrohackLocitFile` and
+  `AstrohackPositionFile` methods.
+  
+- `extract_locit` habe `locit` been re-factorised during the porting to
+  the new file structure.
+  
+- Obsolete code related to the IO of the old .locit.zarr and
+  .position.zarr files has been removed.
+  
+
+
 # v0.10.0
 
 This release brings a new functionality to astrohack, the ability to

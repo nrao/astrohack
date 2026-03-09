@@ -127,7 +127,8 @@ class FITSImage:
         """
         self.filename = fits_filename
         self.telescope_name = telescope_name
-        self.rootname = ".".join(fits_filename.split(".")[:-1]) + "."
+        fits_real_filename = fits_filename.split("/")[-1]
+        self.rootname = ".".join(fits_real_filename.split(".")[:-1]) + "."
         self.header, self.data = read_fits(self.filename, header_as_dict=True)
         stokes_iaxis = get_stokes_axis_iaxis(self.header)
 

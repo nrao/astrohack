@@ -201,7 +201,7 @@ def rms_table_from_zarr_datatree(
         raise FileNotFoundError
 
     xdt = xr.open_datatree(input_params["zarr_data_tree"])
-    if xdt.attrs["origin"] != "compare_fits_images":
+    if xdt.attrs["origin_info"]["creator_function"] != "compare_fits_images":
         logger.error("Data tree file was not created by astrohack.compare_fits_images")
         raise ValueError
 

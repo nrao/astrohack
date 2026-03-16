@@ -657,6 +657,7 @@ class FITSImage:
             regression_reference_label="Perfect agreement",
             xlim=(pl_min, pl_max),
             ylim=[pl_min, pl_max],
+            force_equal_aspect=True,
         )
         close_figure(
             fig,

@@ -342,7 +342,6 @@ def scatter_plot(
         elif regression_method == "theilslopes":
             slope, intercept, _, _ = theilslopes(ydata, xdata)
         elif regression_method == "siegelslopes":
-            print(ydata.shape)
             slope, intercept = siegelslopes(ydata, xdata)
         else:
             raise RuntimeError(f"Unknown linear regression method: {regression_method}")

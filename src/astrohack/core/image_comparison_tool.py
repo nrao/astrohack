@@ -127,7 +127,8 @@ class FITSImage:
         """
         self.filename = fits_filename
         self.telescope_name = telescope_name
-        self.rootname = ".".join(fits_filename.split(".")[:-1]) + "."
+        fits_real_filename = fits_filename.split("/")[-1]
+        self.rootname = ".".join(fits_real_filename.split(".")[:-1]) + "."
         self.header, self.data = read_fits(self.filename, header_as_dict=True)
         stokes_iaxis = get_stokes_axis_iaxis(self.header)
 
@@ -152,12 +153,16 @@ class FITSImage:
             self.y_axis, _, self.y_unit = get_axis_from_fits_header(
                 self.header, 2, pixel_offset=False
             )
+            offset_scale = 1.5
+            x_offset = offset_scale * np.unique(np.diff(self.x_axis))[0]
+            y_offset = offset_scale * np.unique(np.diff(self.y_axis))[0]
+            self.x_axis = np.flip(self.x_axis + x_offset)
+            self.y_axis = np.flip(self.y_axis + y_offset)
             self.x_unit = "m"
             self.y_unit = "m"
         elif "Astrohack" in self.header["ORIGIN"]:
             self.x_axis, _, self.x_unit = get_axis_from_fits_header(self.header, 1)
             self.y_axis, _, self.y_unit = get_axis_from_fits_header(self.header, 2)
-            self.data = np.fliplr(self.data)
         else:
             raise NotImplementedError(f'Unrecognized origin:\n{self.header["origin"]}')
         self._create_base_mask()
@@ -208,11 +213,13 @@ class FITSImage:
         x_mesh_dest, y_mesh_dest = np.meshgrid(
             ref_image.x_axis, ref_image.y_axis, indexing="ij"
         )
+        raveled_data = self.data.ravel()
+        valid_data = np.isfinite(raveled_data)
         resamp = griddata(
-            (x_mesh_orig.ravel(), y_mesh_orig.ravel()),
-            self.data.ravel(),
+            (x_mesh_orig.ravel()[valid_data], y_mesh_orig.ravel()[valid_data]),
+            raveled_data[valid_data],
             (x_mesh_dest.ravel(), y_mesh_dest.ravel()),
-            method="linear",
+            method="nearest",
         )
         size = ref_image.x_axis.shape[0], ref_image.y_axis.shape[0]
         self.x_axis = ref_image.x_axis
@@ -592,7 +599,15 @@ class FITSImage:
                             reorder_axis=False,
                         )
 
-    def scatter_plot(self, destination, ref_image, dpi=300, display=False):
+    def scatter_plot(
+        self,
+        destination,
+        ref_image,
+        dpi=300,
+        display=False,
+        max_radius=None,
+        min_radius=None,
+    ):
         """
         Produce a scatter plot of self.data agains ref_image.data
         Args:
@@ -600,6 +615,8 @@ class FITSImage:
             ref_image: Reference FITSImage object
             dpi: png resolution on disk
             display: Show interactive view of plot
+            max_radius: Maximum radius for scatter plot comparison as the outer panels can be crappy.
+            min_radius: Minimum radius for scatter plot  comparison as the innermost panels can be crappy.
 
         Returns:
             None
@@ -610,10 +627,23 @@ class FITSImage:
 
         fig, ax = plt.subplots(1, 1, figsize=[10, 8])
 
+        x_mesh_orig, y_mesh_orig = np.meshgrid(self.x_axis, self.y_axis, indexing="ij")
+        radius = np.sqrt(x_mesh_orig**2 + y_mesh_orig**2)
+
+        telescope = get_proper_telescope(self.telescope_name)
+        if min_radius is None:
+            min_radius = telescope.inner_radial_limit
+        if max_radius is None:
+            max_radius = telescope.outer_radial_limit - 1.0
         scatter_mask = np.isfinite(ref_image.data)
         scatter_mask = np.where(np.isfinite(self.data), scatter_mask, False)
+        scatter_mask = np.where(radius < max_radius, scatter_mask, False)
+        scatter_mask = np.where(radius > min_radius, scatter_mask, False)
+
         ydata = self.data[scatter_mask]
         xdata = ref_image.data[scatter_mask]
+        pl_max = np.max((np.max(xdata), np.max(ydata)))
+        pl_min = np.min((np.min(xdata), np.min(ydata)))
 
         scatter_plot(
             ax,
@@ -622,6 +652,12 @@ class FITSImage:
             ydata,
             f"{self.filename} [{self.unit}]",
             add_regression=True,
+            regression_method="siegelslopes",
+            add_regression_reference=True,
+            regression_reference_label="Perfect agreement",
+            xlim=(pl_min, pl_max),
+            ylim=[pl_min, pl_max],
+            force_equal_aspect=True,
         )
         close_figure(
             fig,
@@ -641,7 +677,6 @@ def image_comparison_chunk(compare_params):
     Returns:
         A DataTree containing the Image and its reference Image.
     """
-
     image = FITSImage.from_fits_file(
         compare_params["this_image"], compare_params["telescope_name"]
     )
@@ -698,8 +733,8 @@ def image_comparison_chunk(compare_params):
     if compare_params["plot_scatter"]:
         image.scatter_plot(destination, ref_image, dpi=dpi, display=display)
 
-    img_node = xr.DataTree(name=image.filename, dataset=image.export_as_xds())
-    ref_node = xr.DataTree(name=ref_image.filename, dataset=ref_image.export_as_xds())
+    img_node = xr.DataTree(name=image.rootname, dataset=image.export_as_xds())
+    ref_node = xr.DataTree(name=ref_image.rootname, dataset=ref_image.export_as_xds())
     tree_node = xr.DataTree(
         name=image.rootname[:-1], children={"Reference": ref_node, "Image": img_node}
     )

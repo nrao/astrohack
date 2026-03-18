@@ -132,6 +132,9 @@ def get_default_file_name(
     else:
         output_filename = user_filename
 
+    if output_filename[-1] == "/":
+        output_filename = output_filename[:-1]
+
     logger.info(f"Creating output file name: {output_filename}")
     return output_filename
 

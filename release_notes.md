@@ -1,3 +1,41 @@
+# v1.0.1
+
+# General:
+
+- Scatter plot improvements
+
+  - Add new methods for linear regression.
+  
+  - Added possibility to force square aspect for plots.
+
+- Bug fixes:
+
+  - General:
+
+    - get_default_file_name now removes slashes from output file
+      names, this grants a host of benefits, including no hiccups in
+      the overwrite checking and execution.
+
+  - `extract_pointing`:
+  
+    - The expected time interval is now chosen to be the most common
+      unique interval in the pointing data.
+  
+  - `extract_holog`:
+  
+    - holog_obs_dict is now copied when passed to extract_holog to
+      ensure that the user space object is not modified.
+  
+  - `image_comparison_tool`:
+  
+    - Scatter plot of images is now square.
+  
+    - now properly treat the cases where a fits_filename is given with a
+      path.
+
+    - Changed how origin is checked due to the changes in attributes.
+
+
 # v1.0.0
 
 ## General:
@@ -796,3 +834,4 @@ This release contains the following changes.
 - Parameter checking no longer fails in Github Actions in MacOS.
 
 - Parameter checking validation added to plotting API.
+

@@ -796,3 +796,4 @@ This release contains the following changes.
 - Parameter checking no longer fails in Github Actions in MacOS.
 
 - Parameter checking validation added to plotting API.
+

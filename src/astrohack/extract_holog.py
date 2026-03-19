@@ -1,4 +1,5 @@
 import pathlib
+from copy import deepcopy
 
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
@@ -187,6 +188,9 @@ def extract_holog(
             }
 
     """
+    # This copy here ensures that the user space holog_obs_dict given to extract_holog is not modified during execution
+    if holog_obs_dict is not None:
+        holog_obs_dict = deepcopy(holog_obs_dict)
 
     # Doing this here allows it to get captured by locals()
     holog_name = get_default_file_name(ms_name, ".holog.zarr", holog_name)

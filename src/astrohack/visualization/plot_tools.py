@@ -1,6 +1,6 @@
 import matplotlib.image
 import numpy as np
-from scipy.stats import linregress
+from scipy.stats import linregress, theilslopes, siegelslopes
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
@@ -251,6 +251,12 @@ def scatter_plot(
     add_regression=False,
     regression_linestyle="-",
     regression_color="black",
+    regression_method="linregress",
+    add_regression_reference=False,
+    regression_reference=(1.0, 0.0),
+    regression_reference_color="orange",
+    regression_reference_label="Regression refrence",
+    force_equal_aspect=False,
     add_legend=True,
     legend_location="best",
 ):
@@ -287,6 +293,12 @@ def scatter_plot(
         add_regression: Add a linear regression between X and y data
         regression_linestyle: Line style for the regression plot
         regression_color: Color for the regression plot
+        regression_method: Which scipy function to use for the linear regression: linregress, theilslopes or siegelslopes
+        add_regression_reference: Add reference for the expected regression result
+        regression_reference: 2 value array/tuple/list with a slope and intercept for reference
+        regression_reference_color: Color for reference regression
+        regression_reference_label: Label for reference regression
+        force_equal_aspect: Force equal aspect on plot box
         add_legend: add legend to the plot
         legend_location: Location of the legend in the plot
     """
@@ -325,7 +337,14 @@ def scatter_plot(
             )
 
     if add_regression:
-        slope, intercept, _, _, _ = linregress(xdata, ydata)
+        if regression_method == "linregress":
+            slope, intercept, _, _, _ = linregress(xdata, ydata)
+        elif regression_method == "theilslopes":
+            slope, intercept, _, _ = theilslopes(ydata, xdata)
+        elif regression_method == "siegelslopes":
+            slope, intercept = siegelslopes(ydata, xdata)
+        else:
+            raise RuntimeError(f"Unknown linear regression method: {regression_method}")
         regression_label = f"y = {slope:.4f}*x + {intercept:.4f}"
         yregress = slope * xdata + intercept
         ax.plot(
@@ -336,6 +355,15 @@ def scatter_plot(
             label=regression_label,
             lw=2,
         )
+        if add_regression_reference:
+            reg_ref = regression_reference[0] * xdata + regression_reference[1]
+            ax.plot(
+                xdata,
+                reg_ref,
+                ls=regression_linestyle,
+                color=regression_reference_color,
+                label=regression_reference_label,
+            )
 
     if model is not None:
         ax.plot(
@@ -372,6 +400,9 @@ def scatter_plot(
             ax_res.axhline(0, color=hv_color, ls=hv_linestyle)
             ax_res.set_ylabel("Residuals")
             ax_res.set_xlabel(xlabel)
+
+    if force_equal_aspect:
+        ax.set_aspect("equal", adjustable="box")
 
     if title is not None:
         ax.set_title(title)

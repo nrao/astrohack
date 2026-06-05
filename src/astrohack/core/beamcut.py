@@ -496,14 +496,21 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
             initial_guesses, bounds, n_peaks = _build_multi_gaussian_initial_guesses(
                 x_data, y_data, primary_fwhm
             )
-            fit_succeeded, fit_pars = _perform_curvefit_with_given_functions(
-                x_data,
-                y_data,
-                initial_guesses,
-                bounds,
-                _multi_gaussian,
-                this_corr_data_label,
-            )
+
+            # This is a test for empty data
+            if np.nansum(y_data) == 0:
+                logger.warning(f"{this_corr_data_label} appears to contain no valid data")
+                fit_succeeded = False
+                fit_pars = np.full_like(initial_guesses, np.nan)
+            else:
+                fit_succeeded, fit_pars = _perform_curvefit_with_given_functions(
+                    x_data,
+                    y_data,
+                    initial_guesses,
+                    bounds,
+                    _multi_gaussian,
+                    this_corr_data_label,
+                )
 
             if fit_succeeded:
                 fit = _multi_gaussian(x_data, *fit_pars)

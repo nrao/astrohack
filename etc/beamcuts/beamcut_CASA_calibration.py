@@ -109,9 +109,9 @@ class UserInteraction:
         return ans
 
     def _init_from_user(self):
-        self.filename = input("Enter file name: ")
-        self.field = input("Enter field number: ")
-        self.refant = input("Enter referece antenna: ")
+        self.filename = input("Enter MS/ASDM file name: ")
+        self.field = input("Enter beam cut field number: ")
+        self.refant = input("Enter reference antenna for calibration: ")
         self.overwrite = yesno("Re-do calibration if already done?")
         self.confirmation_before_start = yesno(
             "Confirm info before starting calibration?"

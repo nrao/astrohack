@@ -178,7 +178,7 @@ class CalObject:
 
         base_cal_name = msname + "."
         self.delay_caltable = base_cal_name + "delay.cal"
-        self.bandpass_caltable = base_cal_name + "bandpass.bcal"
+        self.bandpass_caltable = base_cal_name + "bandpass.cal"
         self.gain_caltable = base_cal_name + "gain.cal"
 
         if self._is_asdm():

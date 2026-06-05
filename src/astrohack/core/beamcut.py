@@ -499,7 +499,9 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
 
             # This is a test for empty data
             if np.nansum(y_data) == 0:
-                logger.warning(f"{this_corr_data_label} appears to contain no valid data")
+                logger.warning(
+                    f"{this_corr_data_label} appears to contain no valid data"
+                )
                 fit_succeeded = False
                 fit_pars = np.full_like(initial_guesses, np.nan)
             else:

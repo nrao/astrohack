@@ -2,6 +2,7 @@ import pathlib
 import numpy as np
 
 from toolviper.utils.parameter import validate
+import toolviper.utils.logger as logger
 
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name
@@ -143,6 +144,7 @@ def beamcut(
     )
     if executed_graph:
         if destination is not None:
+            logger.info("Producing plots...")
             beamcut_mds.plot_beamcut_in_amplitude(
                 destination,
                 lm_unit=lm_unit,

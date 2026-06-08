@@ -718,6 +718,8 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
     # Init
     sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
     max_amp = cut_xds.attrs["all_corr_ymax"]
+    if max_amp < 1e-2:
+        max_amp = 1.0
     y_off = 0.05 * max_amp
     lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
@@ -944,7 +946,11 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         x_data = lm_fac * cut_xds["lm_dist"].values
         amps = cut_xds[f"{parallel_hand}_amplitude"].values
         max_amp = np.max(amps)
-        y_data = to_db(amps / max_amp)
+        if max_amp == 0:
+            y_data = np.full_like(x_data, -1)
+        else:
+            y_data = to_db(amps / max_amp)
+
         y_min = np.min(y_data)
         if y_min < min_attenuation:
             min_attenuation = y_min

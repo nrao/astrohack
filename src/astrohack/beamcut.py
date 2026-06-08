@@ -2,6 +2,7 @@ import pathlib
 import numpy as np
 
 from toolviper.utils.parameter import validate
+import toolviper.utils.logger as logger
 
 from astrohack.core.beamcut import process_beamcut_chunk
 from astrohack.utils import get_default_file_name

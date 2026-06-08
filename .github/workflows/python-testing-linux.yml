@@ -10,6 +10,12 @@ on:
     paths-ignore:
       - '**.md'
       - '**.rst'
+  workflow_dispatch:
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+    branch:
+      - main
 
 jobs:
   call-testing-linux:

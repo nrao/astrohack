@@ -718,6 +718,8 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
     # Init
     sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
     max_amp = cut_xds.attrs["all_corr_ymax"]
+    if max_amp < 1e-2:
+        max_amp = 1.0
     y_off = 0.05 * max_amp
     lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")

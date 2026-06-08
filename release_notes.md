@@ -1,6 +1,17 @@
+# v1.0.2
+
+## Beam cuts:
+
+- Fixed crash in beam pattern fitting caused by all 0 data.
+
+- Primary beam fits with fitted primary beam FWHM that are less than
+  0.5 or more than 3 times the size of the estimated primary beam FWHM
+  are now considered bad fits.
+
+
 # v1.0.1
 
-# General:
+## General:
 
 - Scatter plot improvements
 

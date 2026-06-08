@@ -946,7 +946,11 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         x_data = lm_fac * cut_xds["lm_dist"].values
         amps = cut_xds[f"{parallel_hand}_amplitude"].values
         max_amp = np.max(amps)
-        y_data = to_db(amps / max_amp)
+        if max_amp == 0:
+            y_data = np.full_like(x_data, -1)
+        else:
+            y_data = to_db(amps / max_amp)
+
         y_min = np.min(y_data)
         if y_min < min_attenuation:
             min_attenuation = y_min
@@ -1085,6 +1089,6 @@ def _create_beamcut_header(summary, par_dict):
         decimal_places = 3
     else:
         decimal_places = 1
-    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
-    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
+    title += f"Az ~{format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
+    title += f"El ~{format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
     return title

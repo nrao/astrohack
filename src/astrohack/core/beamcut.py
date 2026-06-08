@@ -398,7 +398,9 @@ def _perform_curvefit_with_given_functions(
         return False, np.full_like(initial_guesses, np.nan)
 
 
-def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
+def _identify_pb_and_sidelobes_in_fit(
+    datalabel, x_data, fit_pars, primary_fwhm_estimate
+):
     """
     Identify primary beam and first sidelobes in fit using expected beam shape heuristics.
 
@@ -440,7 +442,16 @@ def _identify_pb_and_sidelobes_in_fit(datalabel, x_data, fit_pars):
     i_pb_cen = np.argmin(np.abs(centers))
     # This assumes the primary beam is the strongest
     i_pb_amp = np.argmax(amps)
-    pb_problem = i_pb_cen != i_pb_amp
+
+    pb_problem = False
+    if i_pb_cen != i_pb_amp:
+        pb_problem = True
+    else:
+        if (
+            fwhms[i_pb_cen] < 0.5 * primary_fwhm_estimate
+            or fwhms[i_pb_cen] > 3.0 * primary_fwhm_estimate
+        ):
+            pb_problem = True
 
     if pb_problem:
         logger.warning(f"Cannot reliably identify primary beam for {datalabel}.")
@@ -518,7 +529,7 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
                 fit = _multi_gaussian(x_data, *fit_pars)
                 n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio = (
                     _identify_pb_and_sidelobes_in_fit(
-                        this_corr_data_label, x_data, fit_pars
+                        this_corr_data_label, x_data, fit_pars, primary_fwhm
                     )
                 )
             else:

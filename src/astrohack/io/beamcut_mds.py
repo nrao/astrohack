@@ -1089,6 +1089,6 @@ def _create_beamcut_header(summary, par_dict):
         decimal_places = 3
     else:
         decimal_places = 1
-    title += f"Az ~{format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
-    title += f"El ~{format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
+    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
+    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
     return title

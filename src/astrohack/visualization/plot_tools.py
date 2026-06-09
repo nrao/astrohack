@@ -2,15 +2,33 @@ import matplotlib.image
 import numpy as np
 from scipy.stats import linregress, theilslopes, siegelslopes
 
-from matplotlib import pyplot as plt
+import toolviper.utils.logger as logger
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import colormaps as matplotlib_cmaps
 from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 from astrohack.utils import figsize, fontsize
 
 astrohack_cmaps = list(matplotlib_cmaps.keys())
 astrohack_cmaps.append("AIPS")
+
+
+def get_execution_environment():
+    try:
+        # Check if get_ipython is available in the global namespace
+        from IPython import get_ipython
+
+        shell = get_ipython().__class__.__name__
+
+        if shell == "ZMQInteractiveShell":
+            return "jupyter"  # Jupyter Notebook or JupyterLab
+        elif shell == "TerminalInteractiveShell":
+            return "ipython"  # Terminal-based IPython
+        else:
+            return "other"  # Other IDE backends
+    except (NameError, ImportError):
+        return "terminal"  # Standard Python interpreter
 
 
 def create_figure_and_axes(
@@ -39,19 +57,19 @@ def create_figure_and_axes(
     else:
         prog_fig_size = figure_size
 
+    fig = Figure(figsize=prog_fig_size)
+
     if plot_is_3d:
-        fig, axes = plt.subplots(
+        axes = fig.subplots(
             boxes[0],
             boxes[1],
-            figsize=prog_fig_size,
             sharex=sharex,
             sharey=sharey,
             subplot_kw={"projection": "3d"},
         )
     else:
-        fig, axes = plt.subplots(
-            boxes[0], boxes[1], figsize=prog_fig_size, sharex=sharex, sharey=sharey
-        )
+        axes = fig.subplots(boxes[0], boxes[1], sharex=sharex, sharey=sharey)
+
     return fig, axes
 
 
@@ -70,10 +88,60 @@ def close_figure(figure, title, filename, dpi, display, tight_layout=True):
         figure.suptitle(title)
     if tight_layout:
         figure.tight_layout()
-    plt.savefig(filename, dpi=dpi)
+    figure.savefig(filename, dpi=dpi)
+
     if display:
-        plt.show()
-    plt.close()
+        # figure.show()
+        py_env = get_execution_environment()
+        if py_env in ["terminal", "other"]:
+            mpl_backend = matplotlib.get_backend()
+            if mpl_backend == "TkAgg":
+                from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+                import tkinter as tk
+
+                # 2. Instantiate canvas without explicit master (defaults to an internal Tk root)
+                canvas = FigureCanvasTkAgg(figure)
+                canvas_widget = canvas.get_tk_widget()
+                canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+                # 3. Retrieve the automatically generated top-level window and run it
+                window = canvas_widget.winfo_toplevel()
+                window.title(f"Astrohack: {title}")
+                window.mainloop()
+            elif mpl_backend == "macosx":
+                from matplotlib.backends.backend_macosx import (
+                    FigureCanvasMac,
+                    FigureManagerMac,
+                )
+                import time
+
+                running = True
+
+                def on_close(event):
+                    nonlocal running
+                    running = False
+
+                canvas = FigureCanvasMac(figure)
+                canvas.mpl_connect("close_event", on_close)
+                manager = FigureManagerMac(canvas, 1)
+                manager.show()
+                while running:
+                    canvas.flush_events()
+                    time.sleep(0.01)
+
+            else:
+                logger.warning(
+                    f"'{mpl_backend}' backend not supported for interactive plots"
+                )
+        elif py_env in ["ipython", "jupyter"]:
+            from IPython.display import display, HTML
+
+            display(HTML(f'<img src="{filename}" style="max-width:60%; height:auto;">'))
+        else:
+            logger.warning(f"Unrecognized python environment '{py_env}'")
+
+    figure.clear()
+    del figure
     return
 
 
@@ -100,7 +168,7 @@ def well_positioned_colorbar(
     if isinstance(mappable, matplotlib.image.AxesImage):
         return fig.colorbar(mappable, label=label, cax=cax)
     else:  # mappable is a colormap
-        sm = plt.cm.ScalarMappable(cmap=mappable)
+        sm = matplotlib.cm.ScalarMappable(cmap=mappable)
         sm.set_array([])
         return fig.colorbar(sm, label=label, cax=cax)
 

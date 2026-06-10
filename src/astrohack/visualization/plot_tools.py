@@ -95,7 +95,7 @@ def close_figure(figure, title, filename, dpi, display, tight_layout=True):
         py_env = get_execution_environment()
         if py_env in ["terminal", "other"]:
             mpl_backend = matplotlib.get_backend()
-            if mpl_backend == "TkAgg":
+            if mpl_backend.lower() == "tkagg":
                 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
                 import tkinter as tk
 

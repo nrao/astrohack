@@ -8,7 +8,7 @@ import toolviper.utils.logger as logger
 from numba import njit
 from numba.core import types
 
-from casacore import tables as ctables
+from casacoretables import tables as ctables
 
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.utils.tools import get_valid_state_ids

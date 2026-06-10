@@ -4,7 +4,7 @@ import numpy as np
 import astropy.units as units
 import xarray as xr
 
-from casacore import tables as ctables
+from casacoretables import tables as ctables
 from astropy.coordinates import SkyCoord, CIRS
 from astropy.time import Time
 

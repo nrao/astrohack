@@ -11,6 +11,12 @@ from astrohack.utils.text import approve_prefix
 from astrohack.utils.text import param_to_list
 
 
+def _white_list_creation(key_prefix, looping_dict, param_dict):
+    exec_list = param_to_list(param_dict[key_prefix], looping_dict, key_prefix)
+    white_list = [key for key in exec_list if approve_prefix(key)]
+    return white_list
+
+
 def _factorized_graph_execution_return(status, ret_list, fetch_ret):
     if fetch_ret:
         if status:
@@ -126,6 +132,99 @@ def create_and_execute_graph_from_dict(
         else:
 
             return _factorized_graph_execution_return(True, return_list, fetch_returns)
+
+    return _factorized_graph_execution_return(True, return_list, fetch_returns)
+
+
+def _sub_graph_execution_for_plots(
+    looping_dict,
+    chunk_function,
+    param_dict,
+    key_order,
+):
+    first_key_prefix = key_order[0]
+    white_list = _white_list_creation(first_key_prefix, looping_dict, param_dict)
+    result_list = []
+
+    if len(key_order) == 1:
+        for item in white_list:
+            if item in looping_dict:
+                # execute here!
+                this_param_dict = copy.deepcopy(param_dict)
+                data_for_exec = looping_dict[item]
+                if isinstance(looping_dict, xr.DataTree):
+                    this_param_dict["xdt_data"] = data_for_exec
+                elif isinstance(looping_dict, xr.Dataset):
+                    this_param_dict["xds_data"] = data_for_exec
+                elif isinstance(looping_dict, dict):
+                    this_param_dict["dic_data"] = data_for_exec
+                else:
+                    this_param_dict["unk_data"] = data_for_exec
+                this_param_dict[f"this_{first_key_prefix}"] = item
+
+                result_list.append(chunk_function(this_param_dict))
+            else:
+                logger.warning(f"{item} is not present in looping dict")
+    elif len(key_order) == 2:
+        raise NotImplementedError("2 leveled not yey implemented")
+
+    return result_list
+
+
+def create_and_execute_plot_graphs(
+    looping_dict,
+    chunk_function,
+    param_dict,
+    key_order,
+    parallel=False,
+    fetch_returns=False,
+):
+    # here only the first level of the tree is parallelized
+    if hasattr(looping_dict, "root"):
+        looping_dict = looping_dict.root
+
+    if param_dict["display"] and param_dict["parallel"]:
+        logger.warning("Display cannot be True in parallel mode, setting it to False")
+        param_dict["display"] = False
+
+    first_key_prefix = key_order[0]
+    white_list = _white_list_creation(first_key_prefix, looping_dict, param_dict)
+
+    delayed_list = []
+    for item in white_list:
+        if item in looping_dict:
+            this_param_dict = copy.deepcopy(param_dict)
+            this_param_dict[f"this_{first_key_prefix}"] = item
+            if parallel:
+                delayed_list.append(
+                    dask.delayed(_sub_graph_execution_for_plots)(
+                        looping_dict[item],
+                        chunk_function,
+                        this_param_dict,
+                        key_order[1:],
+                    )
+                )
+            else:
+                delayed_list.append(
+                    (
+                        _sub_graph_execution_for_plots,
+                        (
+                            looping_dict[item],
+                            chunk_function,
+                            this_param_dict,
+                            key_order[1:],
+                        ),
+                    )
+                )
+        else:
+            logger.warning(f"{item} is not present in looping dict")
+
+    if parallel:
+        return_list = dask.compute(delayed_list)[0]
+    else:
+        return_list = []
+        for function, args in delayed_list:
+            return_list.append(function(*args))
 
     return _factorized_graph_execution_return(True, return_list, fetch_returns)
 

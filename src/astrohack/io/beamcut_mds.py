@@ -181,7 +181,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         #     parallel=parallel,
         # )
         create_and_execute_plot_graphs(
-            looping_dict=self,
+            mds_object=self,
             chunk_function=_plot_beamcut_in_amplitude_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],

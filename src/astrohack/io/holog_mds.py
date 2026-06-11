@@ -108,13 +108,6 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ant", "ddi", "map"]
-        # create_and_execute_graph_from_dict(
-        #     looping_dict=self,
-        #     chunk_function=_plot_diagnostics_chunk,
-        #     param_dict=param_dict,
-        #     key_order=key_order,
-        #     parallel=parallel,
-        # )
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_diagnostics_chunk,
@@ -204,8 +197,8 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_lm_sky_coverage_chunk,
             param_dict=param_dict,
             key_order=key_order,
@@ -250,8 +243,8 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_aips_chunk,
             param_dict=param_dict,
             key_order=key_order,
@@ -323,8 +316,8 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict["map"] = map_id
         param_dict["dtype"] = "holog"
         key_order = ["ant", "ddi", "map"]
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
+        execution, summary = create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,

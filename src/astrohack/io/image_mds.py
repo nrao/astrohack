@@ -9,7 +9,7 @@ import toolviper.utils.parameter
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_5d_grid_from_stokes
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.phase_fitting import aips_par_names
@@ -103,8 +103,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         param_dict["input_params"] = self.root.attrs["input_parameters"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_fits_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -189,8 +189,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_aperture_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -255,8 +255,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beam_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -300,8 +300,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_phase_fit_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -338,8 +338,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_zernike_fit_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -392,8 +392,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_zernike_model_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -458,8 +458,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         param_dict = locals()
         key_order = ["ant", "ddi"]
         param_dict["dtype"] = "image"
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
+        execution, summary = create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,

@@ -20,10 +20,7 @@ from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
 from astrohack.visualization.observation_summary import (
     generate_observation_summary,
 )
-from astrohack.utils.graph import (
-    create_and_execute_graph_from_dict,
-    create_and_execute_plot_graphs,
-)
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 lnbr = "\n"
@@ -109,11 +106,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
         key_order = ["ant", "ddi"]
         param_dict["dtype"] = "beamcut"
-        execution, summary_list = create_and_execute_graph_from_dict(
-            looping_dict=self,
+        execution, summary_list = create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=generate_observation_summary,
-            param_dict=param_dict,
             key_order=key_order,
+            param_dict=param_dict,
             parallel=parallel,
             fetch_returns=True,
         )
@@ -173,14 +170,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        # create_and_execute_graph_from_dict(
-        #     looping_dict=self,
-        #     chunk_function=_plot_beamcut_in_amplitude_chunk,
-        #     param_dict=param_dict,
-        #     key_order=["ant", "ddi"],
-        #     parallel=parallel,
-        # )
-        create_and_execute_plot_graphs(
+        create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beamcut_in_amplitude_chunk,
             param_dict=param_dict,
@@ -239,8 +229,8 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beamcut_in_attenuation_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -294,8 +284,8 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_cuts_in_lm_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -357,8 +347,8 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beamcut_in_phase_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -404,8 +394,8 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_create_report_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],

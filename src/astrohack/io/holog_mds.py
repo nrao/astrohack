@@ -17,7 +17,10 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
 )
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import (
+    create_and_execute_graph_from_dict,
+    create_and_execute_plot_graphs,
+)
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
 from astrohack.visualization.observation_summary import generate_observation_summary
@@ -105,8 +108,15 @@ class AstrohackHologFile(AstrohackBaseFile):
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        # create_and_execute_graph_from_dict(
+        #     looping_dict=self,
+        #     chunk_function=_plot_diagnostics_chunk,
+        #     param_dict=param_dict,
+        #     key_order=key_order,
+        #     parallel=parallel,
+        # )
+        create_and_execute_plot_graphs(
+            mds_object=self,
             chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,
             key_order=key_order,

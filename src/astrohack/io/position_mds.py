@@ -24,7 +24,10 @@ from astrohack.utils import (
     pi,
     twopi,
 )
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import (
+    create_and_execute_graph_from_dict,
+    create_and_execute_graphs_for_outputs,
+)
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.visualization import (
@@ -317,15 +320,22 @@ class AstrohackPositionFile(AstrohackBaseFile):
 
         if self.root.attrs["combined"]:
             key_order = ["ant"]
+            create_and_execute_graph_from_dict(
+                looping_dict=self,
+                chunk_function=_plot_sky_coverage_chunk,
+                param_dict=param_dict,
+                key_order=key_order,
+                parallel=parallel,
+            )
         else:
             key_order = ["ant", "ddi"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=_plot_sky_coverage_chunk,
-            param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-        )
+            create_and_execute_graphs_for_outputs(
+                mds_object=self,
+                chunk_function=_plot_sky_coverage_chunk,
+                param_dict=param_dict,
+                key_order=key_order,
+                parallel=parallel,
+            )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_delays(
@@ -397,16 +407,22 @@ class AstrohackPositionFile(AstrohackBaseFile):
         param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
         if self.root.attrs["combined"]:
             key_order = ["ant"]
+            create_and_execute_graph_from_dict(
+                looping_dict=self,
+                chunk_function=_plot_delays_chunk,
+                param_dict=param_dict,
+                key_order=key_order,
+                parallel=parallel,
+            )
         else:
             key_order = ["ant", "ddi"]
-
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=_plot_delays_chunk,
-            param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-        )
+            create_and_execute_graphs_for_outputs(
+                mds_object=self,
+                chunk_function=_plot_delays_chunk,
+                param_dict=param_dict,
+                key_order=key_order,
+                parallel=parallel,
+            )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_position_corrections(

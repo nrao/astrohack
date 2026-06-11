@@ -9,7 +9,7 @@ import toolviper.utils.parameter
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.constants import plot_types
 from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.constants import clight
 from astrohack.utils.text import (
@@ -114,8 +114,8 @@ class AstrohackPanelFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_screws_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -214,8 +214,8 @@ class AstrohackPanelFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_antenna_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -255,8 +255,8 @@ class AstrohackPanelFile(AstrohackBaseFile):
         param_dict = locals()
 
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_fits_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -320,8 +320,8 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_gain_tables_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
@@ -386,8 +386,8 @@ class AstrohackPanelFile(AstrohackBaseFile):
         param_dict = locals()
         key_order = ["ant", "ddi"]
         param_dict["dtype"] = "panel"
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
+        execution, summary = create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,

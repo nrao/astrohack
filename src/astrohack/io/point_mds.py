@@ -12,7 +12,7 @@ from astrohack.visualization.array_cfg_plot import plot_array_configuration
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils import param_to_list, print_dict_types
+from astrohack.utils import param_to_list
 from astrohack.utils.validation import custom_unit_checker
 
 

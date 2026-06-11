@@ -17,10 +17,7 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
 )
-from astrohack.utils.graph import (
-    create_and_execute_graph_from_dict,
-    create_and_execute_graphs_for_outputs,
-)
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
 from astrohack.visualization.observation_summary import generate_observation_summary

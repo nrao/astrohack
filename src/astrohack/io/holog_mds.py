@@ -19,7 +19,7 @@ from astrohack.visualization.plot_tools import (
 )
 from astrohack.utils.graph import (
     create_and_execute_graph_from_dict,
-    create_and_execute_plot_graphs,
+    create_and_execute_graphs_for_outputs,
 )
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
@@ -115,7 +115,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         #     key_order=key_order,
         #     parallel=parallel,
         # )
-        create_and_execute_plot_graphs(
+        create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,

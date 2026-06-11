@@ -146,6 +146,7 @@ def _sub_graph_execution_for_plots(
 ):
     lvl1_key_prefix = key_order[0]
     lvl1_white_list = _white_list_creation(lvl1_key_prefix, looping_dict, param_dict)
+    result_list = []
 
     if len(key_order) == 1:
         for lvl1_item in lvl1_white_list:
@@ -153,7 +154,7 @@ def _sub_graph_execution_for_plots(
                 this_param_dict = copy.deepcopy(param_dict)
                 _add_exec_data_to_param_dict(looping_dict[lvl1_item], this_param_dict)
                 this_param_dict[f"this_{lvl1_key_prefix}"] = lvl1_item
-                chunk_function(this_param_dict)
+                result_list.append(chunk_function(this_param_dict))
             else:
                 logger.warning(f"{lvl1_item} is not present in looping dict")
     elif len(key_order) == 2:
@@ -171,7 +172,7 @@ def _sub_graph_execution_for_plots(
                         )
                         this_param_dict[f"this_{lvl1_key_prefix}"] = lvl1_item
                         this_param_dict[f"this_{lvl2_key_prefix}"] = lvl2_item
-                        chunk_function(this_param_dict)
+                        result_list.append(chunk_function(this_param_dict))
                     else:
                         logger.warning(
                             f"{lvl2_item} is not present for {lvl1_item} in looping_dict"
@@ -179,15 +180,16 @@ def _sub_graph_execution_for_plots(
             else:
                 logger.warning(f"{lvl1_item} is not present in looping dict")
 
-    return
+    return result_list
 
 
-def create_and_execute_plot_graphs(
+def create_and_execute_graphs_for_outputs(
     mds_object,
     chunk_function,
     param_dict,
     key_order,
     parallel=False,
+    fetch_returns=False,
 ):
     """
     Dask parallelization exclusively for plots, parallelization is done at the antenna level to decrease graph size and\
@@ -198,6 +200,7 @@ def create_and_execute_plot_graphs(
         param_dict: The chunk function parameters
         key_order: Order in which to execute keys
         parallel: execute in parallel mode?
+        fetch_returns: Return value from chunk function
 
     Returns:
         None
@@ -205,9 +208,12 @@ def create_and_execute_plot_graphs(
     # here only the first level of the tree is parallelized
     looping_dict = mds_object.root
 
-    if param_dict["display"] and param_dict["parallel"]:
-        logger.warning("Display cannot be True in parallel mode, setting it to False")
-        param_dict["display"] = False
+    if "display" in param_dict.keys():
+        if param_dict["display"] and param_dict["parallel"]:
+            logger.warning(
+                "Display cannot be True in parallel mode, setting it to False"
+            )
+            param_dict["display"] = False
 
     first_key_prefix = key_order[0]
     white_list = _white_list_creation(first_key_prefix, looping_dict, param_dict)
@@ -242,12 +248,14 @@ def create_and_execute_plot_graphs(
             logger.warning(f"{item} is not present in looping dict")
 
     if parallel:
-        dask.compute(delayed_list)
+        result_list = dask.compute(delayed_list)[0]
     else:
+        result_list = []
         for this_chuk_function, args in delayed_list:
-            this_chuk_function(*args)
+            result_list.append(this_chuk_function(*args))
 
-    return True
+    return_list = [item for sublist in result_list for item in sublist]
+    return _factorized_graph_execution_return(True, return_list, fetch_returns)
 
 
 def compute_graph_from_lists(

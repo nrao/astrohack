@@ -459,7 +459,7 @@ def scatter_plot(
             if xlim is not None:
                 ax_res.set_xlim(xlim)
 
-            minmax = np.nanmax(np.absolute(residuals))
+            minmax = float(np.nanmax(np.absolute(residuals)))
             ax_res.set_ylim([-minmax, minmax])
             if vlines is not None:
                 for vline in vlines:

@@ -302,7 +302,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         phase_unit: str = "deg",
-        phase_scale: Union[List[float], Tuple[float], np.array] = None,
+        phase_scale: Union[List[float], Tuple[float], np.ndarray] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,

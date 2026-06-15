@@ -417,7 +417,9 @@ def _plot_beamcut_in_amplitude_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    fig, axes = create_figure_and_axes(
+        [12, 1 + n_cuts * 4], [n_cuts, 2], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         _plot_single_cut_in_amplitude(cut_xds, axes[icut, :], par_dict)
 
@@ -443,9 +445,11 @@ def _plot_beamcut_in_attenuation_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([6, 1 + n_cuts * 4], [n_cuts, 1])
+    fig, axes = create_figure_and_axes(
+        [6, 1 + n_cuts * 4], [n_cuts, 1], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
-        _plot_single_cut_in_attenuation(cut_xds, axes[icut], par_dict)
+        _plot_single_cut_in_attenuation(cut_xds, axes[icut, 0], par_dict)
 
     # Header creation
     summary = cut_xdtree.attrs["summary"]
@@ -483,7 +487,9 @@ def _plot_beamcut_in_phase_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    fig, axes = create_figure_and_axes(
+        [12, 1 + n_cuts * 4], [n_cuts, 2], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         _plot_single_cut_in_phase(cut_xds, axes[icut, :], par_dict)
 

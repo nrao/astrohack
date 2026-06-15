@@ -36,8 +36,9 @@ def create_param_dict(args):
     print("Input parameters:")
     print_dict_simple(param_dict)
     print()
-    if not yesno("Proceed?"):
-        exit(0)
+    if not param_dict["assume_yes"]:
+        if not yesno("Proceed?"):
+            exit(0)
 
     return param_dict
 
@@ -115,6 +116,10 @@ def parse():
         type=str,
         default="CORRECTED_DATA",
         help="Data column to be extracted from MS, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
     )
 
     # Example of parameter with choice

@@ -1,17 +1,24 @@
 import argparse
 import numpy as np
 from toolviper.dask.client import local_client
-from astrohack import extract_pointing, extract_holog, beamcut, open_pointing
+from astrohack import (
+    extract_pointing,
+    extract_holog,
+    beamcut,
+    open_pointing,
+    open_beamcut,
+)
 from astrohack.utils.user_interaction import yesno
 from pathlib import Path
+import inspect
 
 
 def create_param_dict(args):
     extensions = {
-        "pnt": ".point.zarr",
-        "hlg": ".holog.zarr",
-        "bmc": ".beamcut.zarr",
-        "plt": ".plots",
+        "point": ".point.zarr",
+        "holog": ".holog.zarr",
+        "beamcut": ".beamcut.zarr",
+        "exports": ".exports",
     }
     param_dict = {}
     param_dict.update(vars(args))
@@ -40,6 +47,8 @@ def create_param_dict(args):
         if not yesno("Proceed?"):
             exit(0)
 
+    param_dict["ant"] = param_dict["antenna"]
+    param_dict["ddi"] = param_dict["spectral_window"]
     return param_dict
 
 
@@ -131,20 +140,47 @@ def parse():
         help="Starting stage in which to start processing (default: %(default)s).",
     )
 
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="Dots Per Inch for plotting, default is %(default)d",
+    )
+
+    parser.add_argument(
+        "--plot-array-configuration",
+        action="store_true",
+        help="Plot array configuration, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--plot-pointing",
+        action="store_true",
+        help="Plot antenna pointing, default is %(default)s",
+    )
+
     args = parser.parse_args()
     param_dict = create_param_dict(args)
 
     return param_dict
 
 
-def execute_step(param_dict, label, function, kwargs, next_stage):
+def created_filtered_kwargs_dict(param_dict, function):
+    valid_kwarg_keys = inspect.signature(function).parameters
+    filtered_dict = {
+        key: value for key, value in param_dict.items() if key in valid_kwarg_keys
+    }
+    return filtered_dict
+
+
+def execute_step(param_dict, label, function, next_stage):
     function_name = function.__name__
     if (
         not Path(param_dict[f"{label}_name"]).is_dir() or param_dict["overwrite"]
     ) and param_dict["processing_stage"] == function_name:
         try:
             print(f"Executing {function_name}...")
-            function(**kwargs)
+            function(**created_filtered_kwargs_dict(param_dict, function))
             print(f"{function_name.capitalize()} done!")
             param_dict["processing_stage"] = next_stage
             return True, None
@@ -155,62 +191,55 @@ def execute_step(param_dict, label, function, kwargs, next_stage):
 
 
 def data_reduction(param_dict):
-    status, exception = execute_step(
-        param_dict,
-        "pnt",
-        extract_pointing,
-        {
-            "ms_name": param_dict["ms_name"],
-            "point_name": param_dict["pnt_name"],
-            "parallel": param_dict["parallel"],
-            "overwrite": param_dict["overwrite"],
-        },
-        "extract_holog",
-    )
-
-    if status:
-        status, exception = execute_step(
-            param_dict,
-            "hlg",
-            extract_holog,
-            {
-                "ms_name": param_dict["ms_name"],
-                "point_name": param_dict["pnt_name"],
-                "holog_name": param_dict["hlg_name"],
-                "ant": param_dict["antenna"],
-                "ddi": param_dict["spectral_window"],
-                "data_column": param_dict["data_column"],
-                "parallel": param_dict["parallel"],
-                "overwrite": param_dict["overwrite"],
-            },
-            "beamcut",
-        )
-
-    if status:
-        status, exception = execute_step(
-            param_dict,
-            "bmc",
-            beamcut,
-            {
-                "holog_name": param_dict["hlg_name"],
-                "beamcut_name": param_dict["bmc_name"],
-                "ant": param_dict["antenna"],
-                "ddi": param_dict["spectral_window"],
-                "parallel": param_dict["parallel"],
-                "overwrite": param_dict["overwrite"],
-            },
-            "plotting",
-        )
+    status = True
+    exec_exception = None
+    exec_list = [
+        ["point", "extract_holog", extract_pointing],
+        ["holog", "beamcut", extract_holog],
+        ["beamcut", "plotting", beamcut],
+    ]
+    for label, next_stage, function in exec_list:
+        if status:
+            status, exec_exception = execute_step(
+                param_dict, label, function, next_stage
+            )
 
     if not status:
         raise RuntimeError(
             f"{param_dict['processing_stage']} failed, see above for details."
-        ) from exception
+        ) from exec_exception
 
     return
 
 
-def post_processing():
+def post_processing(param_dict):
+    param_dict["destination"] = param_dict["exports_name"]
+    bmc_mds = open_beamcut(param_dict["beamcut_name"])
+    if bmc_mds is not None:
+        beamcut_methods = [
+            bmc_mds.plot_beamcut_in_amplitude,
+            bmc_mds.plot_beamcut_in_phase,
+            bmc_mds.plot_beamcut_in_attenuation,
+            bmc_mds.plot_beam_cuts_over_sky,
+            bmc_mds.create_beam_fit_report,
+        ]
+        for method in beamcut_methods:
+            print(f"Running {method.__name__}...")
+            method(**created_filtered_kwargs_dict(param_dict, method))
+        print("Beamcut exports Done!")
+
+    if param_dict["plot_array_configuration"] or param_dict["plot_pointing"]:
+        pnt_mds = open_pointing(param_dict["point_name"])
+        if pnt_mds is not None:
+            pnt_methods = []
+            if param_dict["plot_array_configuration"]:
+                pnt_methods.append(pnt_mds.plot_array_configuration)
+            if param_dict["plot_pointing"]:
+                pnt_methods.append(pnt_mds.plot_pointing_in_time)
+            for method in pnt_methods:
+                print(f"Running {method.__name__}...")
+                method(**created_filtered_kwargs_dict(param_dict, method))
+            print("Pointing exports Done!")
     return
 
 
@@ -228,7 +257,8 @@ if __name__ == "__main__":
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
     data_reduction(main_param_dict)
 
-    post_processing()
+    if main_param_dict["processing_stage"] == "plotting":
+        post_processing(main_param_dict)
 
     if main_param_dict["parallel"]:
         client.shutdown()

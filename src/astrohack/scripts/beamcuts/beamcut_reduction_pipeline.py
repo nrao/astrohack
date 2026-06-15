@@ -40,13 +40,13 @@ def create_param_dict(args):
             int(spw_id) for spw_id in args.spectral_window.split(",")
         ]
 
-    print("Input parameters:")
+    print("Beamcut pipeline parameters:")
     print_dict_simple(param_dict)
     print()
     if not param_dict["assume_yes"]:
         if not yesno("Proceed?"):
             exit(0)
-
+    print()
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spectral_window"]
     return param_dict
@@ -175,10 +175,9 @@ def created_filtered_kwargs_dict(param_dict, function):
 
 def execute_step(param_dict, label, function, next_stage):
     function_name = function.__name__
-    if (
-        not Path(param_dict[f"{label}_name"]).is_dir() or param_dict["overwrite"]
-    ) and param_dict["processing_stage"] == function_name:
+    if param_dict["processing_stage"] == function_name:
         try:
+            print("\n" + 40 * "#" + "\n")
             print(f"Executing {function_name}...")
             function(**created_filtered_kwargs_dict(param_dict, function))
             print(f"{function_name.capitalize()} done!")
@@ -216,6 +215,7 @@ def post_processing(param_dict):
     param_dict["destination"] = param_dict["exports_name"]
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
     if bmc_mds is not None:
+        print("\n" + 40 * "#" + "\n")
         beamcut_methods = [
             bmc_mds.plot_beamcut_in_amplitude,
             bmc_mds.plot_beamcut_in_phase,
@@ -226,11 +226,12 @@ def post_processing(param_dict):
         for method in beamcut_methods:
             print(f"Running {method.__name__}...")
             method(**created_filtered_kwargs_dict(param_dict, method))
-        print("Beamcut exports Done!")
+        print("Beamcut exports Done!\n")
 
     if param_dict["plot_array_configuration"] or param_dict["plot_pointing"]:
         pnt_mds = open_pointing(param_dict["point_name"])
         if pnt_mds is not None:
+            print("\n" + 40 * "#" + "\n")
             pnt_methods = []
             if param_dict["plot_array_configuration"]:
                 pnt_methods.append(pnt_mds.plot_array_configuration)
@@ -239,7 +240,7 @@ def post_processing(param_dict):
             for method in pnt_methods:
                 print(f"Running {method.__name__}...")
                 method(**created_filtered_kwargs_dict(param_dict, method))
-            print("Pointing exports Done!")
+            print("Pointing exports Done!\n")
     return
 
 

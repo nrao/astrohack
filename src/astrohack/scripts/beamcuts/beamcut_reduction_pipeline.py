@@ -243,7 +243,7 @@ def post_processing(param_dict):
     return
 
 
-if __name__ == "__main__":
+def main():
     main_param_dict = parse()
 
     if main_param_dict["parallel"]:

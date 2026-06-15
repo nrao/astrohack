@@ -334,4 +334,5 @@ class CalObject:
         return
 
 
-UserInteraction.perform_beamcut_calibration()
+def main():
+    UserInteraction.perform_beamcut_calibration()

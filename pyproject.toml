@@ -22,3 +22,6 @@ file = "LICENSE.txt"
 
 [project.optional-dependencies]
 docs = [ "ipykernel", "ipympl", "ipython", "jupyter-client", "nbsphinx", "recommonmark", "scanpydoc", "sphinx-autoapi", "sphinx-autosummary-accessors", "sphinx_rtd_theme", "twine", "pandoc",]
+
+[project.scripts]
+beamcut-reduction-pipeline = "astrohack.scripts.beamcuts.beamcut_reduction_pipeline:main"

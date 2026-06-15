@@ -25,3 +25,4 @@ docs = [ "ipykernel", "ipympl", "ipython", "jupyter-client", "nbsphinx", "recomm
 
 [project.scripts]
 beamcut-reduction-pipeline = "astrohack.scripts.beamcuts.beamcut_reduction_pipeline:main"
+beamcut-calibration = "astrohack.scripts.beamcuts.beamcut_CASA_calibration:main"

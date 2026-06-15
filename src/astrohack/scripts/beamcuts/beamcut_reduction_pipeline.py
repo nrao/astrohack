@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 from toolviper.dask.client import local_client
 from astrohack import (
     extract_pointing,
@@ -9,7 +8,6 @@ from astrohack import (
     open_beamcut,
 )
 from astrohack.utils.user_interaction import yesno
-from pathlib import Path
 import inspect
 
 

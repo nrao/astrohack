@@ -109,6 +109,14 @@ def parse():
         help="Overwrite existing files if found",
     )
 
+    parser.add_argument(
+        "-d",
+        "--data-column",
+        type=str,
+        default="CORRECTED_DATA",
+        help="Data column to be extracted from MS, default is %(default)s",
+    )
+
     # Example of parameter with choice
     # parser.add_argument(
     #     "-m", "--mode",
@@ -154,6 +162,7 @@ def data_reduction(param_dict):
                 holog_name=param_dict["hlg_name"],
                 ant=param_dict["antenna"],
                 ddi=param_dict["spectral_window"],
+                data_column=param_dict["data_column"],
                 parallel=param_dict["parallel"],
                 overwrite=param_dict["overwrite"],
             )
@@ -187,17 +196,19 @@ def data_reduction(param_dict):
         status_dict["bmc"] = True
 
     if not status_dict["pnt"]:
-        raise RuntimeError(
-            f"Extract_pointing failed with exception: {status_dict['pnt_exception']}"
-        )
+        raise RuntimeError(f"Extract_pointing failed, see above") from status_dict[
+            "pnt_exception"
+        ]
+
     if not status_dict["hlg"]:
-        raise RuntimeError(
-            f"Extract_holog failed with exception: {status_dict['hlg_exception']}"
-        )
+        raise RuntimeError(f"Extract_holog failed, see above\n") from status_dict[
+            "hlg_exception"
+        ]
     if not status_dict["bmc"]:
-        raise RuntimeError(
-            f"Beamcut failed with exception: {status_dict['bmc_exception']}"
-        )
+        raise RuntimeError(f"Beamcut failed, see above\n") from status_dict[
+            "bmc_exception"
+        ]
+
     return
 
 

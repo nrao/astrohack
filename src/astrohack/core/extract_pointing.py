@@ -3,7 +3,7 @@ import os
 import numpy as np
 import xarray as xr
 
-from casacore import tables as ctables
+from casacoretables import tables as ctables
 from numba import njit
 from numba.core import types
 from numba.typed import Dict

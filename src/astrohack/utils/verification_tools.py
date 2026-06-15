@@ -47,7 +47,10 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
             # This results in a new image where differing pixels are non-zero
             diff = ImageChops.difference(img1, img2)
             mean_diff = np.mean(diff)
-            return np.abs(mean_diff) < tol, f"Mean diff: {float(np.mean(np.absolute(diff)))}"
+            return (
+                np.abs(mean_diff) < tol,
+                f"Mean diff: {float(np.mean(np.absolute(diff)))}",
+            )
 
     except IOError as e:
         print(f"Error opening images: {e}")

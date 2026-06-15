@@ -95,6 +95,9 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
         time_selection = np.logical_and(
             time_axis >= scan_time_range[0], time_axis < scan_time_range[1]
         )
+        if np.sum(time_selection) == 0:
+            logger.warning(f"Scan {scan_number} has no data for {antenna} DDI {ddi}")
+            continue
         time = time_axis[time_selection]
         this_lm_offsets = lm_offsets[time_selection, :]
 
@@ -318,6 +321,8 @@ def _build_multi_gaussian_initial_guesses(
     upper_bounds = []
     step = float(np.median(np.diff(x_data)))
     min_dist = np.abs(min_dist_fraction * pb_fwhm / step)
+    if min_dist < 1:
+        min_dist = 1
     peaks, _ = find_peaks(y_data, distance=min_dist)
     dx = x_data[-1] - x_data[0]
     if dx < 0:

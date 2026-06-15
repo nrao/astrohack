@@ -123,13 +123,13 @@ def parse():
     )
 
     # Example of parameter with choice
-    # parser.add_argument(
-    #     "-m", "--mode",
-    #     type=str,
-    #     default="safe",
-    #     choices=["safe", "fast", "strict"],
-    #     help="Processing mode (default: %(default)s)."
-    # )
+    parser.add_argument(
+        "--starting-stage",
+        type=str,
+        default="extract_pointing",
+        choices=["extract_pointing", "extract_holog", "beamcut", "plotting"],
+        help="Starting stage in which to start processing (default: %(default)s).",
+    )
 
     args = parser.parse_args()
     param_dict = create_param_dict(args)
@@ -137,82 +137,75 @@ def parse():
     return param_dict
 
 
+def execute_step(param_dict, label, function, kwargs, next_stage):
+    function_name = function.__name__
+    if (
+        not Path(param_dict[f"{label}_name"]).is_dir() or param_dict["overwrite"]
+    ) and param_dict["processing_stage"] == function_name:
+        try:
+            print(f"Executing {function_name}...")
+            function(**kwargs)
+            print(f"{function_name.capitalize()} done!")
+            param_dict["processing_stage"] = next_stage
+            return True, None
+        except Exception as the_exception:
+            return False, the_exception
+    else:
+        return True, None
+
+
 def data_reduction(param_dict):
-    status_dict = {}
-    if not Path(param_dict["pnt_name"]).is_dir() or param_dict["overwrite"]:
-        try:
-            print("Executing extract_pointing...")
-            extract_pointing(
-                ms_name=param_dict["ms_name"],
-                point_name=param_dict["pnt_name"],
-                parallel=param_dict["parallel"],
-                overwrite=param_dict["overwrite"],
-            )
-            print("Extract_pointing done!")
-            status_dict["pnt"] = True
-        except Exception as the_exception:
-            status_dict["pnt"] = False
-            status_dict["pnt_exception"] = the_exception
-    else:
-        status_dict["pnt"] = True
+    status, exception = execute_step(
+        param_dict,
+        "pnt",
+        extract_pointing,
+        {
+            "ms_name": param_dict["ms_name"],
+            "point_name": param_dict["pnt_name"],
+            "parallel": param_dict["parallel"],
+            "overwrite": param_dict["overwrite"],
+        },
+        "extract_holog",
+    )
 
-    if (
-        not Path(param_dict["hlg_name"]).is_dir() or param_dict["overwrite"]
-    ) and status_dict["pnt"]:
-        try:
-            print("Executing extract_holog...")
-            extract_holog(
-                ms_name=param_dict["ms_name"],
-                point_name=param_dict["pnt_name"],
-                holog_name=param_dict["hlg_name"],
-                ant=param_dict["antenna"],
-                ddi=param_dict["spectral_window"],
-                data_column=param_dict["data_column"],
-                parallel=param_dict["parallel"],
-                overwrite=param_dict["overwrite"],
-            )
-            print("Extract_holog done!")
-            status_dict["hlg"] = True
-        except Exception as the_exception:
-            status_dict["hlg"] = False
-            status_dict["hlg_exception"] = the_exception
-    else:
-        status_dict["hlg"] = True
+    if status:
+        status, exception = execute_step(
+            param_dict,
+            "hlg",
+            extract_holog,
+            {
+                "ms_name": param_dict["ms_name"],
+                "point_name": param_dict["pnt_name"],
+                "holog_name": param_dict["hlg_name"],
+                "ant": param_dict["antenna"],
+                "ddi": param_dict["spectral_window"],
+                "data_column": param_dict["data_column"],
+                "parallel": param_dict["parallel"],
+                "overwrite": param_dict["overwrite"],
+            },
+            "beamcut",
+        )
 
-    if (
-        not Path(param_dict["bmc_name"]).is_dir() or param_dict["overwrite"]
-    ) and status_dict["hlg"]:
-        try:
-            print("executing beamcut...")
-            beamcut(
-                holog_name=param_dict["hlg_name"],
-                beamcut_name=param_dict["bmc_name"],
-                ant=param_dict["antenna"],
-                ddi=param_dict["spectral_window"],
-                parallel=param_dict["parallel"],
-                overwrite=param_dict["overwrite"],
-            )
-            print("Beamcut done!")
-            status_dict["bmc"] = True
-        except Exception as the_exception:
-            status_dict["bmc"] = False
-            status_dict["bmc_exception"] = the_exception
-    else:
-        status_dict["bmc"] = True
+    if status:
+        status, exception = execute_step(
+            param_dict,
+            "bmc",
+            beamcut,
+            {
+                "holog_name": param_dict["hlg_name"],
+                "beamcut_name": param_dict["bmc_name"],
+                "ant": param_dict["antenna"],
+                "ddi": param_dict["spectral_window"],
+                "parallel": param_dict["parallel"],
+                "overwrite": param_dict["overwrite"],
+            },
+            "plotting",
+        )
 
-    if not status_dict["pnt"]:
-        raise RuntimeError(f"Extract_pointing failed, see above") from status_dict[
-            "pnt_exception"
-        ]
-
-    if not status_dict["hlg"]:
-        raise RuntimeError(f"Extract_holog failed, see above\n") from status_dict[
-            "hlg_exception"
-        ]
-    if not status_dict["bmc"]:
-        raise RuntimeError(f"Beamcut failed, see above\n") from status_dict[
-            "bmc_exception"
-        ]
+    if not status:
+        raise RuntimeError(
+            f"{param_dict['processing_stage']} failed, see above for details."
+        ) from exception
 
     return
 
@@ -232,6 +225,7 @@ if __name__ == "__main__":
     else:
         client = None
 
+    main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
     data_reduction(main_param_dict)
 
     post_processing()

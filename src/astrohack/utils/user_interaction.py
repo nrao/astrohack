@@ -64,3 +64,23 @@ class MessageBoard:
 
     def done(self):
         return self.one_liner("Done!")
+
+
+def print_dict_simple(the_dict, ident=4):
+    key_len = 0
+    for key in the_dict.keys():
+        if len(key) > key_len:
+            key_len = len(key)
+
+    for key, value in the_dict.items():
+        print(f"{ident*' '}{key:{key_len}s} => {value}")
+
+
+def initialization_check(param_dict: dict, title: str):
+    print(f"{title}:")
+    print_dict_simple(param_dict)
+    print()
+    if not param_dict["assume_yes"]:
+        if not yesno("Proceed?"):
+            exit(0)
+    print()

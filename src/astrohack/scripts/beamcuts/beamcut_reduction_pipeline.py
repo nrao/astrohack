@@ -7,7 +7,7 @@ from astrohack import (
     open_pointing,
     open_beamcut,
 )
-from astrohack.utils.user_interaction import yesno
+from astrohack.utils.user_interaction import initialization_check
 import inspect
 
 
@@ -38,26 +38,10 @@ def create_param_dict(args):
             int(spw_id) for spw_id in args.spectral_window.split(",")
         ]
 
-    print("Beamcut pipeline parameters:")
-    print_dict_simple(param_dict)
-    print()
-    if not param_dict["assume_yes"]:
-        if not yesno("Proceed?"):
-            exit(0)
-    print()
+    initialization_check(param_dict, "Beam cut reduction parameters")
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spectral_window"]
     return param_dict
-
-
-def print_dict_simple(the_dict, ident=4):
-    key_len = 0
-    for key in the_dict.keys():
-        if len(key) > key_len:
-            key_len = len(key)
-
-    for key, value in the_dict.items():
-        print(f"{ident*' '}{key:{key_len}s} => {value}")
 
 
 def parse():

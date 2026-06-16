@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -5,142 +6,96 @@ import numpy as np
 import casatools
 from pathlib import Path
 from casatasks import importasdm, gaincal, bandpass, applycal
-from astrohack.utils.user_interaction import yesno, MessageBoard
-
-lnbr = "\n"
-spc = " "
+from astrohack.utils.user_interaction import yesno, MessageBoard, initialization_check
 
 
-class UserInteraction:
-    last_use_file = ".beamcut_cal.last"
-    user_inp_list = [
-        "filename",
-        "field",
-        "refant",
-        "overwrite",
-        "confirmation_before_start",
-    ]
-    sep = "="
+def parse():
+    parser = argparse.ArgumentParser(description="Beam cut CASA calibration pipeline")
 
-    def __init__(self):
-        self.filename = None
-        self.field = None
-        self.refant = None
-        self.overwrite = None
-        self.last_use_list = None
-        self.confirmation_before_start = None
+    parser.add_argument("filename", type=str, help="Path to the input MS/ASDM file")
 
-    def _find_previous_input(self):
-        return Path(self.last_use_file).exists()
+    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
 
-    def _read_last_use_file(self):
-        self.last_use_list = []
-        with open(self.last_use_file, "r") as infile:
-            for line in infile:
-                self.last_use_list.append(line.strip())
+    parser.add_argument(
+        "-f",
+        "--beamcut-field",
+        default=None,
+        type=str,
+        help="Field Id or name of the beam cut data (default is to determine it from data)",
+    )
 
-    def _reuse_last(self):
-        print("Previous inputs:")
-        for line in self.last_use_list:
-            print(f"\t{line}")
-        ans = yesno("Re-use previous input?")
-        print()
-        return ans
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        default=False,
+        action="store_true",
+        help="Overwrite existing calibration files",
+    )
 
-    def _init_from_user(self):
-        self.filename = input("Enter MS/ASDM file name: ")
-        self.field = input("Enter beam cut field number: ")
-        self.refant = input("Enter reference antenna for calibration: ")
-        self.overwrite = yesno("Re-do calibration if already done?")
-        self.confirmation_before_start = yesno(
-            "Confirm info before starting calibration?"
-        )
+    parser.add_argument(
+        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
+    )
 
-    def save_input(self):
-        outstr = ""
-        for key in self.user_inp_list:
-            outstr += f"{key} {self.sep} {getattr(self, key)}\n"
-        with open(self.last_use_file, "w") as outfile:
-            outfile.write(outstr)
+    parser.add_argument(
+        "-q",
+        "--quack-nchan",
+        default=4,
+        type=int,
+        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
+    )
 
-    def read_input(self):
-        if self._find_previous_input():
-            self._read_last_use_file()
-            if self._reuse_last():
-                for line in self.last_use_list:
-                    wrds = line.split(self.sep)
-                    key = wrds[0].strip()
-                    value = wrds[1].strip()
-                    setattr(self, key, value)
-            else:
-                self._init_from_user()
-        else:
-            self._init_from_user()
-
-    @classmethod
-    def perform_beamcut_calibration(cls):
-        msger = MessageBoard()
-        print(msger.heading("Welcome to the beam cut calibration pipeline"))
-        my_obj = cls()
-        my_obj.read_input()
-        print()
-
-        mycal_obj = CalObject(
-            my_obj.filename, my_obj.field, my_obj.refant, my_obj.overwrite, msger
-        )
-        if my_obj.confirmation_before_start:
-            proceed = yesno("Proceed with calibration?")
-        else:
-            proceed = True
-        print()
-
-        if proceed:
-            my_obj.save_input()
-            mycal_obj.calibration_pipeline()
-            mycal_obj.apply_calibration()
-
-        print(msger.heading("All Done!"))
+    param_dict = vars(parser.parse_args())
+    return param_dict
 
 
 class CalObject:
 
-    def __init__(
-        self, msname, field, refant, overwrite, msger, first_chan=4, last_chan=60
-    ):
-        self.msname = msname
-        self.refant = refant
-        self.overwrite = bool(overwrite)
-        self.field = field
-        self.msger = msger
-        self.fchan = first_chan
-        self.lchan = last_chan
+    def __init__(self, param_dict: dict, msger: MessageBoard):
+        self.filename = param_dict["filename"]
+        self.refant = param_dict["refant"]
+        self.overwrite = param_dict["overwrite"]
+        self.field = param_dict["field"]
+        self.is_asdm = self._is_asdm()
 
-        base_cal_name = msname + "."
+        base_cal_name = f"{self.filename}."
         self.delay_caltable = base_cal_name + "delay.cal"
         self.bandpass_caltable = base_cal_name + "bandpass.cal"
         self.gain_caltable = base_cal_name + "gain.cal"
 
-        if self._is_asdm():
-            print(self.msger.one_liner("Input is an SDM running importasdm..."))
+        if self.is_asdm:
+            self.msname = f"{self.filename}.ms"
+            print(msger.one_liner("Input is an SDM running importasdm..."))
             self.asdm_to_ms()
-            print(self.msger.done())
+            print(msger.done())
+        else:
+            self.msname = self.filename
 
-        self._initialize_metadata()
-        self._report_init()
+        self._initialize_metadata(param_dict["quack_nchan"])
+        param_dict.update(
+            {
+                key: value
+                for key, value in vars(self).items()
+                if not key.startswith("__")
+            }
+        )
+        initialization_check(
+            param_dict,
+            "CASA calibration parameters",
+        )
+        self.msger = msger
 
     def _is_asdm(self):
-        file_path = Path(f"{self.msname}/ASDM.xml")
+        file_path = Path(f"{self.filename}/ASDM.xml")
         return file_path.exists()
 
     def asdm_to_ms(self):
-        msname = self.msname + ".ms"
-        if os.path.exists(msname) and self.overwrite:
+        if os.path.exists(self.msname) and self.overwrite:
             print(self.msger.heading("Removing old file"))
-            shutil.rmtree(msname)
+            shutil.rmtree(self.msname)
 
         importasdm(
-            asdm=self.msname,
-            vis=msname,
+            asdm=self.filename,
+            vis=self.msname,
             createmms=False,
             ocorr_mode="co",
             lazy=False,
@@ -148,43 +103,43 @@ class CalObject:
             process_caldevice=True,
             process_pointing=True,
             savecmds=True,
-            outfile=msname + ".flagonline.txt",
+            outfile=f"{self.filename}.flagonline.txt",
             bdfflags=False,
             with_pointing_correction=True,
             applyflags=True,
             overwrite=False,
         )
-        self.msname = msname
         return
 
-    def _initialize_metadata(self):
+    def _initialize_metadata(self, quack_nchan):
         # Fetch metadata from ms
         msmd = casatools.msmetadata()
         msmd.open(self.msname)
         cal_scans = msmd.scansforintent("*PHASE*")
         beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
         spw_list = msmd.spwsforintent("*MAP*")
+        beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
+        nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
         msmd.done()
 
+        if beamcut_fields.size > 1:
+            raise RuntimeError("More than 1 beam cut field, try splitting the ms")
+        if nchan.size > 1:
+            raise RuntimeError(
+                "Spectral windows have different nchans, don't know how to proceed automatically"
+            )
+
+        fchan = quack_nchan
+        lchan = nchan[0] - quack_nchan
         # Convert to comma-separated string
-        self.cal_scans = ",".join(map(str, cal_scans))
+        self.calibration_scans = ",".join(map(str, cal_scans))
         self.beamcut_scans = ",".join(map(str, beamcut_scans))
+        self.beamcut_field = beamcut_fields[0]
 
-        self.minspw = str(np.min(spw_list))
-        self.maxspw = str(np.max(spw_list))
-        self.spwrange = self.minspw + "~" + self.maxspw
-        self.quacked_spwstr = self.spwrange + f":{self.fchan}~{self.lchan}"
-
-    def _report_init(self):
-        print("Scans used for calibration:")
-        print(self.cal_scans)
-        print()
-        print("Scans used for beamcut:")
-        print(self.beamcut_scans)
-        print()
-        print("SPWSs used for beamcuts:")
-        print(self.spwrange)
-        print()
+        minspw = f"{float(np.min(spw_list))}"
+        maxspw = f"{float(np.max(spw_list))}"
+        spwrange = f"{minspw}~{maxspw}"
+        self.quacked_spw_selection = f"{spwrange}:{fchan}~{lchan}"
 
     def _do_calibration(self, cal_name):
         if os.path.exists(cal_name):
@@ -207,8 +162,8 @@ class CalObject:
                 caltable=self.delay_caltable,
                 refant=self.refant,
                 solint="inf",
-                spw=self.quacked_spwstr,
-                scan=self.cal_scans,
+                spw=self.quacked_spw_selection,
+                scan=self.calibration_scans,
                 gaintype="K",
             )
             print(self.msger.done())
@@ -224,9 +179,9 @@ class CalObject:
                 caltable=self.bandpass_caltable,
                 refant=self.refant,
                 solint="10s",
-                spw=self.quacked_spwstr,
+                spw=self.quacked_spw_selection,
                 solnorm=True,
-                scan=self.cal_scans,
+                scan=self.calibration_scans,
                 gaintable=[self.delay_caltable],
             )
             print(self.msger.done())
@@ -243,10 +198,10 @@ class CalObject:
                 refant=self.refant,
                 calmode="ap",
                 solint="inf",
-                spw=self.quacked_spwstr,
+                spw=self.quacked_spw_selection,
                 minsnr=2,
                 minblperant=2,
-                scan=self.cal_scans,
+                scan=self.calibration_scans,
                 gaintable=[self.delay_caltable, self.bandpass_caltable],
             )
             print(self.msger.done())
@@ -259,7 +214,7 @@ class CalObject:
         applycal(
             vis=self.msname,
             field=self.field,
-            spw=self.quacked_spwstr,
+            spw=self.quacked_spw_selection,
             applymode="calonly",
             gaintable=[self.delay_caltable, self.bandpass_caltable, self.gain_caltable],
         )
@@ -274,4 +229,12 @@ class CalObject:
 
 
 def main():
-    UserInteraction.perform_beamcut_calibration()
+    msger = MessageBoard()
+    print(msger.heading("Welcome to CASA beam cut calibration pipeline"))
+    cal_param_dict = parse()
+
+    mycal_obj = CalObject(cal_param_dict, msger)
+    mycal_obj.calibration_pipeline()
+    mycal_obj.apply_calibration()
+
+    print(msger.heading("All Done!"))

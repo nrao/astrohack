@@ -23,7 +23,7 @@
         },
         "exclude_antennas": {
             "type":["ndarray", "list", "str"],
-            "struct type": ["int"],
+            "struct type": ["str"],
             "nullable": true
         },
         "holog_name":{

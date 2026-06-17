@@ -957,7 +957,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         else:
             y_data = to_db(amps / max_amp)
 
-        y_min = np.min(y_data)
+        y_min = np.nanmin(y_data)
         if y_min < min_attenuation:
             min_attenuation = y_min
 

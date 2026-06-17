@@ -7,11 +7,6 @@
             "type":["str"],
             "nullable": true
         },
-        "exclude":{
-            "type":["list", "str"],
-            "nullable": true,
-            "struct_type": ["str"]
-        },
         "parallel":{
             "type":["boolean"]
         },

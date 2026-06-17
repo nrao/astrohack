@@ -32,7 +32,6 @@ def extract_pointing_preprocessing(input_params):
 
     ms_name = input_params["ms_name"]
     pnt_name = input_params["point_name"]
-    exclude = input_params["exclude"]
 
     # Get antenna names and ids
     ctb = ctables.table(
@@ -47,21 +46,7 @@ def extract_pointing_preprocessing(input_params):
     antenna_names = ctb.getcol("NAME")
     ctb.close()
 
-    antenna_ids = list(range(len(antenna_names)))
-
-    # Exclude antennas according to user direction
-    if exclude:
-        if not isinstance(exclude, list):
-            exclude = [exclude]
-        for antenna in exclude:
-            if antenna in antenna_names:
-                ant_id = antenna_names.index(antenna)
-                antenna_names.pop(ant_id)
-                antenna_ids.pop(ant_id)
-                antenna_positions.pop(ant_id)
-                antenna_stations.pop(ant_id)
-
-    antenna_ids = np.array(antenna_ids)
+    antenna_ids = np.arange(len(antenna_names))
 
     # Get Holography scans with start and end times.
     ctb = ctables.table(

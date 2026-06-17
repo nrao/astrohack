@@ -16,7 +16,6 @@ from typing import List, Union
 def extract_pointing(
     ms_name: str,
     point_name: str = None,
-    exclude: Union[str, List[str]] = None,
     parallel: bool = False,
     overwrite: bool = False,
 ) -> Union[AstrohackPointFile, None]:
@@ -28,9 +27,6 @@ def extract_pointing(
     :param point_name: Name of *<point_name>.point.zarr* file to create. Defaults to measurement set name with \
     *point.zarr* extension.
     :type point_name: str, optional
-
-    :param exclude: Name of antenna to exclude from extraction.
-    :type exclude: str, list, optional
 
     :param parallel: Boolean for whether to process in parallel. Defaults to False
     :type parallel: bool, optional

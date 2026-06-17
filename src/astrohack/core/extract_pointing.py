@@ -14,6 +14,8 @@ import toolviper.utils.logger as logger
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.utils import (
     compute_antenna_baseline_distance_matrix_dict,
+    data_statistics,
+    statistics_to_text,
 )
 from astrohack.utils.conversion import convert_dict_from_numba
 from astrohack.utils.tools import get_valid_state_ids
@@ -387,3 +389,33 @@ def _evaluate_time_sampling(
             f"{data_label} pointing table has {100*outlier_fraction:.2}% of data with irregular "
             f"time sampling"
         )
+
+
+def post_process_evaluation(point_name):
+    import glob
+    from pathlib import Path
+
+    ant_sub_dirs = glob.glob(point_name + "/ant_*")
+    ant_folder_sizes = np.full_like(ant_sub_dirs, 0, dtype=int)
+    for i_folder, ant_folder in enumerate(ant_sub_dirs):
+        path = Path(ant_folder)
+        ant_folder_sizes[i_folder] = np.sum(
+            int(sub_file.stat().st_size)
+            for sub_file in path.rglob("*")
+            if sub_file.is_file()
+        )
+
+    folder_size_stats = data_statistics(ant_folder_sizes)
+    for i_folder, ant_folder in enumerate(ant_sub_dirs):
+        ant_name = ant_folder.split("_")[-1]
+        size_deviation = ant_folder_sizes[i_folder] - folder_size_stats["median"]
+        if np.abs(size_deviation) > folder_size_stats["rms"]:
+            if size_deviation < 0:
+                qualifier = "smaller"
+            else:
+                qualifier = "greater"
+            logger.warning(
+                f"Pointing data for {ant_name} is significantly {qualifier} than for other antennas"
+            )
+
+    return

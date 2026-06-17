@@ -6,6 +6,7 @@ from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_pointing import (
     extract_pointing_preprocessing,
     extract_pointing_chunk,
+    post_process_evaluation,
 )
 from astrohack.io.point_mds import AstrohackPointFile
 
@@ -91,6 +92,8 @@ def extract_pointing(
         key_order=["ant"],
         output_mds=point_mds,
     )
+
+    post_process_evaluation(extract_pointing_params["point_name"])
 
     if executed_graph:
         return point_mds

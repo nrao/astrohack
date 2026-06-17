@@ -314,7 +314,7 @@ def _fwhm_gaussian(x_axis, x_off, amp, fwhm):
 
 
 def _build_multi_gaussian_initial_guesses(
-    x_data, y_data, pb_fwhm, datalabel, min_dist_fraction=1.0, max_n_pbs=10
+    x_data, y_data, pb_fwhm, datalabel, min_dist_fraction=1.0, max_n_pbs=15
 ):
     """
     Build initial guesses array for a multi gaussian fitting from X and Y axes heuristics

@@ -560,6 +560,13 @@ def set_y_axis_lims_from_default(
     ax: Axes, user_y_scale: tuple | list, prog_defaults: tuple | list
 ):
     if user_y_scale is None:
-        ax.set_ylim(prog_defaults)
+        applied_scale = list(prog_defaults)
     else:
-        ax.set_ylim(user_y_scale)
+        applied_scale = list(user_y_scale)
+
+    sub_lims = [-1, 1]
+    for i_lim in range(2):
+        if not np.isfinite(applied_scale[i_lim]):
+            applied_scale[i_lim] = sub_lims[i_lim]
+
+    ax.set_ylim(applied_scale)

@@ -108,11 +108,27 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
         )
         hands_dict = _get_parallel_hand_indexes(corr_axis)
 
-        avg_vis = np.average(
-            visibilities[time_selection, fchan:lchan, :],
-            axis=1,
-            weights=weights[time_selection, fchan:lchan, :],
-        )
+        try:
+            avg_vis = np.average(
+                visibilities[time_selection, fchan:lchan, :],
+                axis=1,
+                weights=weights[time_selection, fchan:lchan, :],
+            )
+
+        except ZeroDivisionError:
+            # This should only happen when all the data for a correlation is flagged.
+            # Since the flagged data is the one with zero weights we set the weights to 1 on those cases just to
+            # warrant that averages will work, further down the line there are mechanisms to catch wholly invalid data.
+            for i_corr in range(weights.shape[2]):
+                if np.sum(weights[time_selection, fchan:lchan, i_corr]) == 0:
+                    weights[time_selection, fchan:lchan, i_corr] = 1.0
+
+            avg_vis = np.average(
+                visibilities[time_selection, fchan:lchan, :],
+                axis=1,
+                weights=weights[time_selection, fchan:lchan, :],
+            )
+
         avg_wei = np.average(weights[time_selection, fchan:lchan, :], axis=1)
 
         avg_time = np.average(time) * convert_unit("sec", "day", "time")
@@ -328,7 +344,11 @@ def _build_multi_gaussian_initial_guesses(
     n_pbs_in_range = x_range / pb_fwhm
     if min_dist < 1:
         min_dist = 1
+
     peaks, _ = find_peaks(y_data, distance=min_dist)
+
+    if len(peaks) == 0:
+        peaks = np.array([x_data.size // 2])
     if n_pbs_in_range > max_n_pbs:
         logger.warning(f"{datalabel} sampling is erratic, fit will probably fail")
         peak_interval = int(np.ceil(len(peaks) / max_n_pbs))

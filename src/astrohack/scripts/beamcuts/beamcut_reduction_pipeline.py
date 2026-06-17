@@ -37,11 +37,18 @@ def create_param_dict(args):
         param_dict["spectral_window"] = [
             int(spw_id) for spw_id in args.spectral_window.split(",")
         ]
+    if args.exclude_bad_antennas is not None:
+        param_dict["exclude_bad_antennas"] = args.exclude_bad_antennas.split(",")
 
     initialization_check(param_dict, "Beam cut reduction parameters")
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spectral_window"]
+    param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
     return param_dict
+
+
+def list_input_tooltip(example):
+    return f"for a list use comma separated values with no spaces, e.g.: '{example}'"
 
 
 def parse():
@@ -63,9 +70,7 @@ def parse():
         "--spectral-window",
         type=str,
         default="all",
-        help="Select SPWs for which to produce beamcuts, for a list of"
-        "SPWs use comma separated integers with no spaces, e.g.:"
-        "'0,1,2', default is %(default)s",
+        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip("0,1,2")}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -73,9 +78,8 @@ def parse():
         "--antenna",
         type=str,
         default="all",
-        help="Select antennas for which to produce beamcuts, "
-        "for a list of antennas use comma separated names with"
-        " no spaces, e.g.: 'ea01,ea02', default is %(default)s",
+        help="Select antennas for which to produce beam cuts, "
+        f"{list_input_tooltip("ea01,ea02")}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -139,6 +143,13 @@ def parse():
         "--plot-pointing",
         action="store_true",
         help="Plot antenna pointing, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--exclude-bad-antennas",
+        default=None,
+        type=str,
+        help=f"Exclude antennas with bad data, {list_input_tooltip("ea18,ea01")}, default is %(default)s.",
     )
 
     args = parser.parse_args()

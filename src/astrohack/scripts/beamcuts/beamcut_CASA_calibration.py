@@ -63,9 +63,9 @@ class CalObject:
 
         if self.is_asdm:
             self.msname = f"{self.filename}.ms"
-            print(msger.one_liner("Input is an SDM running importasdm..."))
+            msger.one_liner("Input is an SDM running importasdm...")
             self.asdm_to_ms()
-            print(msger.done())
+            msger.done()
         else:
             self.msname = self.filename
 
@@ -89,7 +89,7 @@ class CalObject:
 
     def asdm_to_ms(self):
         if os.path.exists(self.msname) and self.overwrite:
-            print(self.msger.heading("Removing old file"))
+            self.msger.heading(f"Removing previous ms file ({self.msname})")
             shutil.rmtree(self.msname)
 
         importasdm(
@@ -143,17 +143,17 @@ class CalObject:
     def _do_calibration(self, cal_name):
         if os.path.exists(cal_name):
             if self.overwrite:
-                print(f"{cal_name} exists, overwriting.")
+                self.msger.one_liner(f"{cal_name} exists, overwriting.")
                 return True
             else:
-                print(f"{cal_name} exists, keeping it.")
+                self.msger.one_liner(f"{cal_name} exists, keeping it.")
                 return False
         else:
-            print(f"{cal_name} does not exist, creating it...")
+            self.msger.one_liner(f"{cal_name} does not exist, creating it...")
             return True
 
     def delay_calibration(self):
-        print(self.msger.one_liner("Delay calibration..."))
+        self.msger.one_liner("Delay calibration...")
         if self._do_calibration(self.delay_caltable):
             gaincal(
                 vis=self.msname,
@@ -164,13 +164,13 @@ class CalObject:
                 scan=self.calibration_scans,
                 gaintype="K",
             )
-            print(self.msger.done())
+            self.msger.done()
         else:
-            print(self.msger.one_liner("Skipping delay calibration..."))
+            self.msger.one_liner("Skipping delay calibration...")
         return
 
     def bandpass_calibration(self):
-        print(self.msger.one_liner("Bandpass calibration..."))
+        self.msger.one_liner("Bandpass calibration...")
         if self._do_calibration(self.bandpass_caltable):
             bandpass(
                 vis=self.msname,
@@ -182,13 +182,13 @@ class CalObject:
                 scan=self.calibration_scans,
                 gaintable=[self.delay_caltable],
             )
-            print(self.msger.done())
+            self.msger.done()
         else:
-            print(self.msger.one_liner("Skipping bandpass calibration..."))
+            self.msger.one_liner("Skipping bandpass calibration...")
         return
 
     def gain_calibration(self):
-        print(self.msger.one_liner("Gain calibration..."))
+        self.msger.one_liner("Gain calibration...")
         if self._do_calibration(self.gain_caltable):
             gaincal(
                 vis=self.msname,
@@ -202,13 +202,13 @@ class CalObject:
                 scan=self.calibration_scans,
                 gaintable=[self.delay_caltable, self.bandpass_caltable],
             )
-            print(self.msger.done())
+            self.msger.done()
         else:
-            print(self.msger.one_liner("Skipping gain calibration..."))
+            self.msger.one_liner("Skipping gain calibration...")
         return
 
     def apply_calibration(self):
-        print(self.msger.one_liner("Applying calibration..."))
+        self.msger.one_liner("Applying calibration...")
         applycal(
             vis=self.msname,
             field=f"{self.beamcut_field}",
@@ -216,7 +216,7 @@ class CalObject:
             applymode="calonly",
             gaintable=[self.delay_caltable, self.bandpass_caltable, self.gain_caltable],
         )
-        print(self.msger.done())
+        self.msger.done()
         return
 
     def calibration_pipeline(self):
@@ -228,11 +228,11 @@ class CalObject:
 
 def main():
     msger = MessageBoard()
-    print(msger.heading("Welcome to CASA beam cut calibration pipeline"))
+    msger.heading("Welcome to CASA beam cut calibration pipeline")
     cal_param_dict = parse()
 
     mycal_obj = CalObject(cal_param_dict, msger)
     mycal_obj.calibration_pipeline()
     mycal_obj.apply_calibration()
 
-    print(msger.heading("All Done!"))
+    msger.heading("Beamcut calibration complete!")

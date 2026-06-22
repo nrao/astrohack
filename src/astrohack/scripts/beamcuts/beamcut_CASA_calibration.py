@@ -54,7 +54,6 @@ class CalObject:
         self.filename = param_dict["filename"]
         self.refant = param_dict["refant"]
         self.overwrite = param_dict["overwrite"]
-        self.field = param_dict["field"]
         self.is_asdm = self._is_asdm()
 
         base_cal_name = f"{self.filename}."
@@ -136,14 +135,13 @@ class CalObject:
         self.beamcut_scans = ",".join(map(str, beamcut_scans))
         self.beamcut_field = beamcut_fields[0]
 
-        minspw = f"{float(np.min(spw_list))}"
-        maxspw = f"{float(np.max(spw_list))}"
+        minspw = f"{round(np.min(spw_list)):d}"
+        maxspw = f"{round(np.max(spw_list)):d}"
         spwrange = f"{minspw}~{maxspw}"
         self.quacked_spw_selection = f"{spwrange}:{fchan}~{lchan}"
 
     def _do_calibration(self, cal_name):
         if os.path.exists(cal_name):
-            print(f"{cal_name} exists.")
             if self.overwrite:
                 print(f"{cal_name} exists, overwriting.")
                 return True
@@ -213,7 +211,7 @@ class CalObject:
         print(self.msger.one_liner("Applying calibration..."))
         applycal(
             vis=self.msname,
-            field=self.field,
+            field=f"{self.beamcut_field}",
             spw=self.quacked_spw_selection,
             applymode="calonly",
             gaintable=[self.delay_caltable, self.bandpass_caltable, self.gain_caltable],

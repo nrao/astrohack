@@ -70,7 +70,7 @@ def parse():
         "--spectral-window",
         type=str,
         default="all",
-        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip("0,1,2")}, default is %(default)s",
+        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -79,7 +79,7 @@ def parse():
         type=str,
         default="all",
         help="Select antennas for which to produce beam cuts, "
-        f"{list_input_tooltip("ea01,ea02")}, default is %(default)s",
+        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -149,7 +149,7 @@ def parse():
         "--exclude-bad-antennas",
         default=None,
         type=str,
-        help=f"Exclude antennas with bad data, {list_input_tooltip("ea18,ea01")}, default is %(default)s.",
+        help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
     )
 
     args = parser.parse_args()

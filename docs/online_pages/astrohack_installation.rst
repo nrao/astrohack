@@ -28,13 +28,11 @@ an environment:
    $ conda create --name astrohack python=3.12 --no-default-packages
    $ conda activate astrohack
 
-On macos it is required to pre-install `python-casacore
-<https://github.com/casacore/python-casacore>`_, before installing
-astrohack:
-
-.. code-block:: sh
-		
-   $ conda install -c conda-forge python-casacore
+Astrohack reads MeasurementSets and CASA calibration tables through
+`casacoretables <https://github.com/nrao/casacoretables>`_, a self-contained
+build of casacore's table system that is installed automatically as a
+dependency on both Linux and macOS. No separate ``python-casacore`` install is
+required (this used to be a manual step on macOS, and is no longer needed).
 
 Astrohack is not yet available for download directly from conda-forge,
 therefore we suggest to install astrohack by using pip:

@@ -42,10 +42,10 @@ class AstrohackPointFile(AstrohackBaseFile):
         plot_antennas_separately: bool = False,
         azel_unit: str = "deg",
         time_unit: str = "hour",
-        az_scale: Union[Tuple, List[float], np.array] = None,
-        el_scale: Union[Tuple, List[float], np.array] = None,
-        time_scale: Union[Tuple, List[float], np.array] = None,
-        figure_size: Union[Tuple, List[float], np.array] = (5.0, 6.4),
+        az_scale: Union[Tuple, List[float], np.ndarray, None] = None,
+        el_scale: Union[Tuple, List[float], np.ndarray, None] = None,
+        time_scale: Union[Tuple, List[float], np.ndarray, None] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray] = (5.0, 6.4),
         display: bool = False,
         dpi: int = 300,
     ) -> None:
@@ -183,7 +183,7 @@ class AstrohackPointFile(AstrohackBaseFile):
         zoff: bool = False,
         unit: str = "m",
         box_size: Union[int, float] = None,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
     ) -> None:

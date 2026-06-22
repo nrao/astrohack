@@ -4,7 +4,7 @@ version = "1.0.2"
 description = "Holography Antenna Commissioning Kit"
 readme = "README.md"
 requires-python = ">= 3.11, < 3.14"
-dependencies = [ "astropy", "dask", "shapely", "distributed", "toolviper", "ipywidgets", "matplotlib", "numba>=0.57.0", "numpy<=2.2", "prettytable", "pycryptodome", "pytest", "pytest-cov", "pytest-html", "scikit_image", "scikit-learn", "scipy", "rich", "xarray", "zarr<3.0.0", "bokeh", "pillow", "jupyterlab", "python_casacore>=3.6.1; sys_platform != \"darwin\" ",]
+dependencies = [ "astropy", "dask", "shapely", "distributed", "toolviper", "ipywidgets", "matplotlib", "numba>=0.57.0", "numpy<=2.2", "prettytable", "pycryptodome", "pytest", "pytest-cov", "pytest-html", "scikit_image", "scikit-learn", "scipy", "rich", "xarray", "zarr<3.0.0", "bokeh", "pillow", "jupyterlab", "casacoretables>=0.0.3",]
 [[project.authors]]
 name = "Joshua Hoskins"
 email = "jhoskins@nrao.edu"
@@ -22,3 +22,7 @@ file = "LICENSE.txt"
 
 [project.optional-dependencies]
 docs = [ "ipykernel", "ipympl", "ipython", "jupyter-client", "nbsphinx", "recommonmark", "scanpydoc", "sphinx-autoapi", "sphinx-autosummary-accessors", "sphinx_rtd_theme", "twine", "pandoc",]
+
+[project.scripts]
+beamcut-reduction-pipeline = "astrohack.scripts.beamcuts.beamcut_reduction_pipeline:main"
+beamcut-calibration = "astrohack.scripts.beamcuts.beamcut_CASA_calibration:main"

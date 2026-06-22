@@ -6,6 +6,7 @@ from astrohack.utils.file import overwrite_file, check_ms_exists
 from astrohack.core.extract_pointing import (
     extract_pointing_preprocessing,
     extract_pointing_chunk,
+    post_process_evaluation,
 )
 from astrohack.io.point_mds import AstrohackPointFile
 
@@ -16,7 +17,6 @@ from typing import List, Union
 def extract_pointing(
     ms_name: str,
     point_name: str = None,
-    exclude: Union[str, List[str]] = None,
     parallel: bool = False,
     overwrite: bool = False,
 ) -> Union[AstrohackPointFile, None]:
@@ -28,9 +28,6 @@ def extract_pointing(
     :param point_name: Name of *<point_name>.point.zarr* file to create. Defaults to measurement set name with \
     *point.zarr* extension.
     :type point_name: str, optional
-
-    :param exclude: Name of antenna to exclude from extraction.
-    :type exclude: str, list, optional
 
     :param parallel: Boolean for whether to process in parallel. Defaults to False
     :type parallel: bool, optional
@@ -95,6 +92,8 @@ def extract_pointing(
         key_order=["ant"],
         output_mds=point_mds,
     )
+
+    post_process_evaluation(extract_pointing_params["point_name"])
 
     if executed_graph:
         return point_mds

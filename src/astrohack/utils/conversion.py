@@ -13,7 +13,8 @@ def to_db(val: float):
     Returns:
         Value in decibels
     """
-    return 10.0 * np.log10(val)
+    zero_filtered = np.where(val == 0, np.nan, val)
+    return 10.0 * np.log10(zero_filtered)
 
 
 def convert_unit(unitin, unitout, kind):

@@ -17,6 +17,14 @@ def parse():
     parser.add_argument("refant", type=str, help="Reference antenna for calibration")
 
     parser.add_argument(
+        "-r",
+        "--root-name",
+        type=str,
+        default=None,
+        help="Root name for the calibration tables, default is filename without extension",
+    )
+
+    parser.add_argument(
         "-f",
         "--beamcut-field",
         default=None,
@@ -56,7 +64,11 @@ class CalObject:
         self.overwrite = param_dict["overwrite"]
         self.is_asdm = self._is_asdm()
 
-        base_cal_name = f"{self.filename}."
+        if param_dict["root_name"] is None:
+            base_cal_name = f"{self.filename}."
+        else:
+            base_cal_name = param_dict["root_name"] + "."
+
         self.delay_caltable = base_cal_name + "delay.cal"
         self.bandpass_caltable = base_cal_name + "bandpass.cal"
         self.gain_caltable = base_cal_name + "gain.cal"

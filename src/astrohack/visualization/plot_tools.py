@@ -106,7 +106,7 @@ def close_figure(
     if display:
         # figure.show()
         py_env = get_execution_environment()
-        if py_env in ["terminal", "other"]:
+        if py_env in ["terminal", "ipython", "other"]:
             mpl_backend = matplotlib.get_backend()
             if mpl_backend.lower() == "tkagg":
                 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -146,7 +146,7 @@ def close_figure(
                 logger.warning(
                     f"'{mpl_backend}' backend not supported for interactive plots"
                 )
-        elif py_env in ["ipython", "jupyter"]:
+        elif py_env in ["jupyter"]:
             from IPython.display import display, HTML
 
             display(HTML(f'<img src="{filename}" style="max-width:60%; height:auto;">'))

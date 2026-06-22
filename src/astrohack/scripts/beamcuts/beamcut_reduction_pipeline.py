@@ -7,7 +7,7 @@ from astrohack import (
     open_pointing,
     open_beamcut,
 )
-from astrohack.utils.user_interaction import initialization_check
+from astrohack.utils.user_interaction import initialization_check, MessageBoard
 import inspect
 
 
@@ -166,14 +166,13 @@ def created_filtered_kwargs_dict(param_dict, function):
     return filtered_dict
 
 
-def execute_step(param_dict, label, function, next_stage):
+def execute_step(param_dict, function, next_stage, msger):
     function_name = function.__name__
     if param_dict["processing_stage"] == function_name:
         try:
-            print("\n" + 40 * "#" + "\n")
-            print(f"Executing {function_name}...")
+            msger.one_liner(f"Executing {function_name}...")
             function(**created_filtered_kwargs_dict(param_dict, function))
-            print(f"{function_name.capitalize()} done!")
+            msger.done()
             param_dict["processing_stage"] = next_stage
             return True, None
         except Exception as the_exception:
@@ -182,18 +181,18 @@ def execute_step(param_dict, label, function, next_stage):
         return True, None
 
 
-def data_reduction(param_dict):
+def data_reduction(param_dict, msger):
     status = True
     exec_exception = None
     exec_list = [
-        ["point", "extract_holog", extract_pointing],
-        ["holog", "beamcut", extract_holog],
-        ["beamcut", "plotting", beamcut],
+        ["extract_holog", extract_pointing],
+        ["beamcut", extract_holog],
+        ["plotting", beamcut],
     ]
-    for label, next_stage, function in exec_list:
+    for next_stage, function in exec_list:
         if status:
             status, exec_exception = execute_step(
-                param_dict, label, function, next_stage
+                param_dict, function, next_stage, msger
             )
 
     if not status:
@@ -204,11 +203,11 @@ def data_reduction(param_dict):
     return
 
 
-def post_processing(param_dict):
+def post_processing(param_dict, msger):
     param_dict["destination"] = param_dict["exports_name"]
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
     if bmc_mds is not None:
-        print("\n" + 40 * "#" + "\n")
+        msger.heading("Producing pipeline exports...")
         beamcut_methods = [
             bmc_mds.plot_beamcut_in_amplitude,
             bmc_mds.plot_beamcut_in_phase,
@@ -217,27 +216,29 @@ def post_processing(param_dict):
             bmc_mds.create_beam_fit_report,
         ]
         for method in beamcut_methods:
-            print(f"Running {method.__name__}...")
+            msger.one_liner(f"Running {method.__name__}...")
             method(**created_filtered_kwargs_dict(param_dict, method))
-        print("Beamcut exports Done!\n")
+        msger.one_liner("Beamcut exports Done!")
 
     if param_dict["plot_array_configuration"] or param_dict["plot_pointing"]:
         pnt_mds = open_pointing(param_dict["point_name"])
         if pnt_mds is not None:
-            print("\n" + 40 * "#" + "\n")
+            msger.heading("Producing pointing exports...")
             pnt_methods = []
             if param_dict["plot_array_configuration"]:
                 pnt_methods.append(pnt_mds.plot_array_configuration)
             if param_dict["plot_pointing"]:
                 pnt_methods.append(pnt_mds.plot_pointing_in_time)
             for method in pnt_methods:
-                print(f"Running {method.__name__}...")
+                msger.one_liner(f"Running {method.__name__}...")
                 method(**created_filtered_kwargs_dict(param_dict, method))
-            print("Pointing exports Done!\n")
+            msger.one_liner("Pointing exports Done!")
     return
 
 
 def main():
+    msger = MessageBoard()
+    msger.heading("Welcome to AstroHACK BeamCut Pipeline")
     main_param_dict = parse()
 
     if main_param_dict["parallel"]:
@@ -249,10 +250,12 @@ def main():
         client = None
 
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
-    data_reduction(main_param_dict)
+    data_reduction(main_param_dict, msger)
 
     if main_param_dict["processing_stage"] == "plotting":
-        post_processing(main_param_dict)
+        post_processing(main_param_dict, msger)
 
     if main_param_dict["parallel"]:
         client.shutdown()
+
+    msger.heading("Beamcut pipeline complete!")

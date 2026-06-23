@@ -64,10 +64,9 @@ nbsphinx_execute = "never"
 # """
 
 autoapi_dirs = ["../src/astrohack"]
-autoapi_add_toctree_entry = False
+autoapi_add_toctree_entry = True
 autoapi_generate_api_docs = True
 autoapi_root = "_api/autoapi"
-autoapi_options = ["show-module-summary"]
 autoapi_keep_files = True
 autoapi_ignore = [
     "*/scripts/*",
@@ -254,14 +253,15 @@ epub_exclude_files = ["search.html"]
 
 # autosummary_generate = True
 # autodoc_default_flags = ['members', 'inherited-members']
-
+suppress_warnings = ["docutils.explicit_markup_ends_without_a_blank_line"]
 
 def skip_private_functions(app, what, name, obj, skip, options):
-    print(80*'#')
     if obj.name.startswith("_"): # exclusion of private objects
         skip = True
-    print(what, name, obj.name, skip)
-    print(80*'~')
+
+    # print(80*'#')
+    # print(what, name, obj.name, skip)
+    # print(80*'~')
     return skip
 
 

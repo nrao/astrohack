@@ -7,8 +7,6 @@ from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,
 )
-from .io import *
-
 from .beamcut import beamcut
 from .extract_pointing import extract_pointing
 from .holog import holog

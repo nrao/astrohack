@@ -10,6 +10,7 @@ from toolviper.utils import logger as logger
 from astrohack.utils.conversion import convert_unit
 
 lnbr = "\n"
+spc = " "
 
 
 def tuple_inspect(param_tuple):

@@ -13,7 +13,7 @@ After pip installation a python executable called :code:`beamcut-calibration` is
 
 .. code-block:: Ipython
 
-   $ !beamcut-calibration -h
+   CASA: !beamcut-calibration -h
 
 Which would produce the following output:
 
@@ -46,7 +46,7 @@ The only required arguments to run the Calibration pipeline are the name of the 
 
 .. code-block:: ipython
 
-    $ !beamcut-calibration beamcuts_otf_U_002.61188.83799753472.ms ea11
+    CASA: !beamcut-calibration beamcuts_otf_U_002.61188.83799753472.ms ea11
 
 After a few moments the pipeline, before proceeding with the calibration, will produce a summary of the inputs, a list of the calibration tables that will be created, the selected calibration scans, the spectral windows and channels to be used in calibration as well as the field that contains the beamcut data, e.g.:
 
@@ -79,7 +79,7 @@ The check before proceeding can be suppressed by adding the :code:`-y` option to
 
 .. code-block:: ipython
 
-    $ !beamcut-calibration beamcuts_otf_U_002.61188.83799753472.ms ea11 -y
+    CASA: !beamcut-calibration beamcuts_otf_U_002.61188.83799753472.ms ea11 -y
 
 Beam cut Reduction pipeline
 ###########################
@@ -90,7 +90,7 @@ The pipeline options can be seen with the used of the :code:`-h` option, e.g.:
 
 .. code-block:: ipython
 
-    $ !beamcut-reduction-pipeline -h
+    CASA: !beamcut-reduction-pipeline -h
 
 By default the pipeline will run in parallel by using 4 cores, each with 6GB of memory dedicated to them, this can be changes by passing the :code:`-n` option to control the number of cores and :code:`-m` to control the dedicated memory per core. As with the calibration pipeline the pipeline will produce a summary, with a check (that can be suppressed with the :code:`-y` option), before proceeding, e.g.:
 

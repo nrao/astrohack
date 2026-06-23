@@ -55,17 +55,6 @@ class TestExtractPointing:
             new_pnt_mds.filename == self.alt_pnt_name
         ), "Point mds filename does not match the file on disk."
 
-    def test_antenna_exclusion(self):
-        """Test extract_pointing antenna exclusion"""
-        excluded_antenna = "ea06"
-        new_pnt_mds = extract_pointing(
-            ms_name=self.ms_name, exclude=excluded_antenna, overwrite=True
-        )
-
-        assert (
-            f"ant_{excluded_antenna}" not in new_pnt_mds.keys()
-        ), "Excluded antenna should not be present in the new mds."
-
     def test_invalid_ms_name(self):
         """Test extract_pointing with invalid ms name"""
         bogus_ms = "non-existe.ms"

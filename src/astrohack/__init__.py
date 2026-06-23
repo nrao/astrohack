@@ -13,6 +13,13 @@ from astrohack.io.dio import (
     open_panel,
     open_position,
 )
+from astrohack.io.point_mds import AstrohackPointFile
+from astrohack.io.locit_mds import AstrohackLocitFile
+from astrohack.io.holog_mds import AstrohackHologFile
+from astrohack.io.panel_mds import AstrohackPanelFile
+from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.position_mds import AstrohackPositionFile
+from astrohack.io.image_mds import AstrohackImageFile
 from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,

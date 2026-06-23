@@ -11,6 +11,8 @@ from astrohack.utils.text import (
     format_frequency,
     format_value_unit,
     create_pretty_table,
+    lnbr,
+    spc,
 )
 from astrohack.utils.conversion import to_db, convert_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
@@ -21,9 +23,6 @@ from astrohack.visualization.observation_summary import (
 )
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-
-lnbr = "\n"
-spc = " "
 
 
 class AstrohackBeamcutFile(AstrohackBaseFile):

@@ -7,7 +7,7 @@ import shutil
 from toolviper.utils import data
 
 from astrohack import AstrohackPanelFile, open_panel
-from astrohack.antenna import AntennaSurface
+from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     are_txt_files_equal,

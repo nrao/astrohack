@@ -398,7 +398,7 @@ def post_process_evaluation(point_name):
     ant_folder_sizes = np.full_like(ant_sub_dirs, 0, dtype=int)
     for i_folder, ant_folder in enumerate(ant_sub_dirs):
         path = Path(ant_folder)
-        ant_folder_sizes[i_folder] = np.sum(
+        ant_folder_sizes[i_folder] = sum(
             int(sub_file.stat().st_size)
             for sub_file in path.rglob("*")
             if sub_file.is_file()

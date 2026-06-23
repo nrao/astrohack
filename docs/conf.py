@@ -62,20 +62,20 @@ nbsphinx_execute = "never"
 # """
 
 autoapi_dirs = ["../src/astrohack"]
-autoapi_add_toctree_entry = True
+autoapi_add_toctree_entry = False
 autoapi_generate_api_docs = True
 autoapi_root = "_api/autoapi"
 autoapi_keep_files = True
-autoapi_ignore = [
-    "*/scripts/*",
-    "*/__pycache__/*",
-    "*/data/_*",
-    "*/config/*",
-    "*/tests/*",
-    "*/etc/*",
-    "*/examples/*",
-    "*/docs/*",
-]
+# autoapi_ignore = [
+#     "*/scripts/*",
+#     "*/__pycache__/*",
+#     "*/data/_*",
+#     "*/config/*",
+#     "*/tests/*",
+#     "*/etc/*",
+#     "*/examples/*",
+#     "*/docs/*",
+# ]
 
 # Napoleon settings
 # napoleon_google_docstring = True

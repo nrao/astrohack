@@ -5,11 +5,8 @@ import xarray as xr
 import toolviper.utils.logger as logger
 
 from astrohack.utils.file import overwrite_file
-from astrohack.utils import (
-    data_statistics,
-    clight,
-    statistics_to_text,
-)
+from astrohack.utils.constants import clight
+from astrohack.utils.algorithms import data_statistics
 from astrohack.utils.constants import twopi
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import phase_wrapping, create_coordinate_images
@@ -27,8 +24,12 @@ from astrohack.visualization.plot_tools import (
     close_figure,
     compute_extent,
 )
-from astrohack.utils import create_pretty_table
-from astrohack.utils.text import format_value_error, format_label
+from astrohack.utils.text import (
+    format_value_error,
+    format_label,
+    create_pretty_table,
+    statistics_to_text,
+)
 from astrohack.antenna.telescope import get_proper_telescope
 
 nanvec3d = np.full([3], np.nan)

@@ -12,10 +12,8 @@ from casacoretables import tables as ctables
 
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.utils.tools import get_valid_state_ids
-from astrohack.antenna import get_proper_telescope
-from astrohack.utils import (
-    create_dataset_label,
-)
+from astrohack.antenna.telescope import get_proper_telescope
+from astrohack.utils.text import create_dataset_label
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters
 from astrohack.utils.conversion import casa_time_to_mjd

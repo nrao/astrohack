@@ -12,10 +12,9 @@ from scipy import spatial
 import toolviper.utils.logger as logger
 
 from astrohack.io.point_mds import AstrohackPointFile
-from astrohack.utils import (
+from astrohack.utils.algorithms import (
     compute_antenna_baseline_distance_matrix_dict,
     data_statistics,
-    statistics_to_text,
 )
 from astrohack.utils.conversion import convert_dict_from_numba
 from astrohack.utils.tools import get_valid_state_ids

@@ -5,7 +5,7 @@ from toolviper.utils.parameter import validate
 import toolviper.utils.logger as logger
 
 from astrohack.core.beamcut import process_beamcut_chunk
-from astrohack.utils import get_default_file_name
+from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile

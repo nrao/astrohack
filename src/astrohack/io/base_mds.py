@@ -7,7 +7,7 @@ import glob
 
 import toolviper.utils.logger as logger
 
-from astrohack.utils import (
+from astrohack.utils.text import (
     get_summary_header,
     get_property_string,
     get_data_content_string,

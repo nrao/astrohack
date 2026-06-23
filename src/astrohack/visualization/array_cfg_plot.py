@@ -1,10 +1,10 @@
 import numpy as np
 
-from astrohack.utils import convert_unit
+from astrohack.utils.conversion import convert_unit
 from astrohack.utils.constants import fontsize
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.utils.algorithms import compute_antenna_relative_off
-from astrohack.antenna import get_proper_telescope
+from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     close_figure,

@@ -11,14 +11,12 @@ import xarray as xr
 
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils import (
+from astrohack.utils.text import (
     create_dataset_label,
     convert_unit,
-    sig_2_fwhm,
     format_value_unit,
-    statistics_to_text,
-    data_statistics,
 )
+from astrohack.utils.constants import sig_2_fwhm
 
 quack_chans = 4
 

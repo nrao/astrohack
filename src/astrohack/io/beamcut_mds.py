@@ -6,14 +6,13 @@ from toolviper.utils.parameter import validate
 
 from .base_mds import AstrohackBaseFile
 
-from astrohack.utils import (
+from astrohack.utils.text import (
     create_dataset_label,
-    convert_unit,
     format_frequency,
     format_value_unit,
-    to_db,
     create_pretty_table,
 )
+from astrohack.utils.conversion import to_db, convert_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
 

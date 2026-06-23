@@ -1,4 +1,4 @@
-from astrohack.utils import (
+from astrohack.utils.text import (
     format_observation_summary,
     make_header,
 )

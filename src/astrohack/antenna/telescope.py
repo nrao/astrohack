@@ -2,13 +2,11 @@ from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.strtree import STRtree
 
-import astrohack
 import pathlib
 
 import xarray as xr
 import toolviper.utils.logger as logger
 
-import astrohack.utils.tools
 from astrohack.antenna.polygon_panel import PolygonPanel
 from astrohack.utils.constants import *
 from astrohack.antenna.ring_panel import RingPanel
@@ -68,6 +66,8 @@ class Telescope:
         self.file_path = str(abs_path.parent)
 
     def read_from_distro(self, name):
+        import astrohack
+
         """
         Read telescope info from files distributed with astrohack.
         Args:
@@ -105,6 +105,8 @@ class Telescope:
         return
 
     def write_to_distro(self):
+        import astrohack
+
         dest_path = "/".join(
             [
                 astrohack.__path__[0],

@@ -4,7 +4,7 @@ import xarray as xr
 from copy import deepcopy
 
 from astrohack.io.image_mds import AstrohackImageFile
-from astrohack.utils import format_angular_distance
+from astrohack.utils.text import format_angular_distance
 from astrohack.antenna.telescope import get_proper_telescope, RingedCassegrain
 from astrohack.utils.text import create_dataset_label
 from astrohack.utils.conversion import convert_5d_grid_to_stokes

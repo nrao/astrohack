@@ -6,21 +6,20 @@ from typing import List, Union, Tuple
 import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
-from astrohack.utils import (
+from astrohack.utils.text import (
     fixed_format_error,
-    rotate_to_gmt,
-    compute_antenna_relative_off,
-)
-from astrohack.antenna import get_proper_telescope
-from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.utils import (
-    convert_unit,
-    clight,
-    notavail,
     create_pretty_table,
     param_to_list,
     add_prefix,
     string_to_ascii_file,
+)
+from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
+from astrohack.utils.conversion import convert_unit
+from astrohack.antenna.telescope import get_proper_telescope
+from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.utils.constants import (
+    clight,
+    notavail,
     pi,
     twopi,
 )

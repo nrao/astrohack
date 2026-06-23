@@ -5,13 +5,13 @@ import xarray as xr
 import pathlib
 
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils import (
-    convert_unit,
-    create_pretty_table,
+from astrohack.utils.conversion import convert_unit
+from astrohack.utils.text import (
+    statistics_to_text,
     dynamic_format,
+    create_pretty_table,
     string_to_ascii_file,
 )
-from astrohack.utils.text import statistics_to_text
 from astrohack.utils.algorithms import (
     data_statistics,
     are_axes_equal,

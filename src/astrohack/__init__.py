@@ -24,7 +24,7 @@ from .cassegrain_ray_tracing import (
     apply_holog_phase_fitting_to_rt_xds,
 )
 from .image_comparison_tool import compare_fits_images, rms_table_from_zarr_datatree
-from .antenna import get_proper_telescope
+from .antenna.telescope import get_proper_telescope
 
 # This installs a slick, informational tracebacks logger
 from rich.traceback import install

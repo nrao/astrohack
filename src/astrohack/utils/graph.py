@@ -1,11 +1,8 @@
 import shutil
-import pathlib
 import dask
 import xarray as xr
 import toolviper.utils.logger as logger
 import copy
-import zarr
-import glob
 
 from astrohack.utils.text import approve_prefix
 from astrohack.utils.text import param_to_list

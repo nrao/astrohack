@@ -9,8 +9,7 @@ import pathlib
 import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
-import astrohack
-from astrohack.utils import data_from_version_needs_patch
+from astrohack.utils.algorithms import data_from_version_needs_patch
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()
@@ -90,6 +89,8 @@ def overwrite_file(file, overwrite):
 
 
 def add_caller_and_version_to_dict(in_dict, direct_call=False):
+    import astrohack
+
     if direct_call:
         ipos = 1
     else:

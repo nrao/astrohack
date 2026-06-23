@@ -211,9 +211,9 @@ def post_processing(param_dict, msger):
         beamcut_methods = [
             bmc_mds.plot_beamcut_in_amplitude,
             bmc_mds.plot_beamcut_in_phase,
-            bmc_mds.plot_beamcut_in_attenuation,
-            bmc_mds.plot_beam_cuts_over_sky,
-            bmc_mds.create_beam_fit_report,
+            bmc_mds.plot_beamcut_in_db,
+            bmc_mds.plot_beamcut_lm_offsets,
+            bmc_mds.export_beamcut_report,
         ]
         for method in beamcut_methods:
             msger.one_liner(f"Running {method.__name__}...")

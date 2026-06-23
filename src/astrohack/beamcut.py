@@ -154,7 +154,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beamcut_in_attenuation(
+            beamcut_mds.plot_beamcut_in_db(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -173,7 +173,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beam_cuts_over_sky(
+            beamcut_mds.plot_beamcut_lm_offsets(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -181,7 +181,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.create_beam_fit_report(
+            beamcut_mds.export_beamcut_report(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,

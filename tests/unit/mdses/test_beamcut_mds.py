@@ -81,9 +81,7 @@ class TestBeamcutMDS:
             equal
         ), f"{msg}: Amplitude plot png file is different from the expected png file"
 
-        beamcut_mds.plot_beamcut_in_attenuation(
-            self.destination_folder, ant=ant, ddi=ddi
-        )
+        beamcut_mds.plot_beamcut_in_db(self.destination_folder, ant=ant, ddi=ddi)
         equal, msg = are_png_files_close(
             f"{self.destination_folder}/{att_plot_name}",
             f"{self.ref_products_name}/{att_plot_name}",
@@ -92,7 +90,7 @@ class TestBeamcutMDS:
             equal
         ), f"{msg}: Attenuation plot png file is different from the expected png file"
 
-        beamcut_mds.plot_beam_cuts_over_sky(self.destination_folder, ant=ant, ddi=ddi)
+        beamcut_mds.plot_beamcut_lm_offsets(self.destination_folder, ant=ant, ddi=ddi)
         equal, msg = are_png_files_close(
             f"{self.destination_folder}/{lm_plot_name}",
             f"{self.ref_products_name}/{lm_plot_name}",
@@ -116,7 +114,7 @@ class TestBeamcutMDS:
 
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
-        beamcut_mds.create_beam_fit_report(self.destination_folder, ant=ant, ddi=ddi)
+        beamcut_mds.export_beamcut_report(self.destination_folder, ant=ant, ddi=ddi)
 
         with open(f"{self.destination_folder}/{report_name}", "r") as local_report_file:
             local_rep = local_report_file.read()

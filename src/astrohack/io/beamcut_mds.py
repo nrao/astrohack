@@ -178,7 +178,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_attenuation(
+    def plot_beamcut_in_db(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -237,7 +237,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beam_cuts_over_sky(
+    def plot_beamcut_lm_offsets(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -355,7 +355,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def create_beam_fit_report(
+    def export_beamcut_report(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -453,7 +453,7 @@ def _plot_beamcut_in_attenuation_chunk(par_dict):
     summary = cut_xdtree.attrs["summary"]
     title = _create_beamcut_header(summary, par_dict)
 
-    filename = _file_name_factory("attenuation", par_dict)
+    filename = _file_name_factory("db", par_dict)
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
@@ -579,7 +579,7 @@ def _file_name_factory(file_type, par_dict):
     destination = par_dict["destination"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
-    if file_type in ["attenuation", "amplitude", "lm_offsets", "phase"]:
+    if file_type in ["db", "amplitude", "lm_offsets", "phase"]:
         ext = "png"
     elif file_type == "report":
         ext = "txt"

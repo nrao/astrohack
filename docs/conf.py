@@ -15,8 +15,6 @@
 import os
 import sys
 
-# for x in os.walk("../../src"):
-#     sys.path.insert(0, x[0])
 sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
@@ -255,8 +253,9 @@ epub_exclude_files = ["search.html"]
 # autodoc_default_flags = ['members', 'inherited-members']
 suppress_warnings = ["docutils.explicit_markup_ends_without_a_blank_line"]
 
+
 def skip_private_functions(app, what, name, obj, skip, options):
-    if obj.name.startswith("_"): # exclusion of private objects
+    if obj.name.startswith("_"):  # exclusion of private objects
         skip = True
 
     # print(80*'#')

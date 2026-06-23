@@ -3,6 +3,16 @@ from importlib.metadata import version
 
 __version__ = version("astrohack")
 
+
+from astrohack.io.dio import (
+    open_beamcut,
+    open_pointing,
+    open_holog,
+    open_image,
+    open_locit,
+    open_panel,
+    open_position,
+)
 from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,

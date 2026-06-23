@@ -10,6 +10,7 @@ import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
 from astrohack.utils.algorithms import data_from_version_needs_patch
+from astrohack.utils.package_info import get_astrohack_version
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()
@@ -89,8 +90,6 @@ def overwrite_file(file, overwrite):
 
 
 def add_caller_and_version_to_dict(in_dict, direct_call=False):
-    import astrohack
-
     if direct_call:
         ipos = 1
     else:
@@ -101,7 +100,7 @@ def add_caller_and_version_to_dict(in_dict, direct_call=False):
 
     in_dict["origin_info"] = {
         "origin": "astrohack",
-        "version": astrohack.__version__,
+        "version": get_astrohack_version(),
         "creator_function": inspect.stack()[ipos].function,
         "creation_time": time_str,
     }

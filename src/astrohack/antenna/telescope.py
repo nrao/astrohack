@@ -12,6 +12,7 @@ from astrohack.utils.constants import *
 from astrohack.antenna.ring_panel import RingPanel
 from astrohack.utils.algorithms import create_coordinate_images, arm_shadow_masking
 from astrohack.utils.ray_tracing_general import GlobalQPS
+from astrohack.utils.package_info import get_astrohack_path
 
 
 class Telescope:
@@ -66,8 +67,6 @@ class Telescope:
         self.file_path = str(abs_path.parent)
 
     def read_from_distro(self, name):
-        import astrohack
-
         """
         Read telescope info from files distributed with astrohack.
         Args:
@@ -76,9 +75,7 @@ class Telescope:
         Returns:
             None
         """
-        dest_path = "/".join(
-            [astrohack.__path__[0], f"data/telescopes/{name.lower()}.zarr"]
-        )
+        dest_path = get_astrohack_path() / f"data/telescopes/{name.lower()}.zarr"
         self.read(dest_path)
 
     def write(self, filename):
@@ -105,13 +102,9 @@ class Telescope:
         return
 
     def write_to_distro(self):
-        import astrohack
-
-        dest_path = "/".join(
-            [
-                astrohack.__path__[0],
-                f'data/telescopes/{self.name.lower().replace(" ", "_")}.zarr',
-            ]
+        dest_path = (
+            get_astrohack_path()
+            / f'data/telescopes/{self.name.lower().replace(" ", "_")}.zarr'
         )
         self.write(dest_path)
 

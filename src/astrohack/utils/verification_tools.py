@@ -7,6 +7,7 @@ import xarray.testing
 from PIL import Image, ImageChops
 
 from astrohack.utils.fits import read_fits_no_checks
+from astrohack.utils.package_info import get_astrohack_version
 
 
 def are_lists_equal(list_a, list_b):
@@ -347,11 +348,9 @@ def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
 
 
 def create_origin_dict(caller):
-    from astrohack import __version__ as astroversion
-
     orig_dict = {
         "origin": "astrohack",
-        "version": astroversion,
+        "version": get_astrohack_version(),
         "creator_function": caller,
     }
     return orig_dict

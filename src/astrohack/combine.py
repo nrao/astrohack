@@ -2,7 +2,7 @@ from typing import Union, List
 
 import toolviper.utils.parameter
 
-from astrohack import open_image
+from astrohack.io.dio import open_image
 from astrohack.core.combine import process_combine_chunk
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file

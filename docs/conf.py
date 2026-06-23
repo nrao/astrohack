@@ -15,6 +15,8 @@
 import os
 import sys
 
+# for x in os.walk("../../src"):
+#     sys.path.insert(0, x[0])
 sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
@@ -70,12 +72,19 @@ autoapi_options = ["show-module-summary"]
 autoapi_template_dir = "_templates"
 autoapi_keep_files = True
 autoapi_ignore = [
-    "*/_panel_classes/*",
-    "*/utils/*",
-    "*/core/*",
-    "*/visualization/*",
+    # "*/_panel_classes/*",
+    # "*/utils/*",
+    # "*/core/*",
+    # "*/visualization/*",
+    "*/scripts/*",
     "*/__pycache__/*",
     "*/data/_*",
+    "*/config/*",
+    "*/tests/*",
+    "*/etc/*",
+    "*/examples/*",
+    "*/docs/*",
+    # "*/__init__.py",
 ]
 # autoapi_ignore = ['*/_panel_classes/*','*/utils/*','*/docs/*','*/visualization/*','*/__pycache__/*']
 

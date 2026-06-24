@@ -69,8 +69,9 @@ class AstrohackPanelFile(AstrohackBaseFile):
         panel_labels: bool = True,
         display: bool = False,
         colormap: str = "RdBu_r",
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray] = None,
         dpi: int = 300,
+        parallel: bool = False,
     ) -> None:
         """ Export screw adjustments to text files and optionally plots.
 
@@ -105,6 +106,9 @@ class AstrohackPanelFile(AstrohackBaseFile):
         :param dpi: Screw adjustment map resolution in pixels per inch, default is 300
         :type dpi: int, optional
 
+        :param parallel: Produce screw maps and screw adjustments in parallel
+        :type parallel: bool, optional
+
         .. _Description:
 
         Produce the screw adjustments from ``astrohack.panel`` results to be used at the antenna site to improve \
@@ -112,14 +116,13 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         """
         param_dict = locals()
-
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_screws_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=False,
+            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)

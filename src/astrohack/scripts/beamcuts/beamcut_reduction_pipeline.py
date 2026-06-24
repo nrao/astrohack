@@ -209,11 +209,11 @@ def post_processing(param_dict, msger):
     if bmc_mds is not None:
         msger.heading("Producing pipeline exports...")
         beamcut_methods = [
-            bmc_mds.plot_beamcut_in_amplitude,
-            bmc_mds.plot_beamcut_in_phase,
-            bmc_mds.plot_beamcut_in_db,
-            bmc_mds.plot_beamcut_lm_offsets,
-            bmc_mds.export_beamcut_report,
+            bmc_mds.plot_in_amplitude,
+            bmc_mds.plot_in_phase,
+            bmc_mds.plot_in_db,
+            bmc_mds.plot_lm_offsets,
+            bmc_mds.export_report,
         ]
         for method in beamcut_methods:
             msger.one_liner(f"Running {method.__name__}...")

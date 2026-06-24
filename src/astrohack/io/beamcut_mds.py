@@ -106,7 +106,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         )
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_amplitude(
+    def plot_in_amplitude(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -160,7 +160,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_db(
+    def plot_in_db(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -215,7 +215,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_lm_offsets(
+    def plot_lm_offsets(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -268,7 +268,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_phase(
+    def plot_in_phase(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -329,7 +329,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def export_beamcut_report(
+    def export_report(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",

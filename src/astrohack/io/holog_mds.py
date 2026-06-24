@@ -120,11 +120,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         map_id: Union[int, List[int], str] = "all",
         angle_unit: str = "deg",
         time_unit: str = "hour",
-        plot_correlation: Union[str, List[str]] = None,
+        plot_correlation: Union[str, List[str], None] = None,
         complex_split: str = "polar",
         phase_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:

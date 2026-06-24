@@ -202,8 +202,8 @@ class AstrohackPositionFile(AstrohackBaseFile):
         self,
         filename: str,
         ant: Union[str, List[str]] = "all",
-        ddi: int = None,
-        correction_threshold: float = 0.01,
+        ddi: int | None = None,
+        correction_threshold: float | int = 0.01,
     ) -> None:
         """Export antenna position fit results to a VLA parminator file.
 
@@ -265,7 +265,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         time_unit: str = "hour",
         angle_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -335,7 +335,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         delay_unit: str = "nsec",
         plot_model: bool = True,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -411,7 +411,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         unit: str = "km",
         box_size: Union[int, float] = 5,
         scaling: Union[int, float] = 250,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
     ) -> None:

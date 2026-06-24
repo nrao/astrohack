@@ -182,8 +182,8 @@ class AstrohackPointFile(AstrohackBaseFile):
         stations: bool = True,
         zoff: bool = False,
         unit: str = "m",
-        box_size: Union[int, float] = None,
-        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
+        box_size: Union[int, float, None] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
     ) -> None:

@@ -149,7 +149,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         labels: bool = True,
         precessed: bool = False,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
     ) -> None:
         """Plot source positions in either FK5 or precessed right ascension and declination.
@@ -217,9 +217,9 @@ class AstrohackLocitFile(AstrohackBaseFile):
         stations: bool = True,
         zoff: bool = False,
         unit: str = "m",
-        box_size: Union[int, float] = None,
+        box_size: Union[int, float, None] = None,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
     ) -> None:
         """Plot antenna positions.

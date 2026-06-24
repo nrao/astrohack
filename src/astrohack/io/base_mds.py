@@ -148,7 +148,7 @@ class AstrohackBaseFile:
         """
         return self.root.children.values(*args, **kwargs)
 
-    def open(self, file: str = None) -> bool:
+    def open(self, file: str | None = None) -> bool:
         """
         Open Base file.
 

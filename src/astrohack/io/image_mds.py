@@ -119,15 +119,15 @@ class AstrohackImageFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         polarization_state: Union[str, List[str]] = "I",
         plot_screws: bool = False,
-        amplitude_limits: Union[List[float], Tuple, np.ndarray] = None,
+        amplitude_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         phase_unit: str = "deg",
-        phase_limits: Union[List[float], Tuple, np.ndarray] = None,
+        phase_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         deviation_unit: str = "mm",
-        deviation_limits: Union[List[float], Tuple, np.ndarray] = None,
+        deviation_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         panel_labels: bool = False,
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.ndarray] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -925,7 +925,7 @@ def _plot_zernike_model_chunk(parm_dict):
 def _plot_zernike_cartesian_component(
     ax, fig, aperture, model, u_axis, v_axis, colormap, comp_label
 ):
-    maxabs = np.nanmax(np.abs(aperture))
+    maxabs = float(np.nanmax(np.abs(aperture)))
     zlim = [-maxabs, maxabs]
     residuals = aperture - model
     nvalid = np.sum(np.isfinite(model))

@@ -1,4 +1,3 @@
-import pathlib
 import numpy as np
 from typing import List, Union, Tuple
 
@@ -115,7 +114,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: list[float] = None,
+        y_scale: list[float| int] | None = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -153,14 +152,10 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         :return: None
         :rtype: NoneType
         """
-
-        param_dict = locals()
-
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beamcut_in_amplitude_chunk,
-            param_dict=param_dict,
+            param_dict=locals(),
             key_order=["ant", "ddi"],
         )
         return
@@ -173,7 +168,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: Union[list[float | int], tuple[float | int]] = None,
+        y_scale: Union[list[float | int], tuple[float | int], None] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -212,13 +207,10 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         :rtype: NoneType
         """
 
-        param_dict = locals()
-
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beamcut_in_attenuation_chunk,
-            param_dict=param_dict,
+            param_dict=locals(),
             key_order=["ant", "ddi"],
         )
         return
@@ -268,7 +260,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_cuts_in_lm_chunk,
@@ -286,7 +278,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         phase_unit: str = "deg",
-        phase_scale: Union[List[float], Tuple[float], np.ndarray] = None,
+        phase_scale: Union[List[float], Tuple[float], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -330,7 +322,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beamcut_in_phase_chunk,
@@ -376,7 +368,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_create_report_chunk,

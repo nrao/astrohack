@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from astrohack.antenna.base_panel import BasePanel, markersize
 from astrohack.antenna.panel_fitting import PanelPoint
+from astrohack.utils.text import spc
 
 
 class RingPanel(BasePanel):
@@ -139,7 +140,7 @@ class RingPanel(BasePanel):
         """
         print("########################################")
         print("{0:20s}={1:8s}".format("ipanel", self.label))
-        print("{0:20s}={1:8s}".format("model", " " + self.model_name))
+        print("{0:20s}={1:8s}".format("model", spc + self.model_name))
         print("{0:20s}={1:8.5f}".format("inrad", self.inrad))
         print("{0:20s}={1:8.5f}".format("ourad", self.ourad))
         print("{0:20s}={1:8.5f}".format("theta1", self.theta1))

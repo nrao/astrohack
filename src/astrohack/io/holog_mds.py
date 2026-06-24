@@ -16,6 +16,7 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
 )
+from astrohack.utils.text import lnbr
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
@@ -629,7 +630,7 @@ def _export_to_aips_chunk(param_dict):
     outstr = (
         cmt
         + f"RefAnt = ** Antenna = {ant_num} Stokes = '{stokes}_' Freq =  {stokes_vis.attrs['frequency']:.9f}"
-        f" DATE-OBS = '{today}'\n"
+        f" DATE-OBS = '{today}'{lnbr}"
     )
     outstr += cmt + "MINsamp =   0  Npoint =   1\n"
     outstr += cmt + "IFnumber =   2   Channel =    32.0\n"

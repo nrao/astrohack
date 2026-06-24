@@ -17,6 +17,7 @@ from astrohack.utils.text import (
     create_pretty_table,
     string_to_ascii_file,
     format_value_unit,
+    lnbr,
 )
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 from astrohack.visualization.observation_summary import (
@@ -502,7 +503,7 @@ def _export_gain_tables_chunk(parm_dict):
     outstr += f"# Based on a measurement at {format_frequency(frequency)}, {format_wavelength(antenna.wavelength)}\n"
     outstr += f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], rmsunit)}\n"
     outstr += f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], rmsunit)}\n"
-    outstr += 1 * "\n"
+    outstr += 1 * lnbr
 
     for wavelength in wavelengths:
         prior, theo = antenna.gain_at_wavelength(False, wavelength)

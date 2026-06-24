@@ -14,6 +14,7 @@ from astrohack.utils.text import (
     rad_to_hour_str,
     rad_to_deg_str,
     convert_unit,
+    lnbr,
 )
 from astrohack.utils.algorithms import compute_antenna_relative_off
 from astrohack.utils.constants import notavail, figsize
@@ -46,7 +47,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
 
     def print_source_table(self) -> None:
         """Prints a table with the sources observed for antenna location determination"""
-        print("\nSources:")
+        print(f"{lnbr}Sources:")
         field_names = [
             "Id",
             "Name",
@@ -89,7 +90,9 @@ class AstrohackLocitFile(AstrohackBaseFile):
         telescope_name = self.root.attrs["telescope_name"]
         telescope = get_proper_telescope(telescope_name)
 
-        print(f"\n{telescope_name} antennas, # of antennas {len(self.root.keys())}:")
+        print(
+            f"{lnbr}{telescope_name} antennas, # of antennas {len(self.root.keys())}:"
+        )
         if relative:
             nfields = 5
             field_names = [

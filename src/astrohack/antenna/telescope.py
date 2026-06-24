@@ -13,6 +13,7 @@ from astrohack.antenna.ring_panel import RingPanel
 from astrohack.utils.algorithms import create_coordinate_images, arm_shadow_masking
 from astrohack.utils.ray_tracing_general import GlobalQPS
 from astrohack.utils.package_info import get_astrohack_path
+from astrohack.utils.text import spc, lnbr
 
 
 class Telescope:
@@ -104,7 +105,7 @@ class Telescope:
     def write_to_distro(self):
         dest_path = (
             get_astrohack_path()
-            / f'data/telescopes/{self.name.lower().replace(" ", "_")}.zarr'
+            / f'data/telescopes/{self.name.lower().replace(spc, "_")}.zarr'
         )
         self.write(dest_path)
 
@@ -119,9 +120,9 @@ class Telescope:
         for key, item in obj_dict.items():
             if isinstance(item, dict):
                 key_list = list(item.keys())
-                outstr += f"{key:20s} = dict({str(key_list)})\n"
+                outstr += f"{key:20s} = dict({str(key_list)}){lnbr}"
             else:
-                outstr += f"{key:20s} = {str(item)}\n"
+                outstr += f"{key:20s} = {str(item)}{lnbr}"
         return outstr
 
 

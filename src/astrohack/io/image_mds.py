@@ -24,6 +24,8 @@ from astrohack.utils.text import (
     string_to_ascii_file,
     create_dataset_label,
     format_value_error,
+    lnbr,
+    spc,
 )
 from astrohack.utils.fits import (
     write_fits,
@@ -803,8 +805,8 @@ def _export_phase_fit_chunk(parm_dict):
         for freq, freq_dict in map_dict.items():
             for pol, pol_dict in freq_dict.items():
                 outstr += (
-                    f'* {mapkey.replace("_", " ")}, Frequency {format_frequency(freq)}, '
-                    f"polarization state {pol}:\n\n "
+                    f'* {mapkey.replace("_", spc)}, Frequency {format_frequency(freq)}, '
+                    f"polarization state {pol}:{2*lnbr} "
                 )
                 table = create_pretty_table(field_names, alignment)
                 for par_name in aips_par_names:
@@ -828,7 +830,7 @@ def _export_phase_fit_chunk(parm_dict):
                     ]
                     table.add_row(row)
 
-                outstr += table.get_string() + "\n\n"
+                outstr += table.get_string() + 2 * lnbr
 
     string_to_ascii_file(outstr, f"{destination}/image_phase_fit_{antenna}_{ddi}.txt")
 
@@ -852,10 +854,10 @@ def _export_zernike_fit_chunk(parm_dict):
     for itime in range(ntime):
         for ichan, freq in enumerate(freq_axis):
             for icorr, corr in enumerate(corr_axis):
-                outstr += f"* map {itime}, Frequency {format_frequency(freq)}, Correlation {corr}:\n"
+                outstr += f"* map {itime}, Frequency {format_frequency(freq)}, Correlation {corr}:{lnbr}"
                 outstr += (
                     f"   Fit RMS = {rms[itime, ichan, icorr].real:.8f} + {rms[itime, ichan, icorr].imag:.8f}*i"
-                    f"\n\n"
+                    + 2 * lnbr
                 )
                 table = create_pretty_table(field_names, alignment)
                 for icoeff, coeff in enumerate(zernike_coeffs[itime, ichan, icorr]):
@@ -866,7 +868,7 @@ def _export_zernike_fit_chunk(parm_dict):
                     ]
                     table.add_row(row)
 
-                outstr += table.get_string() + "\n\n"
+                outstr += table.get_string() + 2 * lnbr
 
     string_to_ascii_file(outstr, f"{destination}/image_zernike_fit_{antenna}_{ddi}.txt")
 

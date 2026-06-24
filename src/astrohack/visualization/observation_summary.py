@@ -1,7 +1,4 @@
-from astrohack.utils.text import (
-    format_observation_summary,
-    make_header,
-)
+from astrohack.utils.text import format_observation_summary, make_header, spc, lnbr
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 
 
@@ -33,7 +30,6 @@ def _generate_observation_summary_chunk(parm_dict):
     tab_size = parm_dict["tab_size"]
 
     tab_count = 1
-    spc = " "
 
     if data_type == "holog":
         map_id = parm_dict["this_map"]
@@ -53,12 +49,12 @@ def _generate_observation_summary_chunk(parm_dict):
             az_el_unit=parm_dict["az_el_unit"],
             time_format=parm_dict["time_format"],
         )
-        + "\n"
+        + lnbr
     )
 
     if data_type == "beamcut":
         for cut in xds.children.values():
-            outstr += f"{tab_count*tab_size*spc}{cut.name}:\n"
-            outstr += f'{(tab_count+1)*tab_size*spc}{cut.attrs["direction"]} at {cut.attrs["time_string"]} UTC\n\n'
+            outstr += f"{tab_count*tab_size*spc}{cut.name}:{lnbr}"
+            outstr += f'{(tab_count+1)*tab_size*spc}{cut.attrs["direction"]} at {cut.attrs["time_string"]} UTC{2*lnbr}'
 
     return outstr

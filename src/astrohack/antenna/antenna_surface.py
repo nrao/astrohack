@@ -21,6 +21,7 @@ from astrohack.utils.text import (
     create_dataset_label,
     statistics_to_text,
     lnbr,
+    spc,
 )
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
@@ -414,7 +415,7 @@ class AntennaSurface:
         plotmask = np.where(self.mask, 1, np.nan)
         plotname = add_prefix(basename, f"{caller}_mask")
         parm_dict["z_lim"] = [0, 1]
-        parm_dict["unit"] = " "
+        parm_dict["unit"] = spc
         self._plot_map(plotname, plotmask, "Mask", parm_dict)
 
     def plot_amplitude(self, basename, caller, parm_dict):
@@ -610,7 +611,7 @@ class AntennaSurface:
         else:
             threshold = np.abs(threshold)
 
-        ax.set_title(f"\nThreshold = {threshold:.2f} {unit}", fontsize="small")
+        ax.set_title(f"{lnbr}Threshold = {threshold:.2f} {unit}", fontsize="small")
         # set the limits of the plot to the limits of the data
         extent = compute_extent(self.u_axis, self.v_axis)
         im = ax.imshow(
@@ -685,22 +686,22 @@ class AntennaSurface:
             unit: unit for panel screw adjustments ['mm','miliinches']
             comment_char: Character used for comments
         """
-        outfile = f"# Screw adjustments for {self.telescope.name}'s {self.label}, pol. state {self.pol_state}\n"
+        outfile = f"# Screw adjustments for {self.telescope.name}'s {self.label}, pol. state {self.pol_state}{lnbr}"
         freq = clight / self.wavelength
         rmses = self.get_rms(unit)
         outfile += f"# Frequency = {format_frequency(freq)}{lnbr}"
         if unit == "mm":
-            outfile += f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)}\n"
-            outfile += f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)}\n"
+            outfile += f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)}{lnbr}"
+            outfile += f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)}{lnbr}"
         else:
             mmrms = self.get_rms("mm")
             outfile += (
                 f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)} or "
-                f'{format_value_unit(mmrms[0], "mm")}\n'
+                f'{format_value_unit(mmrms[0], "mm")}{lnbr}'
             )
             outfile += (
                 f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)} or "
-                f'{format_value_unit(mmrms[1], "mm")}\n'
+                f'{format_value_unit(mmrms[1], "mm")}{lnbr}'
             )
         outfile += "# Lower means away from subreflector" + lnbr
         outfile += "# Raise means toward the subreflector" + lnbr
@@ -708,7 +709,6 @@ class AntennaSurface:
         outfile += "# RAISE the panel if the number is NEGATIVE" + lnbr
         outfile += "# Adjustments are in " + unit + lnbr
         outfile += lnbr
-        spc = " "
         outfile += f"{comment_char} Panel{2*spc}"
         nscrews = len(self.telescope.screw_description)
         for screw in self.telescope.screw_description:

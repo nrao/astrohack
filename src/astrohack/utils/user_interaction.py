@@ -1,6 +1,4 @@
-from astrohack.utils.text import lnbr
-
-spc = " "
+from astrohack.utils.text import lnbr, spc
 
 
 def yesno(prompt):

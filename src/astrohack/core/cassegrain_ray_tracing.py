@@ -29,6 +29,7 @@ from astrohack.utils.text import (
     format_label,
     create_pretty_table,
     statistics_to_text,
+    lnbr,
 )
 from astrohack.antenna.telescope import get_proper_telescope
 
@@ -579,7 +580,7 @@ def compare_ray_tracing_to_phase_fit_results(
         xds_inp["z_focus_offset"],
     ]
 
-    outstr += "Comparison between input and fitted values\n"
+    outstr += f"Comparison between input and fitted values{lnbr}"
     freq = clight / wavelength
     cropped_dict = phase_fit_results["map_0"][freq]["I"]
     table = create_pretty_table(field_names, alignment)
@@ -602,7 +603,7 @@ def compare_ray_tracing_to_phase_fit_results(
         ]
         table.add_row(row)
 
-    outstr += table.get_string() + "\n\n"
+    outstr += table.get_string() + 2 * lnbr
     print(outstr)
 
     phase_2d = phase_5d[0, 0, 0]
@@ -624,7 +625,7 @@ def compare_ray_tracing_to_phase_fit_results(
         ax[0],
         fig,
         fac * phase_2d,
-        f"RT phase model\n{statistics_to_text(data_statistics(fac * phase_2d), statkeys)}",
+        f"RT phase model{lnbr}{statistics_to_text(data_statistics(fac * phase_2d), statkeys)}",
         extent,
         f"Phase [{phase_unit}]",
         colormap,
@@ -648,7 +649,7 @@ def compare_ray_tracing_to_phase_fit_results(
         ax[2],
         fig,
         fac * residuals_2d,
-        f"Residuals\n{statistics_to_text(data_statistics(fac * residuals_2d), statkeys)}",
+        f"Residuals{lnbr}{statistics_to_text(data_statistics(fac * residuals_2d), statkeys)}",
         extent,
         f"Phase [{phase_unit}]",
         colormap,
@@ -658,7 +659,7 @@ def compare_ray_tracing_to_phase_fit_results(
     )
     close_figure(
         fig,
-        "Cassegrain RT model fitting for \n"
+        f"Cassegrain RT model fitting for {lnbr}"
         + title_from_input_parameters(rt_xds.attrs["input_parameters"]),
         filename,
         dpi,

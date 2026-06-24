@@ -12,6 +12,7 @@ from astrohack.utils.text import (
     param_to_list,
     add_prefix,
     string_to_ascii_file,
+    lnbr,
 )
 from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
 from astrohack.utils.conversion import convert_unit
@@ -796,12 +797,12 @@ def _export_position_xds_to_parminator(attributes, threshold, kterm_present):
     for iaxis, delay in enumerate(delays):
         correction = delay * clight
         if np.abs(correction) > threshold:
-            outstr += f"{station}, ,{axes[iaxis]},${correction: .4f}\n"
+            outstr += f"{station}, ,{axes[iaxis]},${correction: .4f}{lnbr}"
 
     if kterm_present:
         correction = attributes["koff_fit"] * clight
         if np.abs(correction) > threshold:
-            outstr += f"{station}, ,K,${correction: .4f}\n"
+            outstr += f"{station}, ,K,${correction: .4f}{lnbr}"
     return outstr
 
 

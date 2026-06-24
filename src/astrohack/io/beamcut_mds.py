@@ -579,7 +579,7 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
     sec_x_axis = ax.secondary_xaxis(
         "top", functions=(lambda x: x * 1.0, lambda xb: 1 * xb)
     )
-    sec_x_axis.set_xlabel("Offset in Primary Beam HPBWs\n")
+    sec_x_axis.set_xlabel(f"Offset in Primary Beam HPBWs{lnbr}")
     sec_x_axis.set_xticks([])
     y_min, y_max = ax.get_ylim()
     x_lims = np.array(ax.get_xlim())
@@ -662,8 +662,8 @@ def _add_beam_parameters_box(
         head = "avg "
     else:
         head = ""
-    pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n"
-    pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n"
+    pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}{lnbr}"
+    pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}{lnbr}"
     pars_str += f"{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}"
     bounds_box = dict(boxstyle="square", facecolor="white", alpha=alpha)
     ax.text(

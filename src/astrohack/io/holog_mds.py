@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import numpy as np
-import pathlib
 
 from datetime import date
 from astropy.time import Time
@@ -53,7 +52,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         map_id: Union[int, List[int], str] = "all",
         complex_split: str = "polar",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -105,13 +104,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,
-            key_order=key_order,
+            key_order=["ant", "ddi", "map"],
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -193,13 +190,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_lm_sky_coverage_chunk,
             param_dict=param_dict,
-            key_order=key_order,
+            key_order=["ant", "ddi", "map"],
         )
         return
 
@@ -238,13 +233,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_to_aips_chunk,
             param_dict=param_dict,
-            key_order=key_order,
+            key_order=["ant", "ddi", "map"],
         )
         return
 

@@ -22,6 +22,7 @@ from astrohack.utils.text import (
     statistics_to_text,
     lnbr,
     spc,
+    create_informative_label_from_summary,
 )
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
@@ -552,7 +553,8 @@ class AntennaSurface:
                 ax, screws=parm_dict["plot_screws"], label=parm_dict["panel_labels"]
             )
 
-        suptitle = f"{self.label}, Pol. state: {self.pol_state}"
+        suptitle = create_informative_label_from_summary(self.summary, "deg")
+        suptitle += f", Pol. state: {self.pol_state}"
         close_figure(fig, suptitle, filename, parm_dict["dpi"], parm_dict["display"])
 
     def _add_resolution_to_plot(self, ax, xpos=0.9, ypos=0.1):
@@ -644,7 +646,8 @@ class AntennaSurface:
                 ax, cmap, fac * self.screw_adjustments[ipanel], threshold, vmin, vmax
             )
 
-        suptitle = f"{self.label}, Pol. state: {self.pol_state}"
+        suptitle = create_informative_label_from_summary(self.summary, "deg")
+        suptitle += f", Pol. state: {self.pol_state}"
         close_figure(fig, suptitle, filename, parm_dict["dpi"], parm_dict["display"])
 
     def _build_panel_data_arrays(self):
@@ -686,7 +689,11 @@ class AntennaSurface:
             unit: unit for panel screw adjustments ['mm','miliinches']
             comment_char: Character used for comments
         """
+        date_str = create_informative_label_from_summary(self.summary, "deg").split(
+            ","
+        )[-1]
         outfile = f"# Screw adjustments for {self.telescope.name}'s {self.label}, pol. state {self.pol_state}{lnbr}"
+        outfile += f"# Observation date:{date_str}{lnbr}"
         freq = clight / self.wavelength
         rmses = self.get_rms(unit)
         outfile += f"# Frequency = {format_frequency(freq)}{lnbr}"

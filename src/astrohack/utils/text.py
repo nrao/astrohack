@@ -368,7 +368,7 @@ def get_method_list_string(astrohack_obj, alignment="l", print_len=80):
     return outstr
 
 
-def format_frequency(freq_value, unit="Hz", decimal_places=4):
+def format_frequency(freq_value, unit="Hz", decimal_places=4, add_nu=False):
     if isinstance(freq_value, str):
         freq_value = float(freq_value)
     if freq_value >= 1e12:
@@ -382,7 +382,12 @@ def format_frequency(freq_value, unit="Hz", decimal_places=4):
     else:
         unitout = unit
     fac = convert_unit(unit, unitout, "frequency")
-    return format_value_unit(fac * freq_value, unitout, decimal_places)
+    if add_nu:
+        outstr = r"$\nu$ = "
+    else:
+        outstr = ""
+    outstr += format_value_unit(fac * freq_value, unitout, decimal_places)
+    return outstr
 
 
 def format_wavelength(user_value, unit="m", decimal_places=2):
@@ -650,6 +655,34 @@ def format_az_el_information(az_el_dict, key="center", unit="deg", precision=".1
         f"{prefix} = ({az_el[0]:{precision}}, {az_el[1]:{precision}}) [{unit}]"
     )
     return az_el_label
+
+
+def create_informative_label_from_summary(
+    summary, azel_unit, freq_precision=3, add_date=True
+):
+    ant_name = summary["general"]["antenna name"]
+    ant_station = summary["general"]["station"]
+    freq = summary["spectral"]["rep. frequency"]
+    az_el = np.array(summary["general"]["az el info"]["mean"]) * convert_unit(
+        "rad", azel_unit, "trigonometric"
+    )
+    date = Time(summary["general"]["start time"], format="mjd").to_datetime()
+    time_str = f"{date.strftime("%Y-%m-%d")}"
+    if azel_unit == "deg":
+        azel_precision = ".1f"
+    else:
+        azel_precision = ".3f"
+
+    if add_date:
+        outstr = f"{time_str}, "
+    else:
+        outstr = ""
+    outstr += f"{ant_name.upper()} @ {ant_station.upper()}, "
+    outstr += f"{format_frequency(freq, add_nu=False, decimal_places=freq_precision)}, "
+    outstr += f"Az, El ~ {az_el[0]:{azel_precision}}, "
+    outstr += f"{az_el[1]:{azel_precision}} {azel_unit}"
+
+    return outstr
 
 
 def format_general_information(

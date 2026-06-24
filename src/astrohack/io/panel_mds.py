@@ -1,5 +1,4 @@
 import numpy as np
-import pathlib
 
 from typing import Union, List, Tuple
 
@@ -118,7 +117,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         """
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_screws_chunk,
@@ -134,15 +133,15 @@ class AstrohackPanelFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         plot_type: str = "deviation",
         plot_screws: bool = False,
-        amplitude_limits: Union[Tuple, List[float], np.array] = None,
+        amplitude_limits: Union[Tuple, List[float], np.ndarray] = None,
         phase_unit: str = "deg",
-        phase_limits: Union[Tuple, List[float], np.array] = None,
+        phase_limits: Union[Tuple, List[float], np.ndarray] = None,
         deviation_unit: str = "mm",
-        deviation_limits: Union[Tuple, List[float], np.array] = None,
+        deviation_limits: Union[Tuple, List[float], np.ndarray] = None,
         panel_labels: bool = False,
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (8.0, 6.4),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (8.0, 6.4),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -217,7 +216,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_antenna_chunk,
@@ -257,7 +255,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_to_fits_chunk,
@@ -321,7 +318,7 @@ class AstrohackPanelFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_gain_tables_chunk,

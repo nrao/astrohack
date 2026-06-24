@@ -6,12 +6,11 @@ from toolviper.utils.parameter import validate
 from .base_mds import AstrohackBaseFile
 
 from astrohack.utils.text import (
-    create_dataset_label,
-    format_frequency,
     format_value_unit,
     create_pretty_table,
     lnbr,
     spc,
+    create_informative_label_from_summary,
 )
 from astrohack.utils.conversion import to_db, convert_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
@@ -505,7 +504,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
         f"FWHM [{lm_unit}]",
         "Attenuation [dB]",
     ]
-    outstr += _create_beamcut_header(summary, par_dict) + 2 * lnbr
+    outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
         for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
@@ -1050,22 +1049,7 @@ def _create_beamcut_header(summary, par_dict):
     :return: Data labeling header for plots and/or reports.
     :rtype: str
     """
-    azel_unit = par_dict["azel_unit"]
 
-    antenna = par_dict["this_ant"]
-    ddi = par_dict["this_ddi"]
-    freq_str = format_frequency(summary["spectral"]["rep. frequency"], decimal_places=3)
-    raw_azel = np.array(summary["general"]["az el info"]["mean"])
-    mean_azel = convert_unit("rad", azel_unit, "trigonometric") * raw_azel
-    title = (
-        f"Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, "
-        + r"$\nu$ = "
-        + f"{freq_str}, "
+    return create_informative_label_from_summary(
+        summary, par_dict["azel_unit"], add_date=False
     )
-    if azel_unit == "rad":
-        decimal_places = 3
-    else:
-        decimal_places = 1
-    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
-    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
-    return title

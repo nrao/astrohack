@@ -109,7 +109,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=generate_observation_summary,
             key_order=key_order,
             param_dict=param_dict,
-            parallel=parallel,
             fetch_returns=True,
         )
         full_summary = "".join(summary_list)
@@ -173,7 +172,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=_plot_beamcut_in_amplitude_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -185,7 +183,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: str = None,
+        y_scale: Union[list[float | int], tuple[float | int]] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -232,7 +230,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=_plot_beamcut_in_attenuation_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -287,7 +284,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=_plot_cuts_in_lm_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -350,7 +346,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=_plot_beamcut_in_phase_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -397,7 +392,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
             chunk_function=_create_report_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 

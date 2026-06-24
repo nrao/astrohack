@@ -110,7 +110,6 @@ class AstrohackHologFile(AstrohackBaseFile):
             chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -126,7 +125,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         complex_split: str = "polar",
         phase_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -199,7 +198,6 @@ class AstrohackHologFile(AstrohackBaseFile):
             chunk_function=_plot_lm_sky_coverage_chunk,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
         )
         return
 
@@ -245,7 +243,6 @@ class AstrohackHologFile(AstrohackBaseFile):
             chunk_function=_export_to_aips_chunk,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
         )
         return
 
@@ -318,7 +315,6 @@ class AstrohackHologFile(AstrohackBaseFile):
             chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
             fetch_returns=True,
         )
         summary = "".join(summary)

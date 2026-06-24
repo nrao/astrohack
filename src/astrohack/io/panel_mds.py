@@ -122,7 +122,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
             chunk_function=_export_screws_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -222,7 +221,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
             chunk_function=_plot_antenna_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate()
@@ -263,7 +261,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
             chunk_function=_export_to_fits_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -328,7 +325,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
             chunk_function=_export_gain_tables_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -394,7 +390,6 @@ class AstrohackPanelFile(AstrohackBaseFile):
             chunk_function=generate_observation_summary,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
             fetch_returns=True,
         )
         summary = "".join(summary)

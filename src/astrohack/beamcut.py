@@ -140,7 +140,6 @@ def beamcut(
         param_dict=beamcut_params,
         key_order=["ant", "ddi"],
         output_mds=beamcut_mds,
-        parallel=parallel,
     )
     if executed_graph:
         if destination is not None:

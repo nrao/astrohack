@@ -268,7 +268,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         time_unit: str = "hour",
         angle_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -324,7 +324,6 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 chunk_function=_plot_sky_coverage_chunk,
                 param_dict=param_dict,
                 key_order=key_order,
-                parallel=parallel,
             )
         else:
             key_order = ["ant", "ddi"]
@@ -333,7 +332,6 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 chunk_function=_plot_sky_coverage_chunk,
                 param_dict=param_dict,
                 key_order=key_order,
-                parallel=parallel,
             )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -411,7 +409,6 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 chunk_function=_plot_delays_chunk,
                 param_dict=param_dict,
                 key_order=key_order,
-                parallel=parallel,
             )
         else:
             key_order = ["ant", "ddi"]
@@ -420,7 +417,6 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 chunk_function=_plot_delays_chunk,
                 param_dict=param_dict,
                 key_order=key_order,
-                parallel=parallel,
             )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)

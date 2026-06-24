@@ -89,9 +89,9 @@ def create_and_execute_graph_from_dict(
     param_dict,
     key_order,
     output_mds=None,
-    parallel=False,
     fetch_returns=False,
 ):
+    parallel = param_dict["parallel"]
     if hasattr(looping_dict, "root"):
         looping_dict = looping_dict.root
 
@@ -185,23 +185,22 @@ def create_and_execute_graphs_for_outputs(
     chunk_function,
     param_dict,
     key_order,
-    parallel=False,
     fetch_returns=False,
 ):
     """
-    Dask parallelization exclusively for plots, parallelization is done at the antenna level to decrease graph size and\
-     optimize plot creation.
+    Dask parallelization exclusively for exports, parallelization is done at the antenna level to decrease graph size \
+    and optimize plot creation.
     Args:
         mds_object: Astrohack MDS object from which to plot
         chunk_function: Plotting chunk function
         param_dict: The chunk function parameters
         key_order: Order in which to execute keys
-        parallel: execute in parallel mode?
         fetch_returns: Return value from chunk function
 
     Returns:
         None
     """
+    parallel = param_dict["parallel"]
     # here only the first level of the tree is parallelized
     looping_dict = mds_object.root
 
@@ -256,7 +255,9 @@ def create_and_execute_graphs_for_outputs(
 
 
 def compute_graph_from_lists(
-    param_dict, chunk_function, looping_key_list, parallel=False
+    param_dict,
+    chunk_function,
+    looping_key_list,
 ):
     """
     Creates and executes a graph based on entries in a parameter dictionary that are lists
@@ -264,11 +265,11 @@ def compute_graph_from_lists(
         param_dict: The parameter dictionary
         chunk_function: The function for the operation chunk
         looping_key_list: The keys that are lists in the parameter dictionaries over which to loop over
-        parallel: execute graph in parallel?
 
     Returns:
         A list containing the returns of the calls to the chunk function.
     """
+    parallel = param_dict["parallel"]
     niter = len(param_dict[looping_key_list[0]])
 
     delayed_list = []

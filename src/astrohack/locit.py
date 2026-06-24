@@ -195,7 +195,6 @@ def locit(
         param_dict=locit_params,
         key_order=key_order,
         output_mds=position_mds,
-        parallel=parallel,
     )
     if executed_graph:
         return position_mds

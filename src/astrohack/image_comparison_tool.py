@@ -29,7 +29,7 @@ def compare_fits_images(
     plot_original: bool = False,
     plot_divided_image: bool = False,
     plot_scatter: bool = True,
-    z_scale_limits: Union[List[float], Tuple, np.array] = None,
+    z_scale_limits: Union[List[float], Tuple, np.ndarray] = None,
     colormap: str = "viridis",
     dpi: int = 300,
     display: bool = False,
@@ -154,7 +154,7 @@ def compare_fits_images(
     add_caller_and_version_to_dict(root.attrs, direct_call=True)
 
     result_list = compute_graph_from_lists(
-        param_dict, image_comparison_chunk, ["image", "reference_image"], parallel
+        param_dict, image_comparison_chunk, ["image", "reference_image"]
     )
     for item in result_list:
         tree_node = item

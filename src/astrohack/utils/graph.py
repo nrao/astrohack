@@ -3,6 +3,7 @@ import dask
 import xarray as xr
 import toolviper.utils.logger as logger
 import copy
+import pathlib
 
 from astrohack.utils.text import approve_prefix
 from astrohack.utils.text import param_to_list
@@ -201,6 +202,23 @@ def create_and_execute_graphs_for_outputs(
         None
     """
     parallel = param_dict["parallel"]
+    try:
+        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+    except KeyError:
+        # Observation summary creation case, where a destination folder is not necessary
+        pass
+
+    n_lvls = len(key_order)
+    if n_lvls == 1:
+        # This can be the case for position_mds where the key depth is only known at runtime.
+        # In this case of 1 level then the usual executioner is to be used.
+        return create_and_execute_graph_from_dict(
+            looping_dict=mds_object,
+            chunk_function=chunk_function,
+            param_dict=param_dict,
+            key_order=key_order,
+        )
+
     # here only the first level of the tree is parallelized
     looping_dict = mds_object.root
 

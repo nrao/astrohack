@@ -17,8 +17,8 @@ from typing import Union, List
 @toolviper.utils.parameter.validate()
 def locit(
     locit_name: str,
-    position_name: str = None,
-    elevation_limit: float = 10.0,
+    position_name: str | None = None,
+    elevation_limit: float | int = 10.0,
     polarization: str = "both",
     fit_engine: str = "scipy",
     fit_kterm: bool = False,

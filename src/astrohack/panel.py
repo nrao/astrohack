@@ -16,15 +16,15 @@ from typing import Union, List
 @toolviper.utils.parameter.validate(custom_checker=custom_panel_checker)
 def panel(
     image_name: str,
-    panel_name: str = None,
+    panel_name: str | None = None,
     clip_type: str = "sigma",
-    clip_level: Union[float, dict[dict[float]]] = 3.0,
+    clip_level: Union[float | int, dict[dict[float | int]]] = 3.0,
     use_detailed_mask: bool = True,
     panel_model: str = "rigid",
     panel_margins: float = 0.05,
     polarization_state: str = "I",
     ant: Union[str, List[str]] = "all",
-    ddi: Union[int, List[str]] = "all",
+    ddi: Union[str, int, List[str]] = "all",
     parallel: bool = False,
     overwrite: bool = False,
 ):

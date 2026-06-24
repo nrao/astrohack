@@ -13,7 +13,7 @@ from astrohack.io.image_mds import AstrohackImageFile
 @toolviper.utils.parameter.validate()
 def combine(
     image_name: str,
-    combine_name: str = None,
+    combine_name: str | None = None,
     ant: Union[str, List[str]] = "all",
     ddi: Union[int, List[int], str] = "all",
     weighted: bool = False,

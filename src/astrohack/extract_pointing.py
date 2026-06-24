@@ -10,13 +10,13 @@ from astrohack.core.extract_pointing import (
 )
 from astrohack.io.point_mds import AstrohackPointFile
 
-from typing import List, Union
+from typing import Union
 
 
 @toolviper.utils.parameter.validate()
 def extract_pointing(
     ms_name: str,
-    point_name: str = None,
+    point_name: str | None = None,
     parallel: bool = False,
     overwrite: bool = False,
 ) -> Union[AstrohackPointFile, None]:

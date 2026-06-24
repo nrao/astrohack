@@ -104,7 +104,7 @@ def param_to_list(param, data_dict, prefix):
 
 
 def get_default_file_name(
-    input_filename: str, output_ext: str, user_filename: str
+    input_filename: str, output_ext: str, user_filename: str | None
 ) -> str:
 
     if user_filename is None:

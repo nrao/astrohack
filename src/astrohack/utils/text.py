@@ -193,7 +193,6 @@ def get_data_content_string(data_object, alignment="l", field_names=None):
 
 
 def print_dict_types(le_dict, ident=4, show_values=False):
-    spc = " "
     for key, value in le_dict.items():
         if isinstance(value, dict):
             print(f"{ident*spc}{key}:")
@@ -310,7 +309,6 @@ def get_summary_header(filename, print_len=80, frame_char="#", frame_width=3):
 
 
 def _compute_spacing(string, print_len=100, frame_width=3):
-    spc = " "
     nchar = len(string)
     if 2 * (nchar // 2) != nchar:
         nchar += 1
@@ -327,7 +325,6 @@ def _compute_spacing(string, print_len=100, frame_width=3):
 
 
 def _centralized_string(string, nlead, ntrail, frame_width, frame_char):
-    spc = " "
     return f"{frame_width * frame_char}{nlead * spc}{string}{ntrail * spc}{frame_width * frame_char}"
 
 
@@ -463,7 +460,7 @@ def format_angular_distance(user_value, unit="rad", decimal_places=2):
     return format_value_unit(fac * user_value, unitout, decimal_places)
 
 
-def format_label(label, separators=("_", "\n"), new_separator=" "):
+def format_label(label, separators=("_", lnbr), new_separator=spc):
     if isinstance(label, str):
         out_label = label
     else:
@@ -542,7 +539,7 @@ def bool_to_str(boolean):
 
 def string_to_ascii_file(string, filename):
     outfile = open(filename, "w")
-    outfile.write(string + "\n")
+    outfile.write(string + lnbr)
     outfile.close()
 
 
@@ -604,7 +601,7 @@ def significant_figures_round(x, digits):
 
 
 def statistics_to_text(
-    data_statistics: dict, keys: list = None, num_format: str = None
+    data_statistics: dict, keys: list | None = None, num_format: str | None = None
 ):
     if keys is None:
         key_list = list(data_statistics.keys())
@@ -665,7 +662,7 @@ def format_general_information(
     time_format="%d %h %Y, %H:%M:%S",
     precision=".1f",
 ):
-    outstr = f"{ident}General:\n"
+    outstr = f"{ident}General:{lnbr}"
     tab = tab + ident
     key_order = [
         "telescope name",
@@ -697,13 +694,13 @@ def format_general_information(
             line += f"{format_duration(item)}"
         else:
             line += str(item)
-        outstr += f"{line}\n"
+        outstr += f"{line}{lnbr}"
 
     return outstr
 
 
 def format_spectral_information(freq_dict, tab, ident, key_size):
-    outstr = f"{ident}Spectral:\n"
+    outstr = f"{ident}Spectral:{lnbr}"
     tab += ident
     for key, item in freq_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -715,13 +712,13 @@ def format_spectral_information(freq_dict, tab, ident, key_size):
             outstr += format_wavelength(item, decimal_places=3)
         else:
             outstr += format_frequency(item, decimal_places=3)
-        outstr += "\n"
+        outstr += lnbr
 
     return outstr
 
 
 def format_beam_information(beam_dict, tab, ident, key_size):
-    outstr = f"{ident}Beam:\n"
+    outstr = f"{ident}Beam:{lnbr}"
     tab += ident
     for key, item in beam_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -734,12 +731,12 @@ def format_beam_information(beam_dict, tab, ident, key_size):
             outstr += f"{item[0]} by {item[1]} pixels"
         else:
             outstr += f"From {format_angular_distance(item[0])} to {format_angular_distance(item[1])}"
-        outstr += "\n"
+        outstr += lnbr
     return outstr
 
 
 def format_aperture_information(aperture_dict, tab, ident, key_size):
-    outstr = f"{ident}Aperture:\n"
+    outstr = f"{ident}Aperture:{lnbr}"
     tab += ident
     for key, item in aperture_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -747,7 +744,7 @@ def format_aperture_information(aperture_dict, tab, ident, key_size):
             outstr += f"{item[0]} by {item[1]} pixels"
         else:
             outstr += f"{format_wavelength(item[0])} by {format_wavelength(item[1])}"
-        outstr += "\n"
+        outstr += lnbr
     return outstr
 
 
@@ -762,7 +759,6 @@ def format_observation_summary(
     precision=".1f",
     key_size=18,
 ):
-    spc = " "
     major_tab = tab_count * tab_size * spc
     one_tab = tab_size * spc
     ident = major_tab
@@ -778,14 +774,14 @@ def format_observation_summary(
         ident=ident,
         key_size=key_size,
     )
-    outstr += "\n"
+    outstr += lnbr
     outstr += format_spectral_information(obs_sum["spectral"], one_tab, ident, key_size)
 
-    outstr += "\n"
+    outstr += lnbr
     outstr += format_beam_information(obs_sum["beam"], one_tab, ident, key_size)
 
     if obs_sum["aperture"] is not None:
-        outstr += "\n"
+        outstr += lnbr
         outstr += format_aperture_information(
             obs_sum["aperture"], one_tab, ident, key_size
         )
@@ -793,8 +789,7 @@ def format_observation_summary(
 
 
 def make_header(heading, separator, header_width, buffer_width):
-    spc = " "
-    sep_line = f"{header_width * separator}\n"
+    sep_line = f"{header_width * separator}{lnbr}"
     len_head = len(heading)
     before_blank = (header_width - 2 * buffer_width - len_head) // 2
     if 2 * buffer_width + len_head + 2 * before_blank < header_width:
@@ -803,6 +798,6 @@ def make_header(heading, separator, header_width, buffer_width):
         after_blank = before_blank
     outstr = sep_line
     buffer = buffer_width * separator
-    outstr += f"{buffer}{before_blank*spc}{heading}{after_blank*spc}{buffer}\n"
-    outstr += sep_line + "\n"
+    outstr += f"{buffer}{before_blank*spc}{heading}{after_blank*spc}{buffer}{lnbr}"
+    outstr += sep_line + lnbr
     return outstr

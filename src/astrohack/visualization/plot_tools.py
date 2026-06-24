@@ -101,6 +101,9 @@ def close_figure(
         figure.suptitle(title)
     if tight_layout:
         figure.tight_layout()
+    # Force filename to contain .png in case no extension is present
+    if len(filename.split(".")) == 1:
+        filename += ".png"
     figure.savefig(filename, dpi=dpi)
 
     if display:

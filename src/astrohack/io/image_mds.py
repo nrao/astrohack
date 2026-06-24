@@ -27,6 +27,7 @@ from astrohack.utils.text import (
     lnbr,
     spc,
     undscr,
+    create_informative_label_from_summary,
 )
 from astrohack.utils.fits import (
     write_fits,
@@ -209,7 +210,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         phase_unit: str = "deg",
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.ndarray] = (8, 4.5),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (8, 3.5),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -777,10 +778,10 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
     plot_name = add_prefix(
         add_prefix(basename, parm_dict["complex_split"]), "image_beam"
     )
-    suptitle = (
-        f'Beam for Antenna: {parm_dict["this_ant"].split(undscr)[1]}, DDI: {parm_dict["this_ddi"].split(undscr)[1]}, '
-        f"pol. State: {pol}"
+    suptitle = "Beam for: " + create_informative_label_from_summary(
+        parm_dict["xdt_data"].attrs["summary"], "deg"
     )
+    suptitle += f", Pol = {pol}"
     close_figure(fig, suptitle, plot_name, parm_dict["dpi"], parm_dict["display"])
     return
 
@@ -806,7 +807,8 @@ def _export_phase_fit_chunk(parm_dict):
         for freq, freq_dict in map_dict.items():
             for pol, pol_dict in freq_dict.items():
                 outstr += (
-                    f"* {mapkey.replace(undscr, spc)}, Frequency {format_frequency(freq)}, "
+                    f"* {mapkey.replace(undscr, spc)}, "
+                    f"{create_informative_label_from_summary(parm_dict["xdt_data"].attrs["summary"], "deg")}, "
                     f"polarization state {pol}:{2*lnbr} "
                 )
                 table = create_pretty_table(field_names, alignment)
@@ -855,7 +857,11 @@ def _export_zernike_fit_chunk(parm_dict):
     for itime in range(ntime):
         for ichan, freq in enumerate(freq_axis):
             for icorr, corr in enumerate(corr_axis):
-                outstr += f"* map {itime}, Frequency {format_frequency(freq)}, Correlation {corr}:{lnbr}"
+                outstr += f"* map {itime}, "
+                outstr += create_informative_label_from_summary(
+                    xdt_data.attrs["summary"], "deg"
+                )
+                outstr += f", Correlation {corr}:{lnbr}"
                 outstr += (
                     f"   Fit RMS = {rms[itime, ichan, icorr].real:.8f} + {rms[itime, ichan, icorr].imag:.8f}*i"
                     + 2 * lnbr
@@ -905,10 +911,9 @@ def _plot_zernike_model_chunk(parm_dict):
     corr_aperture = convert_5d_grid_from_stokes(aperture, pol_axis, corr_axis)[
         0, 0, :, :, :
     ]
-    suptitle = (
-        f"Zernike model with N<={zernike_n_order} for {create_dataset_label(antenna, ddi, ',')} "
-        f"correlation: "
-    )
+    suptitle = f"Zernike model (N<={zernike_n_order}) for: "
+    suptitle += create_informative_label_from_summary(input_xds.attrs["summary"], "deg")
+    suptitle += ", correlation: "
 
     for icorr, corr in enumerate(corr_axis):
         filename = f"{destination}/image_zernike_model_{antenna}_{ddi}_corr_{corr}.png"

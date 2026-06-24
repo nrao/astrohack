@@ -673,14 +673,12 @@ def create_informative_label_from_summary(
     else:
         azel_precision = ".3f"
 
-    if add_date:
-        outstr = f"{time_str}, "
-    else:
-        outstr = ""
-    outstr += f"{ant_name.upper()} @ {ant_station.upper()}, "
+    outstr = f"{ant_name.upper()} @ {ant_station.upper()}, "
     outstr += f"{format_frequency(freq, add_nu=False, decimal_places=freq_precision)}, "
     outstr += f"Az, El ~ {az_el[0]:{azel_precision}}, "
     outstr += f"{az_el[1]:{azel_precision}} {azel_unit}"
+    if add_date:
+        outstr += f", {time_str}"
 
     return outstr
 

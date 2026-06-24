@@ -114,7 +114,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: list[float| int] | None = None,
+        y_scale: list[float | int] | None = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -260,7 +260,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_cuts_in_lm_chunk,
@@ -322,7 +321,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beamcut_in_phase_chunk,
@@ -367,7 +365,6 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-
 
         create_and_execute_graphs_for_outputs(
             mds_object=self,

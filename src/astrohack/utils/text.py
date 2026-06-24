@@ -667,7 +667,7 @@ def create_informative_label_from_summary(
         "rad", azel_unit, "trigonometric"
     )
     date = Time(summary["general"]["start time"], format="mjd").to_datetime()
-    time_str = f"{date.strftime("%Y-%m-%d")}"
+    time_str = date.strftime("%Y-%m-%d")
     if azel_unit == "deg":
         azel_precision = ".1f"
     else:

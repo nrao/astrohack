@@ -16,7 +16,7 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
 )
-from astrohack.utils.text import lnbr
+from astrohack.utils.text import lnbr, create_informative_label_from_summary
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
@@ -401,20 +401,14 @@ def _plot_diagnostics_chunk(param_dict):
         fontsize=fontsize,
     )
 
-    fig.suptitle(
-        f'Data Calibration Check: [{param_dict["this_ant"]}, {param_dict["this_ddi"]}, {param_dict["this_map"]}]',
-        ha="center",
-        va="center",
-        x=0.5,
-        y=0.95,
-        rotation=0,
-        fontsize=1.5 * thisfont,
-    )
     plotfile = (
         f'{destination}/holog_diagnostics_{param_dict["this_ant"]}_'
         f'{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
     )
-    close_figure(fig, None, plotfile, dpi, display, tight_layout=False)
+    title = f"Cal. check for: " + create_informative_label_from_summary(
+        xds_data.attrs["summary"], "deg", add_date=False
+    )
+    close_figure(fig, title, plotfile, dpi, display, tight_layout=False)
 
 
 def _plot_lm_sky_coverage_chunk(param_dict):
@@ -435,7 +429,9 @@ def _plot_lm_sky_coverage_chunk(param_dict):
     param_dict["linestyle"] = "-"
     param_dict["color"] = "blue"
 
-    _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict)
+    _plot_lm_coverage_sub(
+        time, real_lm, ideal_lm, param_dict, xdt_data.attrs["summary"]
+    )
 
     if (
         param_dict["plot_correlation"] is None
@@ -450,13 +446,27 @@ def _plot_lm_sky_coverage_chunk(param_dict):
         if isinstance(param_dict["plot_correlation"], (list, tuple)):
             for correlation in param_dict["plot_correlation"]:
                 _plot_correlation_sub(
-                    visi, weights, correlation, pol_axis, time, real_lm, param_dict
+                    visi,
+                    weights,
+                    correlation,
+                    pol_axis,
+                    time,
+                    real_lm,
+                    param_dict,
+                    xdt_data.attrs["summary"],
                 )
         else:
             if param_dict["plot_correlation"] == "all":
                 for correlation in pol_axis:
                     _plot_correlation_sub(
-                        visi, weights, correlation, pol_axis, time, real_lm, param_dict
+                        visi,
+                        weights,
+                        correlation,
+                        pol_axis,
+                        time,
+                        real_lm,
+                        param_dict,
+                        xdt_data.attrs["summary"],
                     )
             else:
                 _plot_correlation_sub(
@@ -467,10 +477,11 @@ def _plot_lm_sky_coverage_chunk(param_dict):
                     time,
                     real_lm,
                     param_dict,
+                    xdt_data.attrs["summary"],
                 )
 
 
-def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
+def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict, summary):
     fig, ax = create_figure_and_axes(param_dict["figure_size"], [2, 2])
     scatter_plot(
         ax[0, 0],
@@ -524,12 +535,13 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict):
         f'{param_dict["destination"]}/holog_directional_cosines_'
         f'{param_dict["this_ant"]}_{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
     )
-    close_figure(
-        fig, "Directional Cosines", plotfile, param_dict["dpi"], param_dict["display"]
-    )
+    title = f"L&M for: " + create_informative_label_from_summary(summary, "deg")
+    close_figure(fig, title, plotfile, param_dict["dpi"], param_dict["display"])
 
 
-def _plot_correlation_sub(visi, weights, correlation, pol_axis, time, lm, param_dict):
+def _plot_correlation_sub(
+    visi, weights, correlation, pol_axis, time, lm, param_dict, summary
+):
     if correlation in pol_axis:
         ipol = pol_axis == correlation
         loc_vis = visi[:, ipol]
@@ -599,9 +611,12 @@ def _plot_correlation_sub(visi, weights, correlation, pol_axis, time, lm, param_
             f'{param_dict["destination"]}/holog_directional_cosines_{correlation}_'
             f'{param_dict["this_ant"]}_{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
         )
+        title = f"{correlation} vs L&M for: " + create_informative_label_from_summary(
+            summary, "deg"
+        )
         close_figure(
             fig,
-            f"Channel averaged {correlation} vs Directional Cosines",
+            title,
             plotfile,
             param_dict["dpi"],
             param_dict["display"],

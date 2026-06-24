@@ -20,7 +20,9 @@ from astrohack.utils.text import (
     format_value_unit,
 )
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-from astrohack.visualization.observation_summary import generate_observation_summary
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
+)
 
 
 class AstrohackPanelFile(AstrohackBaseFile):
@@ -382,21 +384,12 @@ class AstrohackPanelFile(AstrohackBaseFile):
         spectral information, beam image characteristics and aperture image characteristics.
         """
 
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "panel"
-        execution, summary = create_and_execute_graphs_for_outputs(
+        generate_observation_summary(
             mds_object=self,
-            chunk_function=generate_observation_summary,
-            param_dict=param_dict,
-            key_order=key_order,
-            fetch_returns=True,
+            param_dict=locals(),
+            key_order=["ant", "ddi"],
+            summary_type="panel",
         )
-        summary = "".join(summary)
-        with open(summary_file, "w") as output_file:
-            output_file.write(summary)
-        if print_summary:
-            print(summary)
 
 
 def _export_screws_chunk(parm_dict):

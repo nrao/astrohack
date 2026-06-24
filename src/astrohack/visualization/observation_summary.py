@@ -2,9 +2,29 @@ from astrohack.utils.text import (
     format_observation_summary,
     make_header,
 )
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 
 
-def generate_observation_summary(parm_dict):
+def generate_observation_summary(
+    mds_object, param_dict: dict, summary_type: str, key_order: list[str]
+):
+    param_dict["dtype"] = summary_type
+    execution, summary_list = create_and_execute_graphs_for_outputs(
+        mds_object=mds_object,
+        chunk_function=_generate_observation_summary_chunk,
+        key_order=key_order,
+        param_dict=param_dict,
+        fetch_returns=True,
+    )
+    if execution:
+        full_summary = "".join(summary_list)
+        with open(param_dict["summary_file"], "w") as output_file:
+            output_file.write(full_summary)
+        if param_dict["print_summary"]:
+            print(full_summary)
+
+
+def _generate_observation_summary_chunk(parm_dict):
     antenna = parm_dict["this_ant"]
     ddi = parm_dict["this_ddi"]
     data_type = parm_dict["dtype"]

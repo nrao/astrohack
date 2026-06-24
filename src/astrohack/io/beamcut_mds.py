@@ -100,22 +100,12 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         This method produces a summary of the data in the AstrohackBeamcutFile displaying general information,
         spectral information, beam image characteristics and aperture image characteristics.
         """
-
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "beamcut"
-        execution, summary_list = create_and_execute_graphs_for_outputs(
+        generate_observation_summary(
             mds_object=self,
-            chunk_function=generate_observation_summary,
-            key_order=key_order,
-            param_dict=param_dict,
-            fetch_returns=True,
+            param_dict=locals(),
+            key_order=["ant", "ddi"],
+            summary_type="beamcut",
         )
-        full_summary = "".join(summary_list)
-        with open(summary_file, "w") as output_file:
-            output_file.write(full_summary)
-        if print_summary:
-            print(full_summary)
 
     @validate(custom_checker=custom_plots_checker)
     def plot_beamcut_in_amplitude(

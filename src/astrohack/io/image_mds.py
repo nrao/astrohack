@@ -38,7 +38,9 @@ from astrohack.visualization.plot_tools import (
     close_figure,
     simple_imshow_map_plot,
 )
-from astrohack.visualization.observation_summary import generate_observation_summary
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
+)
 
 
 class AstrohackImageFile(AstrohackBaseFile):
@@ -349,7 +351,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (16, 9),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (16, 9),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -448,22 +450,12 @@ class AstrohackImageFile(AstrohackBaseFile):
         This method produces a summary of the data in the AstrohackImageFile displaying general information,
         spectral information, beam image characteristics and aperture image characteristics.
         """
-
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "image"
-        execution, summary = create_and_execute_graphs_for_outputs(
+        generate_observation_summary(
             mds_object=self,
-            chunk_function=generate_observation_summary,
-            param_dict=param_dict,
-            key_order=key_order,
-            fetch_returns=True,
+            param_dict=locals(),
+            summary_type="image",
+            key_order=["ant", "ddi"],
         )
-        summary = "".join(summary)
-        with open(summary_file, "w") as output_file:
-            output_file.write(summary)
-        if print_summary:
-            print(summary)
 
 
 def _export_to_fits_chunk(param_dict):

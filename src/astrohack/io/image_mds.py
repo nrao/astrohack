@@ -1,4 +1,3 @@
-import pathlib
 import numpy as np
 
 from typing import List, Union, Tuple
@@ -103,7 +102,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         param_dict["input_params"] = self.root.attrs["input_parameters"]
         create_and_execute_graphs_for_outputs(
             mds_object=self,
@@ -120,15 +119,15 @@ class AstrohackImageFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         polarization_state: Union[str, List[str]] = "I",
         plot_screws: bool = False,
-        amplitude_limits: Union[List[float], Tuple, np.array] = None,
+        amplitude_limits: Union[List[float], Tuple, np.ndarray] = None,
         phase_unit: str = "deg",
-        phase_limits: Union[List[float], Tuple, np.array] = None,
+        phase_limits: Union[List[float], Tuple, np.ndarray] = None,
         deviation_unit: str = "mm",
-        deviation_limits: Union[List[float], Tuple, np.array] = None,
+        deviation_limits: Union[List[float], Tuple, np.ndarray] = None,
         panel_labels: bool = False,
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -189,7 +188,6 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_aperture_chunk,
@@ -208,7 +206,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         phase_unit: str = "deg",
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (8, 4.5),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (8, 4.5),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -254,7 +252,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beam_chunk,
@@ -298,7 +296,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_phase_fit_chunk,
@@ -335,7 +333,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_zernike_fit_chunk,
@@ -388,7 +386,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_zernike_model_chunk,

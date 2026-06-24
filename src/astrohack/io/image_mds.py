@@ -252,7 +252,6 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_plot_beam_chunk,
@@ -296,7 +295,6 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-
         create_and_execute_graphs_for_outputs(
             mds_object=self,
             chunk_function=_export_phase_fit_chunk,
@@ -332,7 +330,6 @@ class AstrohackImageFile(AstrohackBaseFile):
         ``astrohack.holog`` for analysis.
         """
         param_dict = locals()
-
 
         create_and_execute_graphs_for_outputs(
             mds_object=self,
@@ -385,7 +382,6 @@ class AstrohackImageFile(AstrohackBaseFile):
         ``astrohack.holog`` for analysis.
         """
         param_dict = locals()
-
 
         create_and_execute_graphs_for_outputs(
             mds_object=self,

@@ -3,7 +3,7 @@ import toolviper
 import pytest
 import shutil
 
-from astrohack.utils import clight
+from astrohack.utils.constants import clight
 from astrohack.utils.gridding import grid_beam, grid_1d_data, gridding_correction
 from astrohack import get_proper_telescope, open_holog
 from astrohack.utils.ray_tracing_general import simple_axis

@@ -6,25 +6,24 @@ from typing import List, Union, Tuple
 import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
-from astrohack.utils import (
+from astrohack.utils.text import (
     fixed_format_error,
-    rotate_to_gmt,
-    compute_antenna_relative_off,
-)
-from astrohack.antenna import get_proper_telescope
-from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.utils import (
-    convert_unit,
-    clight,
-    notavail,
     create_pretty_table,
     param_to_list,
     add_prefix,
     string_to_ascii_file,
+)
+from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
+from astrohack.utils.conversion import convert_unit
+from astrohack.antenna.telescope import get_proper_telescope
+from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.utils.constants import (
+    clight,
+    notavail,
     pi,
     twopi,
 )
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.tools import get_telescope_lat_lon_rad
 from astrohack.visualization import (
@@ -203,8 +202,8 @@ class AstrohackPositionFile(AstrohackBaseFile):
         self,
         filename: str,
         ant: Union[str, List[str]] = "all",
-        ddi: int = None,
-        correction_threshold: float = 0.01,
+        ddi: int | None = None,
+        correction_threshold: float | int = 0.01,
     ) -> None:
         """Export antenna position fit results to a VLA parminator file.
 
@@ -266,7 +265,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         time_unit: str = "hour",
         angle_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -312,19 +311,17 @@ class AstrohackPositionFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
         param_dict["combined"] = self.root.attrs["combined"]
 
         if self.root.attrs["combined"]:
             key_order = ["ant"]
         else:
             key_order = ["ant", "ddi"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_sky_coverage_chunk,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -338,7 +335,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         delay_unit: str = "nsec",
         plot_model: bool = True,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -391,7 +388,6 @@ class AstrohackPositionFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
 
         param_dict["combined"] = self.root.attrs["combined"]
         param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
@@ -399,13 +395,11 @@ class AstrohackPositionFile(AstrohackBaseFile):
             key_order = ["ant"]
         else:
             key_order = ["ant", "ddi"]
-
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_delays_chunk,
             param_dict=param_dict,
             key_order=key_order,
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -417,7 +411,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         unit: str = "km",
         box_size: Union[int, float] = 5,
         scaling: Union[int, float] = 250,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
     ) -> None:

@@ -1,4 +1,3 @@
-import pathlib
 import numpy as np
 
 from typing import List, Union, Tuple
@@ -9,7 +8,7 @@ import toolviper.utils.parameter
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_5d_grid_from_stokes
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.constants import clight, length_units, trigo_units
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.phase_fitting import aips_par_names
@@ -38,7 +37,9 @@ from astrohack.visualization.plot_tools import (
     close_figure,
     simple_imshow_map_plot,
 )
-from astrohack.visualization.observation_summary import generate_observation_summary
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
+)
 
 
 class AstrohackImageFile(AstrohackBaseFile):
@@ -101,14 +102,13 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
+
         param_dict["input_params"] = self.root.attrs["input_parameters"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_fits_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -119,15 +119,15 @@ class AstrohackImageFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         polarization_state: Union[str, List[str]] = "I",
         plot_screws: bool = False,
-        amplitude_limits: Union[List[float], Tuple, np.array] = None,
+        amplitude_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         phase_unit: str = "deg",
-        phase_limits: Union[List[float], Tuple, np.array] = None,
+        phase_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         deviation_unit: str = "mm",
-        deviation_limits: Union[List[float], Tuple, np.array] = None,
+        deviation_limits: Union[List[float | int], Tuple, np.ndarray, None] = None,
         panel_labels: bool = False,
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -188,13 +188,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_aperture_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -208,7 +206,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         phase_unit: str = "deg",
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (8, 4.5),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (8, 4.5),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -254,13 +252,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beam_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -299,13 +295,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_phase_fit_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate()
@@ -337,13 +331,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_zernike_fit_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -354,7 +346,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (16, 9),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (16, 9),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -391,13 +383,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_zernike_model_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -454,23 +444,12 @@ class AstrohackImageFile(AstrohackBaseFile):
         This method produces a summary of the data in the AstrohackImageFile displaying general information,
         spectral information, beam image characteristics and aperture image characteristics.
         """
-
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "image"
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=generate_observation_summary,
-            param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-            fetch_returns=True,
+        generate_observation_summary(
+            mds_object=self,
+            param_dict=locals(),
+            summary_type="image",
+            key_order=["ant", "ddi"],
         )
-        summary = "".join(summary)
-        with open(summary_file, "w") as output_file:
-            output_file.write(summary)
-        if print_summary:
-            print(summary)
 
 
 def _export_to_fits_chunk(param_dict):
@@ -946,7 +925,7 @@ def _plot_zernike_model_chunk(parm_dict):
 def _plot_zernike_cartesian_component(
     ax, fig, aperture, model, u_axis, v_axis, colormap, comp_label
 ):
-    maxabs = np.nanmax(np.abs(aperture))
+    maxabs = float(np.nanmax(np.abs(aperture)))
     zlim = [-maxabs, maxabs]
     residuals = aperture - model
     nvalid = np.sum(np.isfinite(model))

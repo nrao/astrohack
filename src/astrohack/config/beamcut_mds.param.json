@@ -150,7 +150,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_beamcut_in_attenuation":{
+    "AstrohackBeamcutFile.plot_beamcut_in_db":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -226,7 +226,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_beam_cuts_over_sky":{
+    "AstrohackBeamcutFile.plot_beamcut_lm_offsets":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -369,7 +369,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.create_beam_fit_report":{
+    "AstrohackBeamcutFile.export_beamcut_report":{
         "destination":{
             "nullable": false,
             "required": true,

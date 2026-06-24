@@ -11,12 +11,12 @@ import xarray as xr
 
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils import (
+from astrohack.utils.text import (
     create_dataset_label,
     convert_unit,
-    sig_2_fwhm,
     format_value_unit,
 )
+from astrohack.utils.constants import sig_2_fwhm
 
 quack_chans = 4
 
@@ -95,6 +95,9 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
         time_selection = np.logical_and(
             time_axis >= scan_time_range[0], time_axis < scan_time_range[1]
         )
+        if np.sum(time_selection) == 0:
+            logger.warning(f"Scan {scan_number} has no data for {antenna} DDI {ddi}")
+            continue
         time = time_axis[time_selection]
         this_lm_offsets = lm_offsets[time_selection, :]
 
@@ -103,11 +106,27 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
         )
         hands_dict = _get_parallel_hand_indexes(corr_axis)
 
-        avg_vis = np.average(
-            visibilities[time_selection, fchan:lchan, :],
-            axis=1,
-            weights=weights[time_selection, fchan:lchan, :],
-        )
+        try:
+            avg_vis = np.average(
+                visibilities[time_selection, fchan:lchan, :],
+                axis=1,
+                weights=weights[time_selection, fchan:lchan, :],
+            )
+
+        except ZeroDivisionError:
+            # This should only happen when all the data for a correlation is flagged.
+            # Since the flagged data is the one with zero weights we set the weights to 1 on those cases just to
+            # warrant that averages will work, further down the line there are mechanisms to catch wholly invalid data.
+            for i_corr in range(weights.shape[2]):
+                if np.sum(weights[time_selection, fchan:lchan, i_corr]) == 0:
+                    weights[time_selection, fchan:lchan, i_corr] = 1.0
+
+            avg_vis = np.average(
+                visibilities[time_selection, fchan:lchan, :],
+                axis=1,
+                weights=weights[time_selection, fchan:lchan, :],
+            )
+
         avg_wei = np.average(weights[time_selection, fchan:lchan, :], axis=1)
 
         avg_time = np.average(time) * convert_unit("sec", "day", "time")
@@ -293,7 +312,7 @@ def _fwhm_gaussian(x_axis, x_off, amp, fwhm):
 
 
 def _build_multi_gaussian_initial_guesses(
-    x_data, y_data, pb_fwhm, min_dist_fraction=1.3
+    x_data, y_data, pb_fwhm, datalabel, min_dist_fraction=1.0, max_n_pbs=15
 ):
     """
     Build initial guesses array for a multi gaussian fitting from X and Y axes heuristics
@@ -313,12 +332,26 @@ def _build_multi_gaussian_initial_guesses(
     :return: Tuple containing the initial_guesses, bounds and number of peaks to fit
     :rtype: tuple([list, list([list]), int])
     """
+
     initial_guesses = []
     lower_bounds = []
     upper_bounds = []
     step = float(np.median(np.diff(x_data)))
     min_dist = np.abs(min_dist_fraction * pb_fwhm / step)
+    x_range = x_data[-1] - x_data[0]
+    n_pbs_in_range = x_range / pb_fwhm
+    if min_dist < 1:
+        min_dist = 1
+
     peaks, _ = find_peaks(y_data, distance=min_dist)
+
+    if len(peaks) == 0:
+        peaks = np.array([x_data.size // 2])
+    if n_pbs_in_range > max_n_pbs:
+        logger.warning(f"{datalabel} sampling is erratic, fit will probably fail")
+        peak_interval = int(np.ceil(len(peaks) / max_n_pbs))
+        peaks = peaks[::peak_interval]
+
     dx = x_data[-1] - x_data[0]
     if dx < 0:
         peaks = peaks[::-1]
@@ -353,7 +386,7 @@ def _multi_gaussian(xdata, *args):
 
 
 def _perform_curvefit_with_given_functions(
-    x_data, y_data, initial_guesses, bounds, fit_func, datalabel, maxit=50000
+    x_data, y_data, initial_guesses, bounds, fit_func, datalabel, maxit=5000
 ):
     """
     Invoke scipy optimize curve_fit with customized parameters
@@ -463,15 +496,22 @@ def _identify_pb_and_sidelobes_in_fit(
 
         pb_cen = centers[i_pb_cen]
         i_closest_to_center = np.argsort(np.abs(centers - pb_cen))
-        if centers[i_closest_to_center[1]] < 0:
-            i_lsl = i_closest_to_center[1]
-            i_rsl = i_closest_to_center[2]
+        n_peaks = i_closest_to_center.shape[0]
+        if n_peaks >= 3:
+            if centers[i_closest_to_center[1]] < 0:
+                i_lsl = i_closest_to_center[1]
+                i_rsl = i_closest_to_center[2]
+            else:
+                i_lsl = i_closest_to_center[2]
+                i_rsl = i_closest_to_center[1]
+            left_first_sl_amp = amps[i_lsl]
+            right_first_sl_amp = amps[i_rsl]
+            first_side_lobe_ratio = left_first_sl_amp / right_first_sl_amp
         else:
-            i_lsl = i_closest_to_center[2]
-            i_rsl = i_closest_to_center[1]
-        left_first_sl_amp = amps[i_lsl]
-        right_first_sl_amp = amps[i_rsl]
-        first_side_lobe_ratio = left_first_sl_amp / right_first_sl_amp
+            logger.warning(
+                f"Only {n_peaks} peaks identified for {datalabel}, cannot provide a side lobe ratio"
+            )
+            first_side_lobe_ratio = np.nan
 
     return n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio
 
@@ -505,7 +545,7 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
                 f'{datalabel}, {cut_xds.attrs["direction"]}, corr = {parallel_hand}'
             )
             initial_guesses, bounds, n_peaks = _build_multi_gaussian_initial_guesses(
-                x_data, y_data, primary_fwhm
+                x_data, y_data, primary_fwhm, this_corr_data_label
             )
 
             # This is a test for empty data

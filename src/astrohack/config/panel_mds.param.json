@@ -73,6 +73,11 @@
             "type": ["int"],
             "min": 1,
             "max": 1200
+        },
+        "parallel":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
         }
     },
     "AstrohackPanelFile.plot_antennas":{

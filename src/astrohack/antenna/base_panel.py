@@ -5,7 +5,7 @@ from matplotlib.colors import Normalize
 
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT, PanelPoint, PanelModel
 from astrohack.utils.constants import *
-from astrohack.utils import convert_unit
+from astrohack.utils.conversion import convert_unit
 
 
 class BasePanel:

@@ -7,7 +7,7 @@ import astropy.units as units
 import xarray as xr
 
 from astrohack.io.position_mds import AstrohackPositionFile
-from astrohack.utils import (
+from astrohack.utils.text import (
     get_data_name,
     create_dataset_label,
 )

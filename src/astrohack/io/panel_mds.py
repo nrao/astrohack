@@ -1,5 +1,4 @@
 import numpy as np
-import pathlib
 
 from typing import Union, List, Tuple
 
@@ -9,7 +8,7 @@ import toolviper.utils.parameter
 from astrohack.antenna.antenna_surface import AntennaSurface
 from astrohack.utils.constants import plot_types
 from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.constants import clight
 from astrohack.utils.text import (
@@ -20,7 +19,9 @@ from astrohack.utils.text import (
     format_value_unit,
 )
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-from astrohack.visualization.observation_summary import generate_observation_summary
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
+)
 
 
 class AstrohackPanelFile(AstrohackBaseFile):
@@ -65,12 +66,13 @@ class AstrohackPanelFile(AstrohackBaseFile):
         ant: Union[str, List[str]] = "all",
         ddi: Union[str, int, List[int]] = "all",
         unit: str = "mm",
-        threshold: float = None,
+        threshold: float | int | None = None,
         panel_labels: bool = True,
         display: bool = False,
         colormap: str = "RdBu_r",
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
+        parallel: bool = False,
     ) -> None:
         """ Export screw adjustments to text files and optionally plots.
 
@@ -105,6 +107,9 @@ class AstrohackPanelFile(AstrohackBaseFile):
         :param dpi: Screw adjustment map resolution in pixels per inch, default is 300
         :type dpi: int, optional
 
+        :param parallel: Produce screw maps and screw adjustments in parallel
+        :type parallel: bool, optional
+
         .. _Description:
 
         Produce the screw adjustments from ``astrohack.panel`` results to be used at the antenna site to improve \
@@ -113,13 +118,11 @@ class AstrohackPanelFile(AstrohackBaseFile):
         """
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_screws_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=False,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -130,15 +133,15 @@ class AstrohackPanelFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         plot_type: str = "deviation",
         plot_screws: bool = False,
-        amplitude_limits: Union[Tuple, List[float], np.array] = None,
+        amplitude_limits: Union[Tuple, List[float], np.ndarray, None] = None,
         phase_unit: str = "deg",
-        phase_limits: Union[Tuple, List[float], np.array] = None,
+        phase_limits: Union[Tuple, List[float], np.ndarray, None] = None,
         deviation_unit: str = "mm",
-        deviation_limits: Union[Tuple, List[float], np.array] = None,
+        deviation_limits: Union[Tuple, List[float], np.ndarray, None] = None,
         panel_labels: bool = False,
         display: bool = False,
         colormap: str = "viridis",
-        figure_size: Union[Tuple, List[float], np.array] = (8.0, 6.4),
+        figure_size: Union[Tuple, List[float], np.ndarray] = (8.0, 6.4),
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -213,13 +216,11 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_antenna_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate()
@@ -254,13 +255,11 @@ class AstrohackPanelFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_fits_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -269,9 +268,9 @@ class AstrohackPanelFile(AstrohackBaseFile):
         destination: str,
         ant: Union[str, List[str]] = "all",
         ddi: Union[str, int, List[int]] = "all",
-        wavelengths: Union[float, List[float]] = None,
+        wavelengths: Union[float | int, List[float | int], np.ndarray, None] = None,
         wavelength_unit: str = "cm",
-        frequencies: Union[float, List[float]] = None,
+        frequencies: Union[float | int, List[float | int], np.ndarray, None] = None,
         frequency_unit: str = "GHz",
         rms_unit: str = "mm",
         parallel: bool = False,
@@ -319,13 +318,12 @@ class AstrohackPanelFile(AstrohackBaseFile):
         """
 
         param_dict = locals()
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_gain_tables_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -383,22 +381,12 @@ class AstrohackPanelFile(AstrohackBaseFile):
         spectral information, beam image characteristics and aperture image characteristics.
         """
 
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "panel"
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=generate_observation_summary,
-            param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-            fetch_returns=True,
+        generate_observation_summary(
+            mds_object=self,
+            param_dict=locals(),
+            key_order=["ant", "ddi"],
+            summary_type="panel",
         )
-        summary = "".join(summary)
-        with open(summary_file, "w") as output_file:
-            output_file.write(summary)
-        if print_summary:
-            print(summary)
 
 
 def _export_screws_chunk(parm_dict):

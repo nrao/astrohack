@@ -7,17 +7,16 @@ from typing import Union, Tuple, List
 import toolviper.utils.parameter
 import toolviper.utils.logger as logger
 
-from astrohack.antenna import get_proper_telescope
+from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.io.base_mds import AstrohackBaseFile
-from astrohack.utils import (
+from astrohack.utils.text import (
     create_pretty_table,
     rad_to_hour_str,
     rad_to_deg_str,
-    compute_antenna_relative_off,
-    notavail,
-    figsize,
     convert_unit,
 )
+from astrohack.utils.algorithms import compute_antenna_relative_off
+from astrohack.utils.constants import notavail, figsize
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
@@ -150,7 +149,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         labels: bool = True,
         precessed: bool = False,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
     ) -> None:
         """Plot source positions in either FK5 or precessed right ascension and declination.
@@ -218,9 +217,9 @@ class AstrohackLocitFile(AstrohackBaseFile):
         stations: bool = True,
         zoff: bool = False,
         unit: str = "m",
-        box_size: Union[int, float] = None,
+        box_size: Union[int, float, None] = None,
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         dpi: int = 300,
     ) -> None:
         """Plot antenna positions.

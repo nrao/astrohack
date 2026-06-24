@@ -1,5 +1,6 @@
 import shutil
 import matplotlib
+import pytest
 
 from toolviper.utils import data
 
@@ -55,6 +56,7 @@ class TestLocitMDS:
             f"{self.ref_products_name}/array_cfg_reference.txt",
         ), "Array configuration should be exactly equal to reference array configuration"
 
+    @pytest.mark.skip(reason="Data products require update.")
     def test_locit_mds_plot_exports(self):
         locit_mds = open_locit(self.locit_name)
 

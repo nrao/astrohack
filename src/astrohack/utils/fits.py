@@ -1,6 +1,5 @@
 from toolviper.utils import logger as logger
 
-import astrohack
 import datetime
 import numpy as np
 
@@ -133,17 +132,20 @@ def write_fits(header, imagetype, data, filename, unit, origin=None, reorder_axi
         origin: Which astrohack mds has created the FITS being written
         reorder_axis: Reorder data axes so that they are compatible with regular FITS ordering
     """
+    from astrohack.utils.package_info import get_astrohack_version
+
+    current_version = get_astrohack_version()
 
     header["BUNIT"] = unit
     header["TYPE"] = imagetype
-    header["ORIGIN"] = f"Astrohack v{astrohack.__version__}: {origin}"
+    header["ORIGIN"] = f"Astrohack v{current_version}: {origin}"
     header["DATE"] = datetime.datetime.now().strftime("%b %d %Y, %H:%M:%S")
 
     if origin is None:
-        header["ORIGIN"] = f"Astrohack v{astrohack.__version__}"
+        header["ORIGIN"] = f"Astrohack v{current_version}"
         outfile = filename
     else:
-        header["ORIGIN"] = f"Astrohack v{astrohack.__version__}: {origin}"
+        header["ORIGIN"] = f"Astrohack v{current_version}: {origin}"
         outfile = add_prefix(filename, origin)
 
     if reorder_axis:

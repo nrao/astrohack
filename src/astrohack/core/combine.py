@@ -6,7 +6,8 @@ import xarray as xr
 import toolviper.utils.logger as logger
 
 from astrohack.io.image_mds import AstrohackImageFile
-from astrohack.utils import create_dataset_label, clight
+from astrohack.utils.text import create_dataset_label
+from astrohack.utils.constants import clight
 from scipy.interpolate import griddata
 from astrohack.utils.text import param_to_list
 

@@ -1,4 +1,3 @@
-import pathlib
 import numpy as np
 from typing import List, Union, Tuple
 
@@ -6,25 +5,23 @@ from toolviper.utils.parameter import validate
 
 from .base_mds import AstrohackBaseFile
 
-from astrohack.utils import (
+from astrohack.utils.text import (
     create_dataset_label,
-    convert_unit,
     format_frequency,
     format_value_unit,
-    to_db,
     create_pretty_table,
+    lnbr,
+    spc,
 )
+from astrohack.utils.conversion import to_db, convert_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
 from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
 
 from astrohack.visualization.observation_summary import (
     generate_observation_summary,
 )
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
-
-lnbr = "\n"
-spc = " "
 
 
 class AstrohackBeamcutFile(AstrohackBaseFile):
@@ -102,23 +99,12 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         This method produces a summary of the data in the AstrohackBeamcutFile displaying general information,
         spectral information, beam image characteristics and aperture image characteristics.
         """
-
-        param_dict = locals()
-        key_order = ["ant", "ddi"]
-        param_dict["dtype"] = "beamcut"
-        execution, summary_list = create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=generate_observation_summary,
-            param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-            fetch_returns=True,
+        generate_observation_summary(
+            mds_object=self,
+            param_dict=locals(),
+            key_order=["ant", "ddi"],
+            summary_type="beamcut",
         )
-        full_summary = "".join(summary_list)
-        with open(summary_file, "w") as output_file:
-            output_file.write(full_summary)
-        if print_summary:
-            print(full_summary)
 
     @validate(custom_checker=custom_plots_checker)
     def plot_beamcut_in_amplitude(
@@ -128,7 +114,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: list[float] = None,
+        y_scale: list[float | int] | None = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -166,28 +152,23 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         :return: None
         :rtype: NoneType
         """
-
-        param_dict = locals()
-
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beamcut_in_amplitude_chunk,
-            param_dict=param_dict,
+            param_dict=locals(),
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_attenuation(
+    def plot_beamcut_in_db(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
         ddi: Union[str, int, List[int]] = "all",
         lm_unit: str = "amin",
         azel_unit: str = "deg",
-        y_scale: str = None,
+        y_scale: Union[list[float | int], tuple[float | int], None] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -226,20 +207,16 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         :rtype: NoneType
         """
 
-        param_dict = locals()
-
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beamcut_in_attenuation_chunk,
-            param_dict=param_dict,
+            param_dict=locals(),
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beam_cuts_over_sky(
+    def plot_beamcut_lm_offsets(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -283,13 +260,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_cuts_in_lm_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -302,7 +277,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         lm_unit: str = "amin",
         azel_unit: str = "deg",
         phase_unit: str = "deg",
-        phase_scale: Union[List[float], Tuple[float], np.array] = None,
+        phase_scale: Union[List[float], Tuple[float], np.ndarray, None] = None,
         display: bool = False,
         dpi: int = 300,
         parallel: bool = False,
@@ -346,18 +321,16 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_beamcut_in_phase_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def create_beam_fit_report(
+    def export_beamcut_report(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -393,13 +366,11 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         param_dict = locals()
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_create_report_chunk,
             param_dict=param_dict,
             key_order=["ant", "ddi"],
-            parallel=parallel,
         )
         return
 
@@ -417,7 +388,9 @@ def _plot_beamcut_in_amplitude_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    fig, axes = create_figure_and_axes(
+        [12, 1 + n_cuts * 4], [n_cuts, 2], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         _plot_single_cut_in_amplitude(cut_xds, axes[icut, :], par_dict)
 
@@ -443,15 +416,17 @@ def _plot_beamcut_in_attenuation_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([6, 1 + n_cuts * 4], [n_cuts, 1])
+    fig, axes = create_figure_and_axes(
+        [6, 1 + n_cuts * 4], [n_cuts, 1], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
-        _plot_single_cut_in_attenuation(cut_xds, axes[icut], par_dict)
+        _plot_single_cut_in_attenuation(cut_xds, axes[icut, 0], par_dict)
 
     # Header creation
     summary = cut_xdtree.attrs["summary"]
     title = _create_beamcut_header(summary, par_dict)
 
-    filename = _file_name_factory("attenuation", par_dict)
+    filename = _file_name_factory("db", par_dict)
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
@@ -483,7 +458,9 @@ def _plot_beamcut_in_phase_chunk(par_dict):
     cut_xdtree = par_dict["xdt_data"]
     n_cuts = len(cut_xdtree.children.values())
     # Loop over cuts
-    fig, axes = create_figure_and_axes([12, 1 + n_cuts * 4], [n_cuts, 2])
+    fig, axes = create_figure_and_axes(
+        [12, 1 + n_cuts * 4], [n_cuts, 2], force_2d_axes_array=True
+    )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         _plot_single_cut_in_phase(cut_xds, axes[icut, :], par_dict)
 
@@ -575,7 +552,7 @@ def _file_name_factory(file_type, par_dict):
     destination = par_dict["destination"]
     antenna = par_dict["this_ant"]
     ddi = par_dict["this_ddi"]
-    if file_type in ["attenuation", "amplitude", "lm_offsets", "phase"]:
+    if file_type in ["db", "amplitude", "lm_offsets", "phase"]:
         ext = "png"
     elif file_type == "report":
         ext = "txt"
@@ -951,7 +928,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         else:
             y_data = to_db(amps / max_amp)
 
-        y_min = np.min(y_data)
+        y_min = np.nanmin(y_data)
         if y_min < min_attenuation:
             min_attenuation = y_min
 

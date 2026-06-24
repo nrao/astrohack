@@ -6,7 +6,7 @@ import numpy as np
 from shapely.geometry.polygon import Polygon
 
 from astrohack.utils.ray_tracing_general import simple_axis
-from astrohack.antenna import RingPanel
+from astrohack.antenna.ring_panel import RingPanel
 from astrohack.antenna.telescope import RingedCassegrain, get_proper_telescope
 
 

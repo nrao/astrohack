@@ -3,12 +3,27 @@ from importlib.metadata import version
 
 __version__ = version("astrohack")
 
+
+from astrohack.io.dio import (
+    open_beamcut,
+    open_pointing,
+    open_holog,
+    open_image,
+    open_locit,
+    open_panel,
+    open_position,
+)
+from astrohack.io.point_mds import AstrohackPointFile
+from astrohack.io.locit_mds import AstrohackLocitFile
+from astrohack.io.holog_mds import AstrohackHologFile
+from astrohack.io.panel_mds import AstrohackPanelFile
+from astrohack.io.beamcut_mds import AstrohackBeamcutFile
+from astrohack.io.position_mds import AstrohackPositionFile
+from astrohack.io.image_mds import AstrohackImageFile
 from .extract_holog import (
     extract_holog,
     generate_holog_obs_dict,
 )
-from .io import *
-
 from .beamcut import beamcut
 from .extract_pointing import extract_pointing
 from .holog import holog
@@ -24,7 +39,7 @@ from .cassegrain_ray_tracing import (
     apply_holog_phase_fitting_to_rt_xds,
 )
 from .image_comparison_tool import compare_fits_images, rms_table_from_zarr_datatree
-from .antenna import get_proper_telescope
+from .antenna.telescope import get_proper_telescope
 
 # This installs a slick, informational tracebacks logger
 from rich.traceback import install

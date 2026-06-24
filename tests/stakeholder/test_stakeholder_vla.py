@@ -10,7 +10,7 @@ from astrohack.extract_holog import extract_holog
 from astrohack.extract_pointing import extract_pointing
 from astrohack.holog import holog
 from astrohack.panel import panel
-from astrohack.utils import convert_unit
+from astrohack.utils.conversion import convert_unit
 from astrohack.utils.verification_tools import relative_difference
 
 base_name = "ea25_cal_small_"

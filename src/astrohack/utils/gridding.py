@@ -8,13 +8,15 @@ from numba.core import types
 from numba.typed import List as numbaList
 import math
 
-from astrohack.utils import (
+from astrohack.utils.constants import (
     sig_2_fwhm,
+    njit_caching,
+)
+from astrohack.utils.algorithms import (
     find_nearest,
     calc_coords,
     find_peak_beam_value,
     chunked_average,
-    njit_caching,
 )
 from astrohack.utils.tools import (
     get_str_idx_in_list,

@@ -18,7 +18,7 @@ from astrohack.io.locit_mds import AstrohackLocitFile
 @toolviper.utils.parameter.validate()
 def extract_locit(
     cal_table: str,
-    locit_name: str = None,
+    locit_name: str | None = None,
     ant: Union[str, List[str]] = "all",
     ddi: Union[str, int, List[int]] = "all",
     overwrite: bool = False,

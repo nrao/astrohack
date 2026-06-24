@@ -7,6 +7,7 @@ import xarray.testing
 from PIL import Image, ImageChops
 
 from astrohack.utils.fits import read_fits_no_checks
+from astrohack.utils.package_info import get_astrohack_version
 
 
 def are_lists_equal(list_a, list_b):
@@ -47,7 +48,10 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
             # This results in a new image where differing pixels are non-zero
             diff = ImageChops.difference(img1, img2)
             mean_diff = np.mean(diff)
-            return np.abs(mean_diff) < tol, "Mean diff: {np.mean(np.absolute(diff))}"
+            return (
+                np.abs(mean_diff) < tol,
+                f"Mean diff: {float(np.mean(np.absolute(diff)))}",
+            )
 
     except IOError as e:
         print(f"Error opening images: {e}")
@@ -344,11 +348,9 @@ def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
 
 
 def create_origin_dict(caller):
-    from astrohack import __version__ as astroversion
-
     orig_dict = {
         "origin": "astrohack",
-        "version": astroversion,
+        "version": get_astrohack_version(),
         "creator_function": caller,
     }
     return orig_dict

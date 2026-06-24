@@ -1,25 +1,47 @@
+from typing import Union, Any
+
 import matplotlib.image
 import numpy as np
 from scipy.stats import linregress, theilslopes, siegelslopes
 
-from matplotlib import pyplot as plt
+import toolviper.utils.logger as logger
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import colormaps as matplotlib_cmaps
 from matplotlib.colors import ListedColormap
-from astrohack.utils import figsize, fontsize
+from matplotlib.figure import Figure
+from astrohack.utils.constants import figsize, fontsize
+from matplotlib.axes import Axes
 
 astrohack_cmaps = list(matplotlib_cmaps.keys())
 astrohack_cmaps.append("AIPS")
 
 
+def get_execution_environment():
+    try:
+        # Check if get_ipython is available in the global namespace
+        from IPython import get_ipython
+
+        shell = get_ipython().__class__.__name__
+
+        if shell == "ZMQInteractiveShell":
+            return "jupyter"  # Jupyter Notebook or JupyterLab
+        elif shell == "TerminalInteractiveShell":
+            return "ipython"  # Terminal-based IPython
+        else:
+            return "other"  # Other IDE backends
+    except (NameError, ImportError):
+        return "terminal"  # Standard Python interpreter
+
+
 def create_figure_and_axes(
-    figure_size,
-    boxes,
-    default_figsize=figsize,
-    sharex=False,
-    sharey=False,
-    plot_is_3d=False,
+    figure_size: Union[list, tuple, None],
+    boxes: Union[list, tuple, np.ndarray],
+    default_figsize: Union[list, tuple] = figsize,
+    sharex: bool = False,
+    sharey: bool = False,
+    plot_is_3d: bool = False,
+    force_2d_axes_array: bool = False,
 ):
     """
     Create a figures and plotting axes within according to a desired figure size and number of boxes
@@ -30,6 +52,7 @@ def create_figure_and_axes(
         sharex: Subplots share the X axis
         sharey: Subplots share the Y axis
         plot_is_3d: Subplots will contain 3d data.
+        force_2d_axes_array:
 
     Returns:
     Figure and plotting axes array
@@ -39,23 +62,31 @@ def create_figure_and_axes(
     else:
         prog_fig_size = figure_size
 
+    fig = Figure(figsize=prog_fig_size)
+
+    subplots_kwargs = {
+        "nrows": boxes[0],
+        "ncols": boxes[1],
+        "sharex": sharex,
+        "sharey": sharey,
+        "squeeze": not force_2d_axes_array,
+    }
     if plot_is_3d:
-        fig, axes = plt.subplots(
-            boxes[0],
-            boxes[1],
-            figsize=prog_fig_size,
-            sharex=sharex,
-            sharey=sharey,
-            subplot_kw={"projection": "3d"},
-        )
-    else:
-        fig, axes = plt.subplots(
-            boxes[0], boxes[1], figsize=prog_fig_size, sharex=sharex, sharey=sharey
-        )
+        subplots_kwargs["subplot_kw"] = {"projection": "3d"}
+
+    axes = fig.subplots(**subplots_kwargs)
+
     return fig, axes
 
 
-def close_figure(figure, title, filename, dpi, display, tight_layout=True):
+def close_figure(
+    figure: Figure,
+    title: str,
+    filename: str,
+    dpi: int,
+    display: bool,
+    tight_layout: bool = True,
+):
     """
     Set title, save to disk and optionally close the figure
     Args:
@@ -70,15 +101,74 @@ def close_figure(figure, title, filename, dpi, display, tight_layout=True):
         figure.suptitle(title)
     if tight_layout:
         figure.tight_layout()
-    plt.savefig(filename, dpi=dpi)
+    # Force filename to contain .png in case no extension is present
+    if len(filename.split(".")) == 1:
+        filename += ".png"
+    figure.savefig(filename, dpi=dpi)
+
     if display:
-        plt.show()
-    plt.close()
+        # figure.show()
+        py_env = get_execution_environment()
+        if py_env in ["terminal", "ipython", "other"]:
+            mpl_backend = matplotlib.get_backend()
+            if mpl_backend.lower() == "tkagg":
+                from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+                import tkinter as tk
+
+                # 2. Instantiate canvas without explicit master (defaults to an internal Tk root)
+                canvas = FigureCanvasTkAgg(figure)
+                canvas_widget = canvas.get_tk_widget()
+                canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+                # 3. Retrieve the automatically generated top-level window and run it
+                window = canvas_widget.winfo_toplevel()
+                window.title(f"Astrohack: {title}")
+                window.mainloop()
+            elif mpl_backend == "macosx":
+                from matplotlib.backends.backend_macosx import (
+                    FigureCanvasMac,
+                    FigureManagerMac,
+                )
+                import time
+
+                running = True
+
+                def on_close(event):
+                    nonlocal running
+                    running = False
+
+                canvas = FigureCanvasMac(figure)
+                canvas.mpl_connect("close_event", on_close)
+                manager = FigureManagerMac(canvas, 1)
+                manager.show()
+                while running:
+                    canvas.flush_events()
+                    time.sleep(0.01)
+
+            else:
+                logger.warning(
+                    f"'{mpl_backend}' backend not supported for interactive plots"
+                )
+        elif py_env in ["jupyter"]:
+            from IPython.display import display, HTML
+
+            display(HTML(f'<img src="{filename}" style="max-width:60%; height:auto;">'))
+        else:
+            logger.warning(f"Unrecognized python environment '{py_env}'")
+
+    figure.clear()
+    del figure
     return
 
 
 def well_positioned_colorbar(
-    ax, fig, mappable, label, location="right", size="5%", pad=0.05
+    ax: Axes,
+    fig: Figure,
+    mappable,
+    label: str,
+    location: str = "right",
+    size: str = "5%",
+    pad: float | int = 0.05,
 ):
     """
     Adds a well positioned colorbar to a plot
@@ -100,12 +190,12 @@ def well_positioned_colorbar(
     if isinstance(mappable, matplotlib.image.AxesImage):
         return fig.colorbar(mappable, label=label, cax=cax)
     else:  # mappable is a colormap
-        sm = plt.cm.ScalarMappable(cmap=mappable)
+        sm = matplotlib.cm.ScalarMappable(cmap=mappable)
         sm.set_array([])
         return fig.colorbar(sm, label=label, cax=cax)
 
 
-def compute_extent(x_axis, y_axis, margin=0.0):
+def compute_extent(x_axis: np.ndarray, y_axis: np.ndarray, margin: float | int = 0.0):
     """
     Compute extent from the arrays representing the X and Y axes
     Args:
@@ -125,7 +215,7 @@ def compute_extent(x_axis, y_axis, margin=0.0):
     return extent
 
 
-def get_proper_color_map(user_cmap, default_cmap="viridis"):
+def get_proper_color_map(user_cmap: str | None, default_cmap: str = "viridis"):
     if user_cmap is None or user_cmap == "None":
         return matplotlib_cmaps[default_cmap]
     elif user_cmap == "AIPS":
@@ -149,17 +239,17 @@ def get_proper_color_map(user_cmap, default_cmap="viridis"):
 
 
 def plot_boxes_limits_and_labels(
-    outerax,
-    innerax,
-    xlabel,
-    ylabel,
-    box_size,
-    outertitle,
-    innertitle,
-    marker="x",
-    marker_color="blue",
-    rectangle_color="red",
-    fixed_aspect=None,
+    outerax: Axes,
+    innerax: Axes,
+    xlabel: str,
+    ylabel: str,
+    box_size: float | int,
+    outertitle: str,
+    innertitle: str,
+    marker: str = "x",
+    marker_color: str = "blue",
+    rectangle_color: str = "red",
+    fixed_aspect: float | int | None = None,
 ):
     """
     Set limits and axis labels to array configuration boxes
@@ -182,10 +272,10 @@ def plot_boxes_limits_and_labels(
     y_half, y_mid = (y_lim[1] - y_lim[0]) / 2, (y_lim[1] + y_lim[0]) / 2
 
     if x_half > y_half:
-        y_lim = [y_mid - x_half, y_mid + x_half]
+        y_lim = (y_mid - x_half, y_mid + x_half)
 
     else:
-        x_lim = [x_mid - y_half, x_mid + y_half]
+        x_lim = (x_mid - y_half, x_mid + y_half)
 
     outerax.set_xlim(x_lim)
     outerax.set_ylim(y_lim)
@@ -209,8 +299,8 @@ def plot_boxes_limits_and_labels(
         outerax.set_aspect(fixed_aspect)
 
     # Smaller box limits and labels
-    innerax.set_xlim([-half_box, half_box])
-    innerax.set_ylim([-half_box, half_box])
+    innerax.set_xlim((-half_box, half_box))
+    innerax.set_ylim((-half_box, half_box))
     innerax.set_xlabel(xlabel)
     innerax.set_ylabel(ylabel)
     innerax.plot(0, 0, marker=marker, color=marker_color)
@@ -221,44 +311,44 @@ def plot_boxes_limits_and_labels(
 
 
 def scatter_plot(
-    ax,
-    xdata,
-    xlabel,
-    ydata,
-    ylabel,
-    title=None,
-    labels=None,
-    xlim=None,
-    ylim=None,
-    hlines=None,
-    vlines=None,
-    model=None,
-    data_marker="+",
-    data_color="red",
-    data_linestyle="",
-    data_label="data",
-    hv_linestyle="--",
-    hv_color="black",
-    model_marker="x",
-    model_color="blue",
-    model_linestyle="",
-    model_label="model",
-    plot_residuals=True,
-    residuals_marker="+",
-    residuals_color="black",
-    residuals_linestyle="",
-    residuals_label="residuals",
-    add_regression=False,
-    regression_linestyle="-",
-    regression_color="black",
-    regression_method="linregress",
-    add_regression_reference=False,
-    regression_reference=(1.0, 0.0),
-    regression_reference_color="orange",
-    regression_reference_label="Regression refrence",
-    force_equal_aspect=False,
-    add_legend=True,
-    legend_location="best",
+    ax: Axes,
+    xdata: np.ndarray,
+    xlabel: str,
+    ydata: np.ndarray,
+    ylabel: str,
+    title: str | None = None,
+    labels: list | tuple | None = None,
+    xlim: list | tuple | None = None,
+    ylim: list | tuple | None = None,
+    hlines: list | tuple | np.ndarray | None = None,
+    vlines: list | tuple | np.ndarray | None = None,
+    model: np.ndarray | None = None,
+    data_marker: str = "+",
+    data_color: str = "red",
+    data_linestyle: str = "",
+    data_label: str = "data",
+    hv_linestyle: str = "--",
+    hv_color: str = "black",
+    model_marker: str = "x",
+    model_color: str = "blue",
+    model_linestyle: str = "",
+    model_label: str = "model",
+    plot_residuals: bool = True,
+    residuals_marker: str = "+",
+    residuals_color: str = "black",
+    residuals_linestyle: str = "",
+    residuals_label: str = "residuals",
+    add_regression: bool = False,
+    regression_linestyle: str = "-",
+    regression_color: str = "black",
+    regression_method: str = "linregress",
+    add_regression_reference: bool = False,
+    regression_reference: Any = (1.0, 0.0),
+    regression_reference_color: str = "orange",
+    regression_reference_label: str = "Regression refrence",
+    force_equal_aspect: bool = False,
+    add_legend: bool = True,
+    legend_location: str = "best",
 ):
     """
     Do scatter simple scatter plots of data to a plotting axis
@@ -391,7 +481,7 @@ def scatter_plot(
             if xlim is not None:
                 ax_res.set_xlim(xlim)
 
-            minmax = np.nanmax(np.absolute(residuals))
+            minmax = float(np.nanmax(np.absolute(residuals)))
             ax_res.set_ylim([-minmax, minmax])
             if vlines is not None:
                 for vline in vlines:
@@ -414,22 +504,22 @@ def scatter_plot(
 
 
 def simple_imshow_map_plot(
-    ax,
-    fig,
-    x_axis,
-    y_axis,
-    gridded_2d_arr,
-    title,
-    colormap,
-    zlim,
-    x_label="X axis [m]",
-    y_label="Y axis [m]",
-    z_label="Z Scale",
-    transpose=False,
-    extent=None,
-    extent_margin=0,
-    add_colorbar=True,
-    interpolation="nearest",
+    ax: Axes,
+    fig: Figure,
+    x_axis: np.ndarray,
+    y_axis: np.ndarray,
+    gridded_2d_arr: np.ndarray,
+    title: str,
+    colormap: str,
+    zlim: list | tuple | np.ndarray,
+    x_label: str = "X axis [m]",
+    y_label: str = "Y axis [m]",
+    z_label: str = "Z Scale",
+    transpose: bool = False,
+    extent: list | tuple | np.ndarray | None = None,
+    extent_margin: float | int = 0,
+    add_colorbar: bool = True,
+    interpolation: str = "nearest",
 ):
     cmap = get_proper_color_map(colormap)
     if zlim is None:
@@ -469,8 +559,17 @@ def simple_imshow_map_plot(
     return im
 
 
-def set_y_axis_lims_from_default(ax, user_y_scale, prog_defaults):
+def set_y_axis_lims_from_default(
+    ax: Axes, user_y_scale: tuple | list, prog_defaults: tuple | list
+):
     if user_y_scale is None:
-        ax.set_ylim(prog_defaults)
+        applied_scale = list(prog_defaults)
     else:
-        ax.set_ylim(user_y_scale)
+        applied_scale = list(user_y_scale)
+
+    sub_lims = [-1, 1]
+    for i_lim in range(2):
+        if not np.isfinite(applied_scale[i_lim]):
+            applied_scale[i_lim] = sub_lims[i_lim]
+
+    ax.set_ylim(applied_scale)

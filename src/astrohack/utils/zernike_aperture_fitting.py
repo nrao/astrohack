@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import optimize as opt
 
-from astrohack.utils import create_2d_array_reconstruction_array
+from astrohack.utils.algorithms import create_2d_array_reconstruction_array
 
 # Cartesian forms for the Zernike Polynomials extracted from Lakshminarayanan & Fleck, Journal of modern Optics 2011.
 

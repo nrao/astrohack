@@ -9,8 +9,8 @@ import pathlib
 import toolviper.utils.logger as logger
 from toolviper.utils.console import Colorize
 
-import astrohack
-from astrohack.utils import data_from_version_needs_patch
+from astrohack.utils.algorithms import data_from_version_needs_patch
+from astrohack.utils.package_info import get_astrohack_version
 
 DIMENSION_KEY = "_ARRAY_DIMENSIONS"
 colorize = Colorize()
@@ -100,7 +100,7 @@ def add_caller_and_version_to_dict(in_dict, direct_call=False):
 
     in_dict["origin_info"] = {
         "origin": "astrohack",
-        "version": astrohack.__version__,
+        "version": get_astrohack_version(),
         "creator_function": inspect.stack()[ipos].function,
         "creation_time": time_str,
     }

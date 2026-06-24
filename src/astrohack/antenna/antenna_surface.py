@@ -5,11 +5,8 @@ from matplotlib import patches
 import toolviper.utils.logger as logger
 
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils import (
-    string_to_ascii_file,
-    create_dataset_label,
+from astrohack.utils.algorithms import (
     data_statistics,
-    statistics_to_text,
     phase_wrapping,
 )
 from astrohack.utils.constants import *
@@ -20,6 +17,10 @@ from astrohack.utils.text import (
     bool_to_str,
     format_frequency,
     format_value_unit,
+    string_to_ascii_file,
+    create_dataset_label,
+    statistics_to_text,
+    lnbr,
 )
 from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
@@ -36,7 +37,6 @@ from astrohack.utils.fits import (
     put_axis_in_fits_header,
 )
 
-lnbr = "\n"
 SUPPORTED_POL_STATES = ["I", "RR", "LL", "XX", "YY"]
 
 

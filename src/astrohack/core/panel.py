@@ -1,10 +1,8 @@
-import xarray as xr
-
 import toolviper.utils.logger as logger
 
 from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.antenna.antenna_surface import AntennaSurface
-from astrohack.utils import create_dataset_label
+from astrohack.utils.text import create_dataset_label
 
 
 def process_panel_chunk(panel_chunk_params: dict, output_mds: AstrohackPanelFile):

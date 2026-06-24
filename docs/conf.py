@@ -61,23 +61,11 @@ nbsphinx_execute = "never"
 # ----
 # """
 
-autoapi_dirs = ["../src/astrohack", "../src/astrohack/io"]
-# autoapi_dirs = ['../']
+autoapi_dirs = ["../src/astrohack"]
 autoapi_add_toctree_entry = False
 autoapi_generate_api_docs = True
 autoapi_root = "_api/autoapi"
-autoapi_options = ["show-module-summary"]
-autoapi_template_dir = "_templates"
 autoapi_keep_files = True
-autoapi_ignore = [
-    "*/_panel_classes/*",
-    "*/utils/*",
-    "*/core/*",
-    "*/visualization/*",
-    "*/__pycache__/*",
-    "*/data/_*",
-]
-# autoapi_ignore = ['*/_panel_classes/*','*/utils/*','*/docs/*','*/visualization/*','*/__pycache__/*']
 
 # Napoleon settings
 # napoleon_google_docstring = True
@@ -253,7 +241,19 @@ epub_exclude_files = ["search.html"]
 
 # autosummary_generate = True
 # autodoc_default_flags = ['members', 'inherited-members']
+suppress_warnings = ["docutils.explicit_markup_ends_without_a_blank_line"]
+
+
+def skip_private_functions(app, what, name, obj, skip, options):
+    if obj.name.startswith("_"):  # exclusion of private objects
+        skip = True
+
+    # print(80*'#')
+    # print(what, name, obj.name, skip)
+    # print(80*'~')
+    return skip
 
 
 def setup(app):
     app.add_css_file("customization.css")
+    app.connect("autoapi-skip-member", skip_private_functions)

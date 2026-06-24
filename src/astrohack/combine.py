@@ -2,7 +2,7 @@ from typing import Union, List
 
 import toolviper.utils.parameter
 
-from astrohack import open_image
+from astrohack.io.dio import open_image
 from astrohack.core.combine import process_combine_chunk
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.file import overwrite_file
@@ -13,7 +13,7 @@ from astrohack.io.image_mds import AstrohackImageFile
 @toolviper.utils.parameter.validate()
 def combine(
     image_name: str,
-    combine_name: str = None,
+    combine_name: str | None = None,
     ant: Union[str, List[str]] = "all",
     ddi: Union[int, List[int], str] = "all",
     weighted: bool = False,

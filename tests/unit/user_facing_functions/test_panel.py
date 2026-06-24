@@ -6,7 +6,7 @@ import numpy as np
 
 import toolviper
 
-from astrohack.antenna import get_proper_telescope
+from astrohack.antenna.telescope import get_proper_telescope
 from astrohack import panel, open_panel
 from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
 

@@ -5,7 +5,7 @@ from toolviper.utils.parameter import validate
 import toolviper.utils.logger as logger
 
 from astrohack.core.beamcut import process_beamcut_chunk
-from astrohack.utils import get_default_file_name
+from astrohack.utils.text import get_default_file_name
 from astrohack.utils.file import overwrite_file
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.io.beamcut_mds import AstrohackBeamcutFile
@@ -18,15 +18,15 @@ from typing import Union, List, Tuple
 @validate(custom_checker=custom_plots_checker)
 def beamcut(
     holog_name: str,
-    beamcut_name: str = None,
+    beamcut_name: str | None = None,
     ant: Union[str, List[str]] = "all",
     ddi: Union[int, List[int], str] = "all",
-    destination: str = None,
+    destination: str | None = None,
     lm_unit: str = "amin",
     azel_unit: str = "deg",
     phase_unit: str = "deg",
-    phase_scale: Union[List[float], Tuple[float], np.array] = None,
-    y_scale: list[float] = None,
+    phase_scale: Union[List[float | int], Tuple[float | int], np.ndarray, None] = None,
+    y_scale: list[float | int] | None = None,
     dpi: int = 300,
     display: bool = False,
     parallel: bool = False,
@@ -140,7 +140,6 @@ def beamcut(
         param_dict=beamcut_params,
         key_order=["ant", "ddi"],
         output_mds=beamcut_mds,
-        parallel=parallel,
     )
     if executed_graph:
         if destination is not None:
@@ -154,7 +153,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beamcut_in_attenuation(
+            beamcut_mds.plot_beamcut_in_db(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -173,7 +172,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beam_cuts_over_sky(
+            beamcut_mds.plot_beamcut_lm_offsets(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -181,7 +180,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.create_beam_fit_report(
+            beamcut_mds.export_beamcut_report(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,

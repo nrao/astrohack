@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import numpy as np
-import pathlib
 
 from datetime import date
 from astropy.time import Time
@@ -17,10 +16,12 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
 )
-from astrohack.utils.graph import create_and_execute_graph_from_dict
+from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.algorithms import compute_average_stokes_visibilities
-from astrohack.visualization.observation_summary import generate_observation_summary
+from astrohack.visualization.observation_summary import (
+    generate_observation_summary,
+)
 from astrohack.utils.validation import custom_plots_checker, custom_unit_checker
 
 
@@ -51,7 +52,7 @@ class AstrohackHologFile(AstrohackBaseFile):
         map_id: Union[int, List[int], str] = "all",
         complex_split: str = "polar",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -103,14 +104,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_diagnostics_chunk,
             param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
+            key_order=["ant", "ddi", "map"],
         )
 
     @toolviper.utils.parameter.validate(custom_checker=custom_plots_checker)
@@ -122,11 +120,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         map_id: Union[int, List[int], str] = "all",
         angle_unit: str = "deg",
         time_unit: str = "hour",
-        plot_correlation: Union[str, List[str]] = None,
+        plot_correlation: Union[str, List[str], None] = None,
         complex_split: str = "polar",
         phase_unit: str = "deg",
         display: bool = False,
-        figure_size: Union[Tuple, List[float], np.array] = None,
+        figure_size: Union[Tuple, List[float], np.ndarray, None] = None,
         dpi: int = 300,
         parallel: bool = False,
     ) -> None:
@@ -192,14 +190,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_plot_lm_sky_coverage_chunk,
             param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
+            key_order=["ant", "ddi", "map"],
         )
         return
 
@@ -238,14 +233,11 @@ class AstrohackHologFile(AstrohackBaseFile):
         param_dict = locals()
         param_dict["map"] = map_id
 
-        pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
-        key_order = ["ant", "ddi", "map"]
-        create_and_execute_graph_from_dict(
-            looping_dict=self,
+        create_and_execute_graphs_for_outputs(
+            mds_object=self,
             chunk_function=_export_to_aips_chunk,
             param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
+            key_order=["ant", "ddi", "map"],
         )
         return
 
@@ -308,24 +300,14 @@ class AstrohackHologFile(AstrohackBaseFile):
         This method produces a summary of the data in the AstrohackHologFile displaying general information,
         spectral information and suggested beam image characteristics.
         """
-
         param_dict = locals()
         param_dict["map"] = map_id
-        param_dict["dtype"] = "holog"
-        key_order = ["ant", "ddi", "map"]
-        execution, summary = create_and_execute_graph_from_dict(
-            looping_dict=self,
-            chunk_function=generate_observation_summary,
+        generate_observation_summary(
+            mds_object=self,
             param_dict=param_dict,
-            key_order=key_order,
-            parallel=parallel,
-            fetch_returns=True,
+            key_order=["ant", "ddi", "map"],
+            summary_type="holog",
         )
-        summary = "".join(summary)
-        with open(summary_file, "w") as output_file:
-            output_file.write(summary)
-        if print_summary:
-            print(summary)
 
 
 def _extract_indices(laxis, maxis, squared_radius):

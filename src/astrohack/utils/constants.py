@@ -84,3 +84,4 @@ plot_types = ["deviation", "phase", "ancillary", "all"]
 figsize = [8, 6.4]
 fontsize = 6.4
 markersize = 3.2
+minimum_xdtree_version = "0.10.1"

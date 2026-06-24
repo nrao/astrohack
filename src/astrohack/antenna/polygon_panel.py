@@ -1,7 +1,7 @@
 from shapely import Polygon, Point
 from shapely.plotting import plot_polygon
 
-from astrohack.utils import markersize
+from astrohack.utils.constants import markersize
 from astrohack.antenna.base_panel import BasePanel
 from astrohack.antenna.panel_fitting import PanelPoint
 import numpy as np

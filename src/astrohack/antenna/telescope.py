@@ -2,18 +2,17 @@ from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.strtree import STRtree
 
-import astrohack
 import pathlib
 
 import xarray as xr
 import toolviper.utils.logger as logger
 
-import astrohack.utils.tools
 from astrohack.antenna.polygon_panel import PolygonPanel
 from astrohack.utils.constants import *
 from astrohack.antenna.ring_panel import RingPanel
 from astrohack.utils.algorithms import create_coordinate_images, arm_shadow_masking
 from astrohack.utils.ray_tracing_general import GlobalQPS
+from astrohack.utils.package_info import get_astrohack_path
 
 
 class Telescope:
@@ -76,9 +75,7 @@ class Telescope:
         Returns:
             None
         """
-        dest_path = "/".join(
-            [astrohack.__path__[0], f"data/telescopes/{name.lower()}.zarr"]
-        )
+        dest_path = get_astrohack_path() / f"data/telescopes/{name.lower()}.zarr"
         self.read(dest_path)
 
     def write(self, filename):
@@ -105,11 +102,9 @@ class Telescope:
         return
 
     def write_to_distro(self):
-        dest_path = "/".join(
-            [
-                astrohack.__path__[0],
-                f'data/telescopes/{self.name.lower().replace(" ", "_")}.zarr',
-            ]
+        dest_path = (
+            get_astrohack_path()
+            / f'data/telescopes/{self.name.lower().replace(" ", "_")}.zarr'
         )
         self.write(dest_path)
 

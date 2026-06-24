@@ -63,5 +63,6 @@ still happening on a regular basis, so proceed with caution.
    online_pages/astrohack_installation
    online_pages/tutorials
    online_pages/api
+   online_pages/AstroHACK_BeamCut_reduction
    online_pages/AstroHACK_under_a_venv_for_locit
    online_pages/AstroHACK-for-NF-ALMA

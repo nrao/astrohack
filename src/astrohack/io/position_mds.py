@@ -13,6 +13,7 @@ from astrohack.utils.text import (
     add_prefix,
     string_to_ascii_file,
     lnbr,
+    undscr,
 )
 from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
 from astrohack.utils.conversion import convert_unit
@@ -175,7 +176,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
                             row = [
                                 ant_name,
                                 antenna[ddi_key].attrs["antenna_info"]["station"],
-                                ddi_key.split("_")[1],
+                                ddi_key.split(undscr)[1],
                             ]
                             table.add_row(
                                 _export_position_xds_to_table_row(
@@ -517,13 +518,11 @@ def _plot_sky_coverage_chunk(parm_dict):
 
     if combined:
         export_name = f"{destination}/position_sky_coverage_{antenna}.png"
-        suptitle = f'Sky coverage for antenna {antenna.split("_")[1]}'
+        suptitle = f"Sky coverage for antenna {antenna.split(undscr)[1]}"
     else:
         ddi = parm_dict["this_ddi"]
         export_name = f"{destination}/position_sky_coverage_{antenna}_{ddi}.png"
-        suptitle = (
-            f'Sky coverage for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
-        )
+        suptitle = f"Sky coverage for antenna {antenna.split(undscr)[1]}, DDI {ddi.split(undscr)[1]}"
 
     figuresize = parm_dict["figure_size"]
     angle_unit = parm_dict["angle_unit"]
@@ -610,12 +609,12 @@ def _plot_delays_chunk(parm_dict):
     destination = parm_dict["destination"]
     if combined:
         export_name = f'{destination}/position_delays_{antenna}_combined_{parm_dict["comb_type"]}.png'
-        suptitle = f'Delays for antenna {antenna.split("_")[1]}'
+        suptitle = f"Delays for antenna {antenna.split(undscr)[1]}"
     else:
         ddi = parm_dict["this_ddi"]
         export_name = f"{destination}/position_delays_{antenna}_separated_{ddi}.png"
         suptitle = (
-            f'Delays for antenna {antenna.split("_")[1]}, DDI {ddi.split("_")[1]}'
+            f"Delays for antenna {antenna.split(undscr)[1]}, DDI {ddi.split(undscr)[1]}"
         )
 
     ant_xdt = parm_dict["xdt_data"]

@@ -11,6 +11,7 @@ from astrohack.utils.conversion import convert_unit
 
 lnbr = "\n"
 spc = " "
+undscr = "_"
 
 
 def tuple_inspect(param_tuple):
@@ -59,7 +60,7 @@ def add_prefix(input_string, prefix):
 
     """
     wrds = input_string.split("/")
-    wrds[-1] = prefix + "_" + wrds[-1]
+    wrds[-1] = prefix + undscr + wrds[-1]
     return "/".join(wrds)
 
 
@@ -148,7 +149,7 @@ def _get_tree_field_names(data_tree, field_names=None):
     else:
         this_level_keys = list(data_tree.keys())
         f_key = this_level_keys[0]
-        key_label = key_labels[f_key.split("_")[0]]
+        key_label = key_labels[f_key.split(undscr)[0]]
         if field_names is None:
             field_names = [key_label]
         else:
@@ -460,7 +461,7 @@ def format_angular_distance(user_value, unit="rad", decimal_places=2):
     return format_value_unit(fac * user_value, unitout, decimal_places)
 
 
-def format_label(label, separators=("_", lnbr), new_separator=spc):
+def format_label(label, separators=(undscr, lnbr), new_separator=spc):
     if isinstance(label, str):
         out_label = label
     else:
@@ -580,7 +581,7 @@ def create_dataset_label(ant_id, ddi_id, separator=":"):
 
 
 def get_data_name(data_id):
-    return data_id.split("_")[1]
+    return data_id.split(undscr)[1]
 
 
 def significant_figures_round(x, digits):

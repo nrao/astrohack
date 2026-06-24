@@ -9,7 +9,7 @@ from astrohack.utils.file import add_caller_and_version_to_dict
 from astrohack.utils.phase_fitting import aips_like_phase_fitting
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from typing import Union
-from astrohack.utils.text import spc
+from astrohack.utils.text import spc, undscr
 
 
 @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
@@ -277,7 +277,7 @@ def plot_2d_maps_from_rt_xds(
     for key in keys:
         filename = f"{rootname}_{key}.png"
 
-        zlabel = key.capitalize().replace("_", spc)
+        zlabel = key.capitalize().replace(undscr, spc)
         if key == "phase":
             fac = convert_unit("rad", phase_unit, "trigonometric")
             zlabel += f" [{phase_unit}]"

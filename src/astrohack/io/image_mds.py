@@ -26,6 +26,7 @@ from astrohack.utils.text import (
     format_value_error,
     lnbr,
     spc,
+    undscr,
 )
 from astrohack.utils.fits import (
     write_fits,
@@ -777,7 +778,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
         add_prefix(basename, parm_dict["complex_split"]), "image_beam"
     )
     suptitle = (
-        f'Beam for Antenna: {parm_dict["this_ant"].split("_")[1]}, DDI: {parm_dict["this_ddi"].split("_")[1]}, '
+        f'Beam for Antenna: {parm_dict["this_ant"].split(undscr)[1]}, DDI: {parm_dict["this_ddi"].split(undscr)[1]}, '
         f"pol. State: {pol}"
     )
     close_figure(fig, suptitle, plot_name, parm_dict["dpi"], parm_dict["display"])
@@ -805,7 +806,7 @@ def _export_phase_fit_chunk(parm_dict):
         for freq, freq_dict in map_dict.items():
             for pol, pol_dict in freq_dict.items():
                 outstr += (
-                    f'* {mapkey.replace("_", spc)}, Frequency {format_frequency(freq)}, '
+                    f"* {mapkey.replace(undscr, spc)}, Frequency {format_frequency(freq)}, "
                     f"polarization state {pol}:{2*lnbr} "
                 )
                 table = create_pretty_table(field_names, alignment)

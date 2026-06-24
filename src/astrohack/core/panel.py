@@ -2,7 +2,7 @@ import toolviper.utils.logger as logger
 
 from astrohack.io.panel_mds import AstrohackPanelFile
 from astrohack.antenna.antenna_surface import AntennaSurface
-from astrohack.utils.text import create_dataset_label
+from astrohack.utils.text import create_dataset_label, undscr
 
 
 def process_panel_chunk(panel_chunk_params: dict, output_mds: AstrohackPanelFile):
@@ -20,8 +20,8 @@ def process_panel_chunk(panel_chunk_params: dict, output_mds: AstrohackPanelFile
     dataset_label = create_dataset_label(ant_key, ddi_key)
     logger.info(f"processing {dataset_label}")
     if isinstance(clip_level, dict):
-        ant_name = ant_key.split("_")[1]
-        ddi_name = int(ddi_key.split("_")[1])
+        ant_name = ant_key.split(undscr)[1]
+        ddi_name = int(ddi_key.split(undscr)[1])
         try:
             clip_level = clip_level[ant_name][ddi_name]
         except KeyError:

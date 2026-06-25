@@ -63,7 +63,6 @@ class TestBeamcutMDS:
         ), "Observation summary should be exactly equal to reference observation summary"
         return
 
-    @pytest.mark.skip(reason="Data products require update.")
     def test_beamcut_mds_plots(self):
         ant = "ea15"
         ddi = 0

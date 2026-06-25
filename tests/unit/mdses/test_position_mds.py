@@ -91,7 +91,6 @@ class TestPositionMDS:
             ), f"{parminator_filename} differs from reference file."
         return
 
-    @pytest.mark.skip(reason="Data products require update.")
     def test_position_mds_plot_exports(self):
         ddi = 0
         ant = "ea16"

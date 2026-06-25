@@ -802,13 +802,14 @@ def _export_phase_fit_chunk(parm_dict):
     field_names = ["Parameter", "Value", "Unit"]
     alignment = ["l", "r", "c"]
     outstr = ""
-
+    summary = parm_dict["xdt_data"].attrs["summary"]
+    azel_unit = "deg"
     for mapkey, map_dict in phase_fit_results.items():
         for freq, freq_dict in map_dict.items():
             for pol, pol_dict in freq_dict.items():
                 outstr += (
                     f"* {mapkey.replace(undscr, spc)}, "
-                    f"{create_informative_label_from_summary(parm_dict["xdt_data"].attrs["summary"], "deg")}, "
+                    f"{create_informative_label_from_summary(summary, azel_unit)}, "
                     f"polarization state {pol}:{2*lnbr} "
                 )
                 table = create_pretty_table(field_names, alignment)

@@ -361,7 +361,6 @@ def execute_cleanup():
     import os
 
     skip_cleanup = os.getenv("SKIP_PYTEST_CLEANUP")
-    print(skip_cleanup)
     if skip_cleanup == "True":
         return False
     else:

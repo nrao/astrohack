@@ -10,6 +10,7 @@ from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
 from astrohack.utils.verification_tools import (
     are_lists_equal,
     add_data_folder_to_names_in_class,
+    execute_cleanup,
 )
 
 matplotlib.use("Agg")
@@ -77,8 +78,9 @@ class TestBeamcut:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir, ignore_errors=True)
-        shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir, ignore_errors=True)
+            shutil.rmtree(cls.destination_folder, ignore_errors=True)
 
     @pytest.mark.skip(reason="Data products require update.")
     def test_results(self):

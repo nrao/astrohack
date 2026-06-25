@@ -4,7 +4,10 @@ import toolviper
 import pathlib
 import pytest
 
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    execute_cleanup,
+)
 from astrohack import combine, open_image
 
 
@@ -37,7 +40,8 @@ class TestCombine:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         new_cmb_mds = combine(image_name=self.img_name, overwrite=True)

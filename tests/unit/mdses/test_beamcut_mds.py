@@ -10,6 +10,7 @@ from astrohack.utils.verification_tools import (
     are_png_files_close,
     are_txt_files_equal,
     add_data_folder_to_names_in_class,
+    execute_cleanup,
 )
 
 matplotlib.use("Agg")
@@ -36,8 +37,9 @@ class TestBeamcutMDS:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir, ignore_errors=True)
-        shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir, ignore_errors=True)
+            shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_beamcut_mds_init(self):

@@ -9,6 +9,7 @@ from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     are_png_files_close,
     are_lists_equal,
+    execute_cleanup,
 )
 
 matplotlib.use("Agg")
@@ -37,8 +38,9 @@ class TestPointMDS:
 
     @classmethod
     def teardown_class(cls):
-        shutil.rmtree(cls.data_dir)
-        shutil.rmtree(cls.destination_folder)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
+            shutil.rmtree(cls.destination_folder)
         return
 
     def test_init(self):

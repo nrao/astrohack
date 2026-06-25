@@ -9,7 +9,10 @@ from astrohack import open_holog
 from astrohack.core.holog_obs_dict import HologObsDict
 from astrohack.extract_holog import extract_holog
 from astrohack.extract_holog import generate_holog_obs_dict
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    execute_cleanup,
+)
 
 
 class TestExtractHolog:
@@ -34,7 +37,8 @@ class TestExtractHolog:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         new_hlg_mds = extract_holog(

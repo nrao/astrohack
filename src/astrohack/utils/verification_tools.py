@@ -355,3 +355,13 @@ def create_origin_dict(caller):
         "creator_function": caller,
     }
     return orig_dict
+
+
+def execute_cleanup():
+    import os
+
+    skip_cleanup = os.getenv("SKIP_PYTEST_CLEANUP")
+    if skip_cleanup == "True":
+        return True
+    else:
+        return False

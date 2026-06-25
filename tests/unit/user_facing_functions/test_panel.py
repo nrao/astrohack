@@ -8,7 +8,10 @@ import toolviper
 
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack import panel, open_panel
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    execute_cleanup,
+)
 
 
 class TestPanel:
@@ -37,7 +40,8 @@ class TestPanel:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         """

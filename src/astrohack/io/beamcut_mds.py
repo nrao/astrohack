@@ -913,7 +913,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     pb_fwhm = 0.0
     fsl_ratio = 0.0
     xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
-    ylabel = f"Attenuation [dB]"
+    ylabel = f"Beam Power [dB]"
 
     # Loop over correlations
     n_data = 0

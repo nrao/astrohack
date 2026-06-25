@@ -82,7 +82,6 @@ class TestBeamcut:
             shutil.rmtree(cls.data_dir, ignore_errors=True)
             shutil.rmtree(cls.destination_folder, ignore_errors=True)
 
-    @pytest.mark.skip(reason="Data products require update.")
     def test_results(self):
         # Has to be run first
         new_bmc_mds = beamcut(

@@ -7,6 +7,7 @@ import toolviper.utils.logger as logger
 from typing import Union, List, Any
 from rich.console import Console
 from astrohack.io.dio import open_holog
+from astrohack.utils.text import get_data_name
 
 
 def _add_prefix_to_keys(prefix, key_list):
@@ -132,13 +133,23 @@ class HologObsDict(dict):
 
             raise RuntimeError("Too many baseline parameters specified.")
 
+        n_ant_total = len(ant_names_set)
         # The reference antennas are then given by ref_ant_set = ant_names_set - map_ant_set.
         for ddi, ddi_dict in holog_obs_dict.items():
+            if len(ddi_dict.items()) == 0:
+                logger.warning(f"No mapping antennas for DDI {get_data_name(ddi)}")
+                continue
             for map_id, map_dict in ddi_dict.items():
                 map_ant_set = set(map_dict["ant"].keys())
 
                 # Need a copy because of del holog_obs_dict[ddi][map_id]['ant'][map_ant_key] below.
                 map_ant_keys = list(map_dict["ant"].keys())
+                n_map_ant = len(map_ant_keys)
+                if n_map_ant == n_ant_total:
+                    logger.warning(
+                        f"No reference antennas for DDI {get_data_name(ddi)}"
+                    )
+                    continue
 
                 for map_ant_key in map_ant_keys:
                     ref_ant_set = ant_names_set - map_ant_set

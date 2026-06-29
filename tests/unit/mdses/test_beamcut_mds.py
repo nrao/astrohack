@@ -50,9 +50,7 @@ class TestBeamcutMDS:
     def test_beamcut_mds_observation_summary(self):
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
-        obs_summary_reference_name = (
-            f"{self.ref_products_name}/obs_summary_reference.txt"
-        )
+        obs_summary_reference_name = f"{self.ref_products_name}/obs_summary.txt"
         local_obs_summary = f"{self.destination_folder}/obs_summary.txt"
 
         os.makedirs(self.destination_folder, exist_ok=True)
@@ -67,7 +65,7 @@ class TestBeamcutMDS:
         ant = "ea15"
         ddi = 0
         amp_plot_name = f"beamcut_amplitude_ant_{ant}_ddi_{ddi}.png"
-        att_plot_name = f"beamcut_attenuation_ant_{ant}_ddi_{ddi}.png"
+        att_plot_name = f"beamcut_db_ant_{ant}_ddi_{ddi}.png"
         lm_plot_name = f"beamcut_lm_offsets_ant_{ant}_ddi_{ddi}.png"
         pha_plot_name = f"beamcut_phase_ant_{ant}_ddi_{ddi}.png"
 

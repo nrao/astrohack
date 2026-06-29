@@ -117,11 +117,8 @@ class TestBeamcutMDS:
 
         beamcut_mds.export_report(self.destination_folder, ant=ant, ddi=ddi)
 
-        with open(f"{self.destination_folder}/{report_name}", "r") as local_report_file:
-            local_rep = local_report_file.read()
-
-        with open(f"{self.ref_products_name}/{report_name}", "r") as remote_report_file:
-            ref_rep = remote_report_file.read()
-
-        assert local_rep == ref_rep, "Local and reference beamfit reports do not match"
+        are_txt_files_equal(
+            f"{self.destination_folder}/{report_name}",
+            f"{self.ref_products_name}/{report_name}",
+        ), "Local and reference beamfit reports do not match"
         return

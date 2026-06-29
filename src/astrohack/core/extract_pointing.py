@@ -409,7 +409,7 @@ def post_process_evaluation(point_name):
     for i_folder, ant_folder in enumerate(ant_sub_dirs):
         ant_name = ant_folder.split(undscr)[-1]
         size_deviation = ant_folder_sizes[i_folder] - folder_size_stats["median"]
-        if np.abs(size_deviation) > folder_size_stats["rms"]:
+        if np.abs(size_deviation) > 3 * folder_size_stats["rms"]:
             if size_deviation < 0:
                 qualifier = "smaller"
             else:

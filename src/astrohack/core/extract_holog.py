@@ -90,25 +90,25 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         ack=False,
     )
 
-    telescope_name = pnt_mds.root.attrs["telescope_name"]
-    # start_time_unix = obs_ctb.getcol('TIME_RANGE')[0][0] - 3506716800.0
-    # time = Time(start_time_unix, format='unix').jyear
-
     # If we have an EVLA run from before 2023 the pointing table needs to be fixed.
-    if telescope_name == "EVLA":  # and time < 2023:
-        n_mapping = 0
-        for ddi_key, ddi_dict in holog_obs_dict.items():
-            n_map_ddi = 0
-            for map_dict in ddi_dict.values():
-                n_map_ddi += len(map_dict["ant"])
-            if n_map_ddi == 0:
-                logger.warning(f"DDI {ddi_key} has 0 mapping antennas")
-            n_mapping += n_map_ddi
+    n_mapping = 0
+    n_ref_ants = 0
+    for ddi_key, ddi_dict in holog_obs_dict.items():
+        n_map_ddi = 0
+        for map_dict in ddi_dict.values():
+            n_map_ddi += len(map_dict["ant"])
+            for ant in map_dict["ant"].values():
+                n_ref_ants += len(ant)
+        n_mapping += n_map_ddi
 
-        if n_mapping == 0:
-            msg = "No mapping antennas to process, maybe you need to fix the pointing table?"
-            logger.error(msg)
-            raise RuntimeError(msg)
+    if n_mapping == 0:
+        msg = "Data selection excludes all data, consider creating a customized holog_obs_dict with generate_holog_obs_dict"
+        logger.error(msg)
+        raise RuntimeError(msg)
+    if n_ref_ants == 0:
+        msg = "No reference antennas found for any of the DDIs"
+        logger.error(msg)
+        raise RuntimeError(msg)
 
     looping_dict = {}
     for ddi_key in holog_obs_dict.keys():

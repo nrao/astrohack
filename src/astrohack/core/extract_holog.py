@@ -44,7 +44,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
 
     # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
-        holog_obs_dict = HologObsDict.create_from_ms_info(
+        holog_obs_dict = HologObsDict.create_from_pointing_file(
             pnt_mds=pnt_mds,
             exclude_antennas=extract_holog_params["exclude_antennas"],
             baseline_average_distance=extract_holog_params["baseline_average_distance"],

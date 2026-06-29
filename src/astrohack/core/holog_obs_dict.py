@@ -61,7 +61,7 @@ class HologObsDict(dict):
         return cls(holog_mds.root.attrs["holog_obs_dict"])
 
     @classmethod
-    def create_from_ms_info(
+    def create_from_pointing_file(
         cls,
         pnt_mds,
         exclude_antennas,

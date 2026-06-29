@@ -1,63 +1,119 @@
 from astrohack.utils.package_info import get_astrohack_path
 import os
 import shutil
-import glob
 import pytest
 import subprocess
 
 
 def set_tests_to_update():
     test_dict = {
-        # "test_beamcut_mds.py": {
-        #     "created_names": [],
-        #     "destiny_names": [],
-        # },
+        "unit/mdses/test_beamcut_mds.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "beamcut_exports",
+                "destiny": "ref_beamcut_products",
+                "description": "beamcut reference export products",
+                "type": "Beam cut",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["beamcut_data"],
+        },
         "unit/mdses/test_image_mds.py": {
             "n_items": 1,
             "item_0": {
                 "creation": "image_exports",
-                "destiny": "image_data/ref_image_products",
+                "destiny": "ref_image_products",
                 "description": "image export products",
                 "type": "Holography",
                 "telescope": "VLA",
+                "update_manifest": False,
             },
             "cleanup_names": ["image_data"],
         },
-        # "test_locit_mds.py": 0,
-        # "test_panel_mds.py": 0,
-        # "test_position_mds.py": 0,
-        # "test_beamcut.py": 0,
+        "unit/mdses/test_locit_mds.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "locit_exports",
+                "destiny": "ref_locit_products",
+                "description": "locit reference export products",
+                "type": "Antenna position corrections",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["locit_data"],
+        },
+        "unit/mdses/test_panel_mds.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "panel_exports",
+                "destiny": "ref_panel_products",
+                "description": "panel export products",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["panel_data"],
+        },
+        "unit/mdses/test_position_mds.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "position_exports",
+                "destiny": "ref_position_products",
+                "description": "position export products",
+                "type": "Antenna position corrections",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["position_data"],
+        },
+        "unit/user_facing_functions/test_beamcut.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
+                "destiny": "kband_beamcut_small.beamcut.zarr",
+                "description": "beamcut reference Astrohack beamcut file",
+                "type": "Beam cut",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["beamcut_data"],
+        },
     }
 
     return test_dict
 
 
 def execute_and_upload(test_file, test_params):
-    uploader_exec = get_astrohack_path() / "scripts" / "file_uploader.py"
+    subproc_exec_list = [
+        "python",
+        get_astrohack_path() / "scripts" / "verification" / "file_uploader.py",
+    ]
     pytest.main([test_file])
-    print("Waited for pytest?")
     n_items = test_params["n_items"]
-    print(glob.glob("*"))
     for i_item in range(n_items):
         item_pars = test_params[f"item_{i_item}"]
-        shutil.rmtree(item_pars["destiny"])
+        shutil.rmtree(item_pars["destiny"], ignore_errors=True)
         shutil.move(item_pars["creation"], item_pars["destiny"])
-        # subprocess.call(
-        #     [
-        #         "python",
-        #         uploader_exec,
-        #         item_pars["destiny"],
-        #         "-t",
-        #         item_pars["telescope"],
-        #         "-m",
-        #         item_pars["type"],
-        #         "-d",
-        #         item_pars["description"],
-        #     ]
-        # )
+        subproc_exec_list.extend(
+            [
+                item_pars["destiny"],
+                "-t",
+                item_pars["telescope"],
+                "-m",
+                item_pars["type"],
+                "-d",
+                item_pars["description"],
+            ]
+        )
+        if item_pars["update_manifest"]:
+            subproc_exec_list.append("-u")
+        subprocess.call(subproc_exec_list)
+        shutil.rmtree(item_pars["destiny"], ignore_errors=True)
+        shutil.rmtree(item_pars["destiny"] + ".zip", ignore_errors=True)
 
     for name in test_params["cleanup_names"]:
-        shutil.rmtree(name)
+        shutil.rmtree(name, ignore_errors=True)
 
 
 def main():
@@ -65,7 +121,6 @@ def main():
     os.chdir(distro_path / "../../tests")
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"
-
     test_dict = set_tests_to_update()
     for test_file, test_params in test_dict.items():
         execute_and_upload(test_file, test_params)

@@ -1,5 +1,10 @@
 ignore:
-  - "src/astrohack/visualization"
   - "examples"
   - "stakeholder_test"
   - "etc"
+  - "src/astrohack/scripts/verification"
+  - "src/astrohack/config"
+  - "src/astrohack/data"
+  - "tests"
+  - "release_script.py"
+  - "benchmarks"

@@ -1,7 +1,6 @@
 import shutil
 import os
 import matplotlib
-
 from toolviper.utils import data
 import pytest
 
@@ -11,6 +10,7 @@ from astrohack.utils.verification_tools import (
     are_txt_files_equal,
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 matplotlib.use("Agg")
@@ -56,55 +56,34 @@ class TestBeamcutMDS:
         os.makedirs(self.destination_folder, exist_ok=True)
         beamcut_mds.observation_summary(local_obs_summary)
 
-        assert are_txt_files_equal(
-            local_obs_summary, obs_summary_reference_name
-        ), "Observation summary should be exactly equal to reference observation summary"
-        return
+        if not produce_reference_data():
+            assert are_txt_files_equal(
+                local_obs_summary, obs_summary_reference_name
+            ), "Observation summary should be exactly equal to reference observation summary"
+            return
 
     def test_beamcut_mds_plots(self):
         ant = "ea15"
         ddi = 0
-        amp_plot_name = f"beamcut_amplitude_ant_{ant}_ddi_{ddi}.png"
-        att_plot_name = f"beamcut_db_ant_{ant}_ddi_{ddi}.png"
-        lm_plot_name = f"beamcut_lm_offsets_ant_{ant}_ddi_{ddi}.png"
-        pha_plot_name = f"beamcut_phase_ant_{ant}_ddi_{ddi}.png"
-
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
-        beamcut_mds.plot_in_amplitude(self.destination_folder, ant=ant, ddi=ddi)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{amp_plot_name}",
-            f"{self.ref_products_name}/{amp_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: Amplitude plot png file is different from the expected png file"
-
-        beamcut_mds.plot_in_db(self.destination_folder, ant=ant, ddi=ddi)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{att_plot_name}",
-            f"{self.ref_products_name}/{att_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: Attenuation plot png file is different from the expected png file"
-
-        beamcut_mds.plot_lm_offsets(self.destination_folder, ant=ant, ddi=ddi)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{lm_plot_name}",
-            f"{self.ref_products_name}/{lm_plot_name}",
-        )
-        assert equal, f"{msg}: lm plot png file is different from the expected png file"
-
-        beamcut_mds.plot_in_phase(self.destination_folder, ant=ant, ddi=ddi)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{pha_plot_name}",
-            f"{self.ref_products_name}/{pha_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: phase plot png file is different from the expected png file"
-        return
+        exec_dict = {
+            "amplitude": beamcut_mds.plot_in_amplitude,
+            "db": beamcut_mds.plot_in_db,
+            "lm_offsets": beamcut_mds.plot_lm_offsets,
+            "phase": beamcut_mds.plot_in_phase,
+        }
+        for plot_type, func in exec_dict.items():
+            plot_filename = f"beamcut_{plot_type}_ant_{ant}_ddi_{ddi}.png"
+            func(self.destination_folder, ant=ant, ddi=ddi)
+            if not produce_reference_data():
+                equal, msg = are_png_files_close(
+                    f"{self.destination_folder}/{plot_filename}",
+                    f"{self.ref_products_name}/{plot_filename}",
+                )
+                assert (
+                    equal
+                ), f"{msg}: {plot_type} plot png file is different from the expected png file"
 
     def test_beamcut_mds_fit_report(self):
         ant = "ea15"
@@ -114,9 +93,9 @@ class TestBeamcutMDS:
         beamcut_mds = open_beamcut(self.remote_beamcut_name)
 
         beamcut_mds.export_report(self.destination_folder, ant=ant, ddi=ddi)
-
-        are_txt_files_equal(
-            f"{self.destination_folder}/{report_name}",
-            f"{self.ref_products_name}/{report_name}",
-        ), "Local and reference beamfit reports do not match"
+        if not produce_reference_data():
+            are_txt_files_equal(
+                f"{self.destination_folder}/{report_name}",
+                f"{self.ref_products_name}/{report_name}",
+            ), "Local and reference beamfit reports do not match"
         return

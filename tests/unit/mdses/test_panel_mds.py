@@ -14,6 +14,7 @@ from astrohack.utils.verification_tools import (
     are_png_files_close,
     are_fits_files_close,
     execute_cleanup,
+    produce_reference_data,
 )
 
 matplotlib.use("Agg")
@@ -92,7 +93,8 @@ class TestpanelMDS:
         pnl_mds.export_to_fits(
             self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
         )
-        self.fits_list_assertions()
+        if not produce_reference_data():
+            self.fits_list_assertions()
         return
 
     def test_text_exports(self):
@@ -101,10 +103,11 @@ class TestpanelMDS:
             self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
         )
         txt_file_name = "panel_gains_ant_ea25_ddi_0.txt"
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{txt_file_name}",
-            f"{self.ref_products_name}/{txt_file_name}",
-        ), "Gain tables are different from reference"
+        if not produce_reference_data():
+            assert are_txt_files_equal(
+                f"{self.destination_folder}/{txt_file_name}",
+                f"{self.ref_products_name}/{txt_file_name}",
+            ), "Gain tables are different from reference"
 
         obs_summ_file_name = "obs_summ.txt"
         pnl_mds.observation_summary(
@@ -114,10 +117,11 @@ class TestpanelMDS:
             parallel=False,
             print_summary=False,
         )
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{obs_summ_file_name}",
-            f"{self.ref_products_name}/{obs_summ_file_name}",
-        ), "Observation summary is different from reference"
+        if not produce_reference_data():
+            assert are_txt_files_equal(
+                f"{self.destination_folder}/{obs_summ_file_name}",
+                f"{self.ref_products_name}/{obs_summ_file_name}",
+            ), "Observation summary is different from reference"
 
         return
 
@@ -134,10 +138,11 @@ class TestpanelMDS:
 
         pnl_mds.export_screws(self.destination_folder, ant=self.ant_id, ddi=self.ddi_id)
 
-        self.plot_list_assertions("panel_*.png")
-        screws_file_name = "panel_screws_ant_ea25_ddi_0.txt"
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{screws_file_name}",
-            f"{self.ref_products_name}/{screws_file_name}",
-        ), "Observation summary is different from reference"
+        if not produce_reference_data():
+            self.plot_list_assertions("panel_*.png")
+            screws_file_name = "panel_screws_ant_ea25_ddi_0.txt"
+            assert are_txt_files_equal(
+                f"{self.destination_folder}/{screws_file_name}",
+                f"{self.ref_products_name}/{screws_file_name}",
+            ), "Observation summary is different from reference"
         return

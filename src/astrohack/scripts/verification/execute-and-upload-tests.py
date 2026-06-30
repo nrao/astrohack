@@ -19,66 +19,66 @@ def set_tests_to_update():
             },
             "cleanup_names": ["beamcut_data"],
         },
-        "unit/mdses/test_image_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "image_exports",
-                "destiny": "ref_image_products",
-                "description": "image export products",
-                "type": "Holography",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["image_data"],
-        },
-        "unit/mdses/test_locit_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "locit_exports",
-                "destiny": "ref_locit_products",
-                "description": "locit reference export products",
-                "type": "Antenna position corrections",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["locit_data"],
-        },
-        "unit/mdses/test_panel_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "panel_exports",
-                "destiny": "ref_panel_products",
-                "description": "panel export products",
-                "type": "Holography",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["panel_data"],
-        },
-        "unit/mdses/test_position_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "position_exports",
-                "destiny": "ref_position_products",
-                "description": "position export products",
-                "type": "Antenna position corrections",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["position_data"],
-        },
-        "unit/user_facing_functions/test_beamcut.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
-                "destiny": "kband_beamcut_small.beamcut.zarr",
-                "description": "beamcut reference Astrohack beamcut file",
-                "type": "Beam cut",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["beamcut_data"],
-        },
+        # "unit/mdses/test_image_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "image_exports",
+        #         "destiny": "ref_image_products",
+        #         "description": "image export products",
+        #         "type": "Holography",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["image_data"],
+        # },
+        # "unit/mdses/test_locit_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "locit_exports",
+        #         "destiny": "ref_locit_products",
+        #         "description": "locit reference export products",
+        #         "type": "Antenna position corrections",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["locit_data"],
+        # },
+        # "unit/mdses/test_panel_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "panel_exports",
+        #         "destiny": "ref_panel_products",
+        #         "description": "panel export products",
+        #         "type": "Holography",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["panel_data"],
+        # },
+        # "unit/mdses/test_position_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "position_exports",
+        #         "destiny": "ref_position_products",
+        #         "description": "position export products",
+        #         "type": "Antenna position corrections",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["position_data"],
+        # },
+        # "unit/user_facing_functions/test_beamcut.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
+        #         "destiny": "kband_beamcut_small.beamcut.zarr",
+        #         "description": "beamcut reference Astrohack beamcut file",
+        #         "type": "Beam cut",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["beamcut_data"],
+        # },
     }
 
     return test_dict
@@ -110,22 +110,26 @@ def execute_and_upload(test_file, test_params):
             subproc_exec_list.append("-u")
         subprocess.call(subproc_exec_list)
         shutil.rmtree(item_pars["destiny"], ignore_errors=True)
-        shutil.rmtree(item_pars["destiny"] + ".zip", ignore_errors=True)
+        if os.path.exists(item_pars["destiny"] + ".zip"):
+            os.remove(item_pars["destiny"] + ".zip")
 
     for name in test_params["cleanup_names"]:
         shutil.rmtree(name, ignore_errors=True)
 
 
 def main():
+    import time
+
     distro_path = get_astrohack_path()
     os.chdir(distro_path / "../../tests")
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"
+    os.environ["PRODUCE_REFERENCE_PRODUCTS"] = "True"
     test_dict = set_tests_to_update()
     for test_file, test_params in test_dict.items():
         execute_and_upload(test_file, test_params)
-
     os.environ["SKIP_PYTEST_CLEANUP"] = "False"
+    os.environ["PRODUCE_REFERENCE_PRODUCTS"] = "False"
 
 
 main()

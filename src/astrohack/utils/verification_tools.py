@@ -365,3 +365,13 @@ def execute_cleanup():
         return False
     else:
         return True
+
+
+def produce_reference_data():
+    import os
+
+    reference_products = os.getenv("PRODUCE_REFERENCE_PRODUCTS")
+    if reference_products == "True":
+        return True
+    else:
+        return False

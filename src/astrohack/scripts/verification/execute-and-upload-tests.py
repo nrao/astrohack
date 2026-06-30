@@ -128,6 +128,9 @@ def main():
     test_dict = set_tests_to_update()
     for test_file, test_params in test_dict.items():
         execute_and_upload(test_file, test_params)
+        if len(test_dict.keys()) > 1:
+            print(f"{test_file} done, waiting for cloudflare sync before executing next test.")
+            time.sleep(3600)
     os.environ["SKIP_PYTEST_CLEANUP"] = "False"
     os.environ["PRODUCE_REFERENCE_PRODUCTS"] = "False"
 

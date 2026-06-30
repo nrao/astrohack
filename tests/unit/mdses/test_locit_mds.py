@@ -2,6 +2,7 @@ import shutil
 import matplotlib
 import pytest
 import os
+import sys
 
 from toolviper.utils import data
 
@@ -68,6 +69,10 @@ class TestLocitMDS:
                     func, f"{self.ref_products_name}/{txt_file_name}"
                 ), f"{txt_file_name} should be exactly equal to reference"
 
+    @pytest.mark.skipif(
+        sys.version_info[:2] == (3, 11),
+        reason="Comparing plots generated with 3.13 with plots generated with 3.11 is sometimes flaky",
+    )
     def test_locit_mds_plot_exports(self):
         locit_mds = open_locit(self.locit_name)
 

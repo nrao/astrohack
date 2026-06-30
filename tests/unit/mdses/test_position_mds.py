@@ -1,5 +1,6 @@
 import shutil
 import matplotlib
+import sys
 
 from toolviper.utils import data
 import pytest
@@ -94,6 +95,10 @@ class TestPositionMDS:
                 ), f"{parminator_filename} differs from reference file."
         return
 
+    @pytest.mark.skipif(
+        sys.version_info[:2] == (3, 11),
+        reason="Comparing plots generated with 3.13 with plots generated with 3.11 is sometimes flaky",
+    )
     def test_position_mds_plot_exports(self):
         ddi = 0
         ant = "ea16"

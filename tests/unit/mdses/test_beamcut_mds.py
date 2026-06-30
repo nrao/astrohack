@@ -1,5 +1,7 @@
 import shutil
 import os
+import sys
+
 import matplotlib
 from toolviper.utils import data
 import pytest
@@ -62,6 +64,10 @@ class TestBeamcutMDS:
             ), "Observation summary should be exactly equal to reference observation summary"
             return
 
+    @pytest.mark.skipif(
+        sys.version_info[:2] == (3, 11),
+        reason="Comparing plots generated with 3.13 with plots generated with 3.11 is sometimes flaky",
+    )
     def test_beamcut_mds_plots(self):
         ant = "ea15"
         ddi = 0

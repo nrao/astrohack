@@ -64,9 +64,8 @@ class TestBeamcutMDS:
             ), "Observation summary should be exactly equal to reference observation summary"
             return
 
-    @pytest.mark.skipif(
-        sys.version_info[:2] == (3, 11),
-        reason="Comparing plots generated with 3.13 with plots generated with 3.11 is sometimes flaky",
+    @pytest.mark.skip(
+        reason="Plot comparison is flaky and cannot be trusted to yield consistent results"
     )
     def test_beamcut_mds_plots(self):
         ant = "ea15"

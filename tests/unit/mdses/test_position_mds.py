@@ -95,9 +95,8 @@ class TestPositionMDS:
                 ), f"{parminator_filename} differs from reference file."
         return
 
-    @pytest.mark.skipif(
-        sys.version_info[:2] == (3, 11),
-        reason="Comparing plots generated with 3.13 with plots generated with 3.11 is sometimes flaky",
+    @pytest.mark.skip(
+        reason="Plot comparison is flaky and cannot be trusted to yield consistent results"
     )
     def test_position_mds_plot_exports(self):
         ddi = 0

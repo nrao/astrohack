@@ -10,6 +10,7 @@ from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut
 from astrohack.utils.verification_tools import (
     are_lists_equal,
     add_data_folder_to_names_in_class,
+    execute_cleanup,
 )
 
 matplotlib.use("Agg")
@@ -25,9 +26,9 @@ def retrieve_data_from_report(report):
         for line in rep_file:
             if line[0] == "-":  # header line
                 wrds = line.split()
-                az_val = float(wrds[13])
-                azel_unit = wrds[14][:-1]
-                el_val = float(wrds[17])
+                az_val = float(wrds[12][:-1])
+                azel_unit = wrds[14]
+                el_val = float(wrds[13])
             elif "|" in line:
                 wrds = line.split("|")
                 center_header = wrds[2]
@@ -77,10 +78,10 @@ class TestBeamcut:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir, ignore_errors=True)
-        shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir, ignore_errors=True)
+            shutil.rmtree(cls.destination_folder, ignore_errors=True)
 
-    @pytest.mark.skip(reason="Data products require update.")
     def test_results(self):
         # Has to be run first
         new_bmc_mds = beamcut(

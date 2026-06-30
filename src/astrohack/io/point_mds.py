@@ -12,7 +12,7 @@ from astrohack.visualization.array_cfg_plot import plot_array_configuration
 from astrohack.visualization.plot_tools import create_figure_and_axes, close_figure
 from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit
-from astrohack.utils.text import param_to_list
+from astrohack.utils.text import param_to_list, undscr
 from astrohack.utils.validation import custom_unit_checker
 
 
@@ -115,7 +115,7 @@ class AstrohackPointFile(AstrohackBaseFile):
 
         n_use_ants = 0
         for ant_key in ant_list:
-            ant_name = ant_key.split("_")[1]
+            ant_name = ant_key.split(undscr)[1]
             if ant_key in self.keys():
                 n_use_ants = n_use_ants + 1
                 fig, axes, y_labels = _create_pointing_figure(input_params)
@@ -146,7 +146,7 @@ class AstrohackPointFile(AstrohackBaseFile):
 
         n_use_ants = 0
         for ant_key in ant_list:
-            ant_name = ant_key.split("_")[1]
+            ant_name = ant_key.split(undscr)[1]
             if ant_key in self.keys():
                 n_use_ants = n_use_ants + 1
                 _plot_one_pnt_xds(
@@ -162,7 +162,7 @@ class AstrohackPointFile(AstrohackBaseFile):
                 logger.warning(f"Antenna {ant_name} not found in dataset")
 
         if n_use_ants > 0:
-            simple_ant_list = [ant_key.split("_")[1] for ant_key in ant_list]
+            simple_ant_list = [ant_key.split(undscr)[1] for ant_key in ant_list]
             _finalize_pointing_figure(
                 input_params,
                 target_column,

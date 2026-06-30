@@ -1,8 +1,9 @@
 from astrohack import open_position
 import argparse
+from astrohack.utils.text import lnbr
 
-desc = "Export position corrections to parminator\n\n"
-desc += "This script executes a subset of locit's features, for a more detailed tutorial see:\n"
+desc = f"Export position corrections to parminator{2*lnbr}"
+desc += f"This script executes a subset of locit's features, for a more detailed tutorial see:{lnbr}"
 desc += "https://astrohack.readthedocs.io/en/stable/locit_tutorial.html"
 
 

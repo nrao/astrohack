@@ -6,7 +6,10 @@ import toolviper
 
 from astrohack import open_pointing
 from astrohack.extract_pointing import extract_pointing
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    execute_cleanup,
+)
 
 
 class TestExtractPointing:
@@ -26,7 +29,8 @@ class TestExtractPointing:
     @classmethod
     def teardown_class(cls):
         """teardown any state that was previously setup with a setup_class."""
-        shutil.rmtree(cls.data_dir)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         """Test extract_pointing with default parameters"""

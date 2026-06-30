@@ -11,6 +11,7 @@ from astrohack.utils.text import (
     dynamic_format,
     create_pretty_table,
     string_to_ascii_file,
+    lnbr,
 )
 from astrohack.utils.algorithms import (
     data_statistics,
@@ -164,7 +165,9 @@ class FITSImage:
             self.x_axis, _, self.x_unit = get_axis_from_fits_header(self.header, 1)
             self.y_axis, _, self.y_unit = get_axis_from_fits_header(self.header, 2)
         else:
-            raise NotImplementedError(f'Unrecognized origin:\n{self.header["origin"]}')
+            raise NotImplementedError(
+                f'Unrecognized origin:{lnbr}{self.header["origin"]}'
+            )
         self._create_base_mask()
         self.original_x_axis = np.copy(self.x_axis)
         self.original_y_axis = np.copy(self.y_axis)
@@ -556,7 +559,7 @@ class FITSImage:
                 outstr += f"{key:17s} -> dict()"
             else:
                 outstr += f"{key:17s} =  {value}"
-            outstr += "\n"
+            outstr += lnbr
         return outstr
 
     def export_to_fits(self, destination):
@@ -804,7 +807,7 @@ def create_fits_comparison_rms_table(parameters, xdt):
 
         table.add_row(row)
 
-    outstr = f'RMS comparison table from {parameters["zarr_data_tree"]}:\n'
+    outstr = f'RMS comparison table from {parameters["zarr_data_tree"]}:{lnbr}'
     outstr += table.get_string()
     string_to_ascii_file(outstr, parameters["table_file"])
     if parameters["print_table"]:

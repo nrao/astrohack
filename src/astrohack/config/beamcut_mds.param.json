@@ -74,7 +74,7 @@
             ]
         }
     },
-    "AstrohackBeamcutFile.plot_beamcut_in_amplitude":{
+    "AstrohackBeamcutFile.plot_in_amplitude":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -150,7 +150,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_beamcut_in_db":{
+    "AstrohackBeamcutFile.plot_in_db":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -226,7 +226,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_beamcut_lm_offsets":{
+    "AstrohackBeamcutFile.plot_lm_offsets":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -287,7 +287,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_beamcut_in_phase":{
+    "AstrohackBeamcutFile.plot_in_phase":{
         "destination":{
             "nullable": false,
             "required": true,
@@ -369,7 +369,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.export_beamcut_report":{
+    "AstrohackBeamcutFile.export_report":{
         "destination":{
             "nullable": false,
             "required": true,

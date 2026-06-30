@@ -8,6 +8,7 @@ from PIL import Image, ImageChops
 
 from astrohack.utils.fits import read_fits_no_checks
 from astrohack.utils.package_info import get_astrohack_version
+from astrohack.utils.text import undscr
 
 
 def are_lists_equal(list_a, list_b):
@@ -250,7 +251,7 @@ def add_data_folder_to_names_in_class(class_ref):
     # Add datafolder to names for execution
     for varname, varvalue in class_ref.__dict__.items():
         if isinstance(varvalue, str):
-            if varname.split("_")[-1] == "name":
+            if varname.split(undscr)[-1] == "name":
                 setattr(class_ref, varname, f"{class_ref.data_dir}/{varvalue}")
 
 
@@ -274,7 +275,7 @@ def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
     method_list = inspect.getmembers(mds_obj, predicate=inspect.ismethod)
     exp_method_list = []
     for name, method in method_list:
-        if name[0] == "_":
+        if name[0] == undscr:
             continue
         else:
             exp_method_list.append(name)
@@ -354,3 +355,23 @@ def create_origin_dict(caller):
         "creator_function": caller,
     }
     return orig_dict
+
+
+def execute_cleanup():
+    import os
+
+    skip_cleanup = os.getenv("SKIP_PYTEST_CLEANUP")
+    if skip_cleanup == "True":
+        return False
+    else:
+        return True
+
+
+def produce_reference_data():
+    import os
+
+    reference_products = os.getenv("PRODUCE_REFERENCE_PRODUCTS")
+    if reference_products == "True":
+        return True
+    else:
+        return False

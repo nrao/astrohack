@@ -13,7 +13,7 @@ from casacoretables import tables as ctables
 from astrohack.io.holog_mds import AstrohackHologFile
 from astrohack.utils.tools import get_valid_state_ids
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.utils.text import create_dataset_label
+from astrohack.utils.text import create_dataset_label, undscr
 from astrohack.utils.imaging import calculate_parallactic_angle_chunk
 from astrohack.utils.algorithms import calculate_optimal_grid_parameters
 from astrohack.utils.conversion import casa_time_to_mjd
@@ -44,7 +44,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
 
     # Create holog_obs_dict or modify user supplied holog_obs_dict.
     if holog_obs_dict is None:
-        holog_obs_dict = HologObsDict.create_from_ms_info(
+        holog_obs_dict = HologObsDict.create_from_pointing_file(
             pnt_mds=pnt_mds,
             exclude_antennas=extract_holog_params["exclude_antennas"],
             baseline_average_distance=extract_holog_params["baseline_average_distance"],
@@ -90,25 +90,25 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         ack=False,
     )
 
-    telescope_name = pnt_mds.root.attrs["telescope_name"]
-    # start_time_unix = obs_ctb.getcol('TIME_RANGE')[0][0] - 3506716800.0
-    # time = Time(start_time_unix, format='unix').jyear
-
     # If we have an EVLA run from before 2023 the pointing table needs to be fixed.
-    if telescope_name == "EVLA":  # and time < 2023:
-        n_mapping = 0
-        for ddi_key, ddi_dict in holog_obs_dict.items():
-            n_map_ddi = 0
-            for map_dict in ddi_dict.values():
-                n_map_ddi += len(map_dict["ant"])
-            if n_map_ddi == 0:
-                logger.warning(f"DDI {ddi_key} has 0 mapping antennas")
-            n_mapping += n_map_ddi
+    n_mapping = 0
+    n_ref_ants = 0
+    for ddi_key, ddi_dict in holog_obs_dict.items():
+        n_map_ddi = 0
+        for map_dict in ddi_dict.values():
+            n_map_ddi += len(map_dict["ant"])
+            for ant in map_dict["ant"].values():
+                n_ref_ants += len(ant)
+        n_mapping += n_map_ddi
 
-        if n_mapping == 0:
-            msg = "No mapping antennas to process, maybe you need to fix the pointing table?"
-            logger.error(msg)
-            raise RuntimeError(msg)
+    if n_mapping == 0:
+        msg = "Data selection excludes all data, consider creating a customized holog_obs_dict with generate_holog_obs_dict"
+        logger.error(msg)
+        raise RuntimeError(msg)
+    if n_ref_ants == 0:
+        msg = "No reference antennas found for any of the DDIs"
+        logger.error(msg)
+        raise RuntimeError(msg)
 
     looping_dict = {}
     for ddi_key in holog_obs_dict.keys():
@@ -320,7 +320,7 @@ def process_extract_holog_chunk(
 
     map_ant_name_list = list(map(str, map_ant_name_tuple))
 
-    map_ant_name_list = ["_".join(("ant", i)) for i in map_ant_name_list]
+    map_ant_name_list = [undscr.join(("ant", i)) for i in map_ant_name_list]
 
     pnt_map_dict = _extract_pointing_chunk(
         map_ant_name_list, time_vis, pnt_mds, pointing_interpolation_method
@@ -331,7 +331,7 @@ def process_extract_holog_chunk(
     # The loop has been moved out of the function here making the gridding parameter auto-calculation
     # function more general use (hopefully). I honestly couldn't see a reason to keep it inside.
     for ant_index in vis_map_dict.keys():
-        antenna_name = "_".join(("ant", ant_names[ant_index]))
+        antenna_name = undscr.join(("ant", ant_names[ant_index]))
         telescope = get_proper_telescope(gen_info["telescope name"], antenna_name)
         n_pix, cell_size = calculate_optimal_grid_parameters(
             pnt_map_dict, antenna_name, telescope.diameter, chan_freq, ddi_id
@@ -625,7 +625,7 @@ def _create_holog_file(
 
     for map_ant_index in vis_map_dict.keys():
         dataset_label = create_dataset_label(
-            ant_names[map_ant_index], ddi_key.split("_")[1]
+            ant_names[map_ant_index], ddi_key.split(undscr)[1]
         )
         if map_ant_index not in flagged_mapping_antennas:
             map_ant_key = f"ant_{ant_names[map_ant_index]}"
@@ -726,7 +726,7 @@ def _extract_pointing_chunk(
             pnt_time,
             y_data,
             pointing_interpolation_method,
-            f'{antenna.split("_")[1]} pointing data',
+            f"{antenna.split(undscr)[1]} pointing data",
             "visibility times",
         )
 

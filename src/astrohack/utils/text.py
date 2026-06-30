@@ -11,6 +11,7 @@ from astrohack.utils.conversion import convert_unit
 
 lnbr = "\n"
 spc = " "
+undscr = "_"
 
 
 def tuple_inspect(param_tuple):
@@ -59,7 +60,7 @@ def add_prefix(input_string, prefix):
 
     """
     wrds = input_string.split("/")
-    wrds[-1] = prefix + "_" + wrds[-1]
+    wrds[-1] = prefix + undscr + wrds[-1]
     return "/".join(wrds)
 
 
@@ -148,7 +149,7 @@ def _get_tree_field_names(data_tree, field_names=None):
     else:
         this_level_keys = list(data_tree.keys())
         f_key = this_level_keys[0]
-        key_label = key_labels[f_key.split("_")[0]]
+        key_label = key_labels[f_key.split(undscr)[0]]
         if field_names is None:
             field_names = [key_label]
         else:
@@ -193,7 +194,6 @@ def get_data_content_string(data_object, alignment="l", field_names=None):
 
 
 def print_dict_types(le_dict, ident=4, show_values=False):
-    spc = " "
     for key, value in le_dict.items():
         if isinstance(value, dict):
             print(f"{ident*spc}{key}:")
@@ -310,7 +310,6 @@ def get_summary_header(filename, print_len=80, frame_char="#", frame_width=3):
 
 
 def _compute_spacing(string, print_len=100, frame_width=3):
-    spc = " "
     nchar = len(string)
     if 2 * (nchar // 2) != nchar:
         nchar += 1
@@ -327,7 +326,6 @@ def _compute_spacing(string, print_len=100, frame_width=3):
 
 
 def _centralized_string(string, nlead, ntrail, frame_width, frame_char):
-    spc = " "
     return f"{frame_width * frame_char}{nlead * spc}{string}{ntrail * spc}{frame_width * frame_char}"
 
 
@@ -370,7 +368,7 @@ def get_method_list_string(astrohack_obj, alignment="l", print_len=80):
     return outstr
 
 
-def format_frequency(freq_value, unit="Hz", decimal_places=4):
+def format_frequency(freq_value, unit="Hz", decimal_places=4, add_nu=False):
     if isinstance(freq_value, str):
         freq_value = float(freq_value)
     if freq_value >= 1e12:
@@ -384,7 +382,12 @@ def format_frequency(freq_value, unit="Hz", decimal_places=4):
     else:
         unitout = unit
     fac = convert_unit(unit, unitout, "frequency")
-    return format_value_unit(fac * freq_value, unitout, decimal_places)
+    if add_nu:
+        outstr = r"$\nu$ = "
+    else:
+        outstr = ""
+    outstr += format_value_unit(fac * freq_value, unitout, decimal_places)
+    return outstr
 
 
 def format_wavelength(user_value, unit="m", decimal_places=2):
@@ -463,7 +466,7 @@ def format_angular_distance(user_value, unit="rad", decimal_places=2):
     return format_value_unit(fac * user_value, unitout, decimal_places)
 
 
-def format_label(label, separators=("_", "\n"), new_separator=" "):
+def format_label(label, separators=(undscr, lnbr), new_separator=spc):
     if isinstance(label, str):
         out_label = label
     else:
@@ -542,7 +545,7 @@ def bool_to_str(boolean):
 
 def string_to_ascii_file(string, filename):
     outfile = open(filename, "w")
-    outfile.write(string + "\n")
+    outfile.write(string + lnbr)
     outfile.close()
 
 
@@ -583,7 +586,7 @@ def create_dataset_label(ant_id, ddi_id, separator=":"):
 
 
 def get_data_name(data_id):
-    return data_id.split("_")[1]
+    return data_id.split(undscr)[1]
 
 
 def significant_figures_round(x, digits):
@@ -604,7 +607,7 @@ def significant_figures_round(x, digits):
 
 
 def statistics_to_text(
-    data_statistics: dict, keys: list = None, num_format: str = None
+    data_statistics: dict, keys: list | None = None, num_format: str | None = None
 ):
     if keys is None:
         key_list = list(data_statistics.keys())
@@ -654,6 +657,32 @@ def format_az_el_information(az_el_dict, key="center", unit="deg", precision=".1
     return az_el_label
 
 
+def create_informative_label_from_summary(
+    summary, azel_unit, freq_precision=3, add_date=True
+):
+    ant_name = summary["general"]["antenna name"]
+    ant_station = summary["general"]["station"]
+    freq = summary["spectral"]["rep. frequency"]
+    az_el = np.array(summary["general"]["az el info"]["mean"]) * convert_unit(
+        "rad", azel_unit, "trigonometric"
+    )
+    date = Time(summary["general"]["start time"], format="mjd").to_datetime()
+    time_str = date.strftime("%Y-%m-%d")
+    if azel_unit == "deg":
+        azel_precision = ".1f"
+    else:
+        azel_precision = ".3f"
+
+    outstr = f"{ant_name.upper()} @ {ant_station.upper()}, "
+    outstr += f"{format_frequency(freq, add_nu=False, decimal_places=freq_precision)}, "
+    outstr += f"Az, El ~ {az_el[0]:{azel_precision}}, "
+    outstr += f"{az_el[1]:{azel_precision}} {azel_unit}"
+    if add_date:
+        outstr += f", {time_str}"
+
+    return outstr
+
+
 def format_general_information(
     obs_dict,
     tab,
@@ -665,7 +694,7 @@ def format_general_information(
     time_format="%d %h %Y, %H:%M:%S",
     precision=".1f",
 ):
-    outstr = f"{ident}General:\n"
+    outstr = f"{ident}General:{lnbr}"
     tab = tab + ident
     key_order = [
         "telescope name",
@@ -697,13 +726,13 @@ def format_general_information(
             line += f"{format_duration(item)}"
         else:
             line += str(item)
-        outstr += f"{line}\n"
+        outstr += f"{line}{lnbr}"
 
     return outstr
 
 
 def format_spectral_information(freq_dict, tab, ident, key_size):
-    outstr = f"{ident}Spectral:\n"
+    outstr = f"{ident}Spectral:{lnbr}"
     tab += ident
     for key, item in freq_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -715,13 +744,13 @@ def format_spectral_information(freq_dict, tab, ident, key_size):
             outstr += format_wavelength(item, decimal_places=3)
         else:
             outstr += format_frequency(item, decimal_places=3)
-        outstr += "\n"
+        outstr += lnbr
 
     return outstr
 
 
 def format_beam_information(beam_dict, tab, ident, key_size):
-    outstr = f"{ident}Beam:\n"
+    outstr = f"{ident}Beam:{lnbr}"
     tab += ident
     for key, item in beam_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -734,12 +763,12 @@ def format_beam_information(beam_dict, tab, ident, key_size):
             outstr += f"{item[0]} by {item[1]} pixels"
         else:
             outstr += f"From {format_angular_distance(item[0])} to {format_angular_distance(item[1])}"
-        outstr += "\n"
+        outstr += lnbr
     return outstr
 
 
 def format_aperture_information(aperture_dict, tab, ident, key_size):
-    outstr = f"{ident}Aperture:\n"
+    outstr = f"{ident}Aperture:{lnbr}"
     tab += ident
     for key, item in aperture_dict.items():
         outstr += f"{tab}{key.capitalize().replace('_', ' '):{key_size}s} => "
@@ -747,7 +776,7 @@ def format_aperture_information(aperture_dict, tab, ident, key_size):
             outstr += f"{item[0]} by {item[1]} pixels"
         else:
             outstr += f"{format_wavelength(item[0])} by {format_wavelength(item[1])}"
-        outstr += "\n"
+        outstr += lnbr
     return outstr
 
 
@@ -762,7 +791,6 @@ def format_observation_summary(
     precision=".1f",
     key_size=18,
 ):
-    spc = " "
     major_tab = tab_count * tab_size * spc
     one_tab = tab_size * spc
     ident = major_tab
@@ -778,14 +806,14 @@ def format_observation_summary(
         ident=ident,
         key_size=key_size,
     )
-    outstr += "\n"
+    outstr += lnbr
     outstr += format_spectral_information(obs_sum["spectral"], one_tab, ident, key_size)
 
-    outstr += "\n"
+    outstr += lnbr
     outstr += format_beam_information(obs_sum["beam"], one_tab, ident, key_size)
 
     if obs_sum["aperture"] is not None:
-        outstr += "\n"
+        outstr += lnbr
         outstr += format_aperture_information(
             obs_sum["aperture"], one_tab, ident, key_size
         )
@@ -793,8 +821,7 @@ def format_observation_summary(
 
 
 def make_header(heading, separator, header_width, buffer_width):
-    spc = " "
-    sep_line = f"{header_width * separator}\n"
+    sep_line = f"{header_width * separator}{lnbr}"
     len_head = len(heading)
     before_blank = (header_width - 2 * buffer_width - len_head) // 2
     if 2 * buffer_width + len_head + 2 * before_blank < header_width:
@@ -803,6 +830,6 @@ def make_header(heading, separator, header_width, buffer_width):
         after_blank = before_blank
     outstr = sep_line
     buffer = buffer_width * separator
-    outstr += f"{buffer}{before_blank*spc}{heading}{after_blank*spc}{buffer}\n"
-    outstr += sep_line + "\n"
+    outstr += f"{buffer}{before_blank*spc}{heading}{after_blank*spc}{buffer}{lnbr}"
+    outstr += sep_line + lnbr
     return outstr

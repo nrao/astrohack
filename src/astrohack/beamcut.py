@@ -144,7 +144,7 @@ def beamcut(
     if executed_graph:
         if destination is not None:
             logger.info("Producing plots...")
-            beamcut_mds.plot_beamcut_in_amplitude(
+            beamcut_mds.plot_in_amplitude(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -153,7 +153,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beamcut_in_db(
+            beamcut_mds.plot_in_db(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -162,7 +162,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beamcut_in_phase(
+            beamcut_mds.plot_in_phase(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -172,7 +172,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_beamcut_lm_offsets(
+            beamcut_mds.plot_lm_offsets(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,
@@ -180,7 +180,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.export_beamcut_report(
+            beamcut_mds.export_report(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,

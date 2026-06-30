@@ -356,7 +356,7 @@ def generate_holog_obs_dict(
 
     pnt_mds = open_pointing(holog_dict_params["point_name"])
 
-    holog_obs_dict = HologObsDict.create_from_ms_info(
+    holog_obs_dict = HologObsDict.create_from_pointing_file(
         pnt_mds=pnt_mds,
         exclude_antennas=holog_dict_params["exclude_antennas"],
         baseline_average_distance=holog_dict_params["baseline_average_distance"],

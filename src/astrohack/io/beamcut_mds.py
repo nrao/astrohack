@@ -6,12 +6,11 @@ from toolviper.utils.parameter import validate
 from .base_mds import AstrohackBaseFile
 
 from astrohack.utils.text import (
-    create_dataset_label,
-    format_frequency,
     format_value_unit,
     create_pretty_table,
     lnbr,
     spc,
+    create_informative_label_from_summary,
 )
 from astrohack.utils.conversion import to_db, convert_unit
 from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
@@ -107,7 +106,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         )
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_amplitude(
+    def plot_in_amplitude(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -161,7 +160,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_db(
+    def plot_in_db(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -216,7 +215,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_lm_offsets(
+    def plot_lm_offsets(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -269,7 +268,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_beamcut_in_phase(
+    def plot_in_phase(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -330,7 +329,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def export_beamcut_report(
+    def export_report(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -505,7 +504,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
         f"FWHM [{lm_unit}]",
         "Attenuation [dB]",
     ]
-    outstr += _create_beamcut_header(summary, par_dict) + 2 * lnbr
+    outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
         sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
         for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
@@ -579,7 +578,7 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
     sec_x_axis = ax.secondary_xaxis(
         "top", functions=(lambda x: x * 1.0, lambda xb: 1 * xb)
     )
-    sec_x_axis.set_xlabel("Offset in Primary Beam HPBWs\n")
+    sec_x_axis.set_xlabel(f"Offset in Primary Beam HPBWs{lnbr}")
     sec_x_axis.set_xticks([])
     y_min, y_max = ax.get_ylim()
     x_lims = np.array(ax.get_xlim())
@@ -662,8 +661,8 @@ def _add_beam_parameters_box(
         head = "avg "
     else:
         head = ""
-    pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}\n"
-    pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}\n"
+    pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}{lnbr}"
+    pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}{lnbr}"
     pars_str += f"{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}"
     bounds_box = dict(boxstyle="square", facecolor="white", alpha=alpha)
     ax.text(
@@ -914,7 +913,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     pb_fwhm = 0.0
     fsl_ratio = 0.0
     xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
-    ylabel = f"Attenuation [dB]"
+    ylabel = f"Beam Power [dB]"
 
     # Loop over correlations
     n_data = 0
@@ -1050,22 +1049,7 @@ def _create_beamcut_header(summary, par_dict):
     :return: Data labeling header for plots and/or reports.
     :rtype: str
     """
-    azel_unit = par_dict["azel_unit"]
 
-    antenna = par_dict["this_ant"]
-    ddi = par_dict["this_ddi"]
-    freq_str = format_frequency(summary["spectral"]["rep. frequency"], decimal_places=3)
-    raw_azel = np.array(summary["general"]["az el info"]["mean"])
-    mean_azel = convert_unit("rad", azel_unit, "trigonometric") * raw_azel
-    title = (
-        f"Beam cut for {create_dataset_label(antenna, ddi, separator=',')}, "
-        + r"$\nu$ = "
-        + f"{freq_str}, "
+    return create_informative_label_from_summary(
+        summary, par_dict["azel_unit"], add_date=False
     )
-    if azel_unit == "rad":
-        decimal_places = 3
-    else:
-        decimal_places = 1
-    title += f"Az ~ {format_value_unit(mean_azel[0], azel_unit, decimal_places=decimal_places)}, "
-    title += f"El ~ {format_value_unit(mean_azel[1], azel_unit, decimal_places=decimal_places)}"
-    return title

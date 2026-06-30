@@ -8,7 +8,7 @@ from toolviper.dask.client import local_client
 from astrohack import *
 
 
-class TestExtractHolog:
+class TestAstrohackInParallel:
     data_dir = "parallel_data"
     ms_name = "ea25_cal_small_before_fixed.split.ms"
 

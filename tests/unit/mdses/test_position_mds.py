@@ -1,5 +1,6 @@
 import shutil
 import matplotlib
+import sys
 
 from toolviper.utils import data
 import pytest
@@ -8,6 +9,8 @@ from astrohack.utils.verification_tools import (
     are_png_files_close,
     are_txt_files_equal,
     add_data_folder_to_names_in_class,
+    execute_cleanup,
+    produce_reference_data,
 )
 
 matplotlib.use("Agg")
@@ -53,8 +56,9 @@ class TestPositionMDS:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir, ignore_errors=True)
-        shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir, ignore_errors=True)
+            shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_position_mds_init(self):
@@ -72,10 +76,11 @@ class TestPositionMDS:
 
             fit_res_filename = pos_res_name_dict[label]
             position_mds.export_locit_fit_results(self.destination_folder)
-            assert are_txt_files_equal(
-                f"{self.destination_folder}/{fit_res_filename}",
-                f"{self.ref_products_name}/{fit_res_filename}",
-            ), f"{fit_res_filename} differs from reference file."
+            if not produce_reference_data():
+                assert are_txt_files_equal(
+                    f"{self.destination_folder}/{fit_res_filename}",
+                    f"{self.ref_products_name}/{fit_res_filename}",
+                ), f"{fit_res_filename} differs from reference file."
 
             parminator_filename = f"parminator_{label}_combination.par"
             position_mds.export_results_to_parminator(
@@ -83,13 +88,16 @@ class TestPositionMDS:
                 correction_threshold=0.001,
                 ddi=0,  # DDI specified for the no comb case
             )
-            assert are_txt_files_equal(
-                f"{self.destination_folder}/{parminator_filename}",
-                f"{self.ref_products_name}/{parminator_filename}",
-            ), f"{parminator_filename} differs from reference file."
+            if not produce_reference_data():
+                assert are_txt_files_equal(
+                    f"{self.destination_folder}/{parminator_filename}",
+                    f"{self.ref_products_name}/{parminator_filename}",
+                ), f"{parminator_filename} differs from reference file."
         return
 
-    @pytest.mark.skip(reason="Data products require update.")
+    @pytest.mark.skip(
+        reason="Plot comparison is flaky and cannot be trusted to yield consistent results"
+    )
     def test_position_mds_plot_exports(self):
         ddi = 0
         ant = "ea16"
@@ -119,27 +127,30 @@ class TestPositionMDS:
                     f"{self.destination_folder}/{sky_coverage_name_dict[label]}",
                     f"{self.ref_products_name}/{sky_coverage_name_dict[label]}",
                 )
-                assert (
-                    equal
-                ), f"{msg}: {sky_coverage_name_dict[label]} differs from reference file."
+                if not produce_reference_data():
+                    assert (
+                        equal
+                    ), f"{msg}: {sky_coverage_name_dict[label]} differs from reference file."
 
             position_mds.plot_delays(self.destination_folder, ant=ant, ddi=ddi)
-            equal, msg = are_png_files_close(
-                f"{self.destination_folder}/{delay_name_dict[label]}",
-                f"{self.ref_products_name}/{delay_name_dict[label]}",
-            )
-            assert (
-                equal
-            ), f"{msg}: {delay_name_dict[label]} differs from reference file."
+            if not produce_reference_data():
+                equal, msg = are_png_files_close(
+                    f"{self.destination_folder}/{delay_name_dict[label]}",
+                    f"{self.ref_products_name}/{delay_name_dict[label]}",
+                )
+                assert (
+                    equal
+                ), f"{msg}: {delay_name_dict[label]} differs from reference file."
 
             position_mds.plot_position_corrections(self.destination_folder, ddi=ddi)
-            equal, msg = are_png_files_close(
-                f"{self.destination_folder}/{ant_pos_name_dict[label]}",
-                f"{self.ref_products_name}/{ant_pos_name_dict[label]}",
-            )
-            assert (
-                equal
-            ), f"{msg}: {ant_pos_name_dict[label]} differs from reference file."
+            if not produce_reference_data():
+                equal, msg = are_png_files_close(
+                    f"{self.destination_folder}/{ant_pos_name_dict[label]}",
+                    f"{self.ref_products_name}/{ant_pos_name_dict[label]}",
+                )
+                assert (
+                    equal
+                ), f"{msg}: {ant_pos_name_dict[label]} differs from reference file."
 
         return
 

@@ -1,6 +1,8 @@
 import shutil
 import matplotlib
 import pytest
+import os
+import sys
 
 from toolviper.utils import data
 
@@ -10,6 +12,9 @@ from astrohack.utils.verification_tools import (
     are_png_files_close,
     is_captured_output_equal_to_txt_reference,
     add_data_folder_to_names_in_class,
+    execute_cleanup,
+    produce_reference_data,
+    capture_prints_from_function,
 )
 
 matplotlib.use("Agg")
@@ -35,8 +40,9 @@ class TestLocitMDS:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir, ignore_errors=True)
-        shutil.rmtree(cls.destination_folder, ignore_errors=True)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir, ignore_errors=True)
+            shutil.rmtree(cls.destination_folder, ignore_errors=True)
         return
 
     def test_locit_mds_init(self):
@@ -46,49 +52,61 @@ class TestLocitMDS:
     def test_locit_mds_text_exports(self):
         locit_mds = open_locit(self.locit_name)
 
-        assert is_captured_output_equal_to_txt_reference(
-            locit_mds.print_source_table,
-            f"{self.ref_products_name}/src_tab_reference.txt",
-        ), "Source table should be exactly equal to reference source table"
+        exec_dict = {
+            "src_tab_reference.txt": locit_mds.print_source_table,
+            "array_cfg_reference.txt": locit_mds.print_array_configuration,
+        }
+        for txt_file_name, func in exec_dict.items():
+            if produce_reference_data():
+                os.makedirs(f"{self.destination_folder}", exist_ok=True)
+                output = capture_prints_from_function(func)
+                with open(
+                    f"{self.destination_folder}/{txt_file_name}", "w"
+                ) as out_file:
+                    out_file.write(output)
+            else:
+                assert is_captured_output_equal_to_txt_reference(
+                    func, f"{self.ref_products_name}/{txt_file_name}"
+                ), f"{txt_file_name} should be exactly equal to reference"
 
-        assert is_captured_output_equal_to_txt_reference(
-            locit_mds.print_array_configuration,
-            f"{self.ref_products_name}/array_cfg_reference.txt",
-        ), "Array configuration should be exactly equal to reference array configuration"
-
-    @pytest.mark.skip(reason="Data products require update.")
+    @pytest.mark.skip(
+        reason="Plot comparison is flaky and cannot be trusted to yield consistent results"
+    )
     def test_locit_mds_plot_exports(self):
         locit_mds = open_locit(self.locit_name)
 
         src_fk5_plot_name = "locit_source_table_fk5.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=False)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{src_fk5_plot_name}",
-            f"{self.ref_products_name}/{src_fk5_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: FK5 source position plot should be exactly equal to reference FK5 source position plot"
+        if not produce_reference_data():
+            equal, msg = are_png_files_close(
+                f"{self.destination_folder}/{src_fk5_plot_name}",
+                f"{self.ref_products_name}/{src_fk5_plot_name}",
+            )
+            assert (
+                equal
+            ), f"{msg}: FK5 source position plot should be exactly equal to reference FK5 source position plot"
 
         src_prece_plot_name = "locit_source_table_precessed.png"
         locit_mds.plot_source_positions(self.destination_folder, precessed=True)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{src_prece_plot_name}",
-            f"{self.ref_products_name}/{src_prece_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: Precessed source position plot should be exactly equal to reference precessed source position plot"
+        if not produce_reference_data():
+            equal, msg = are_png_files_close(
+                f"{self.destination_folder}/{src_prece_plot_name}",
+                f"{self.ref_products_name}/{src_prece_plot_name}",
+            )
+            assert (
+                equal
+            ), f"{msg}: Precessed source position plot should be exactly equal to reference precessed source position plot"
 
         array_cfg_plot_name = "locit_array_configuration.png"
         locit_mds.plot_array_configuration(self.destination_folder)
-        equal, msg = are_png_files_close(
-            f"{self.destination_folder}/{array_cfg_plot_name}",
-            f"{self.ref_products_name}/{array_cfg_plot_name}",
-        )
-        assert (
-            equal
-        ), f"{msg}: Array configuration plot should be exactly equal to reference array configuration plot"
+        if not produce_reference_data():
+            equal, msg = are_png_files_close(
+                f"{self.destination_folder}/{array_cfg_plot_name}",
+                f"{self.ref_products_name}/{array_cfg_plot_name}",
+            )
+            assert (
+                equal
+            ), f"{msg}: Array configuration plot should be exactly equal to reference array configuration plot"
 
     def test_locit_mds_metadata_style(self):
         locit_mds = open_locit(self.locit_name)

@@ -7,7 +7,10 @@ import toolviper
 
 from astrohack import open_locit
 from astrohack.extract_locit import extract_locit
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    execute_cleanup,
+)
 
 
 class TestExtractLocit:
@@ -38,7 +41,8 @@ class TestExtractLocit:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_defaults(self):
         """

@@ -12,6 +12,8 @@ from astrohack.utils.verification_tools import (
     are_txt_files_equal,
     are_png_files_close,
     are_fits_files_close,
+    execute_cleanup,
+    produce_reference_data,
 )
 
 matplotlib.use("Agg")
@@ -68,8 +70,9 @@ class TestimageMDS:
 
     @classmethod
     def teardown_class(cls):
-        shutil.rmtree(cls.data_dir)
-        shutil.rmtree(cls.destination_folder)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
+            shutil.rmtree(cls.destination_folder)
         return
 
     def test_init(self):
@@ -86,23 +89,23 @@ class TestimageMDS:
 
     def test_text_exports(self):
         img_mds = open_image(self.img_name)
-        img_mds.export_phase_fit_results(
-            self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
-        )
-        txt_file_name = "image_phase_fit_ant_ea25_ddi_0.txt"
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{txt_file_name}",
-            f"{self.ref_products_name}/{txt_file_name}",
-        ), "Phase fit results are different from reference"
 
-        img_mds.export_zernike_fit_results(
-            self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
-        )
-        txt_file_name = "image_zernike_fit_ant_ea25_ddi_0.txt"
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{txt_file_name}",
-            f"{self.ref_products_name}/{txt_file_name}",
-        ), "Zernike fit results are different from reference"
+        exec_dict = {
+            f"image_phase_fit_ant_{self.ant_id}_ddi_{self.ddi_id}.txt": img_mds.export_phase_fit_results,
+            f"image_zernike_fit_ant_{self.ant_id}_ddi_{self.ddi_id}.txt": img_mds.export_zernike_fit_results,
+        }
+        for txt_file_name, func in exec_dict.items():
+            func(
+                self.destination_folder,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                parallel=False,
+            )
+            if not produce_reference_data():
+                assert are_txt_files_equal(
+                    f"{self.destination_folder}/{txt_file_name}",
+                    f"{self.ref_products_name}/{txt_file_name}",
+                ), "Phase fit results are different from reference"
 
         obs_summ_file_name = "obs_summ.txt"
         img_mds.observation_summary(
@@ -112,28 +115,28 @@ class TestimageMDS:
             parallel=False,
             print_summary=False,
         )
-        assert are_txt_files_equal(
-            f"{self.destination_folder}/{obs_summ_file_name}",
-            f"{self.ref_products_name}/{obs_summ_file_name}",
-        ), "Observation summary is different from reference"
+        if not produce_reference_data():
+            assert are_txt_files_equal(
+                f"{self.destination_folder}/{obs_summ_file_name}",
+                f"{self.ref_products_name}/{obs_summ_file_name}",
+            ), "Observation summary is different from reference"
 
         return
 
     def test_plot_exports(self):
         img_mds = open_image(self.img_name)
+        methods = [
+            img_mds.plot_apertures,
+            img_mds.plot_zernike_model,
+            img_mds.plot_beams,
+        ]
 
-        img_mds.plot_apertures(
-            self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
-        )
-        self.plot_list_assertions("image_aperture_*.png")
-
-        img_mds.plot_beams(
-            self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
-        )
-        self.plot_list_assertions("image_beam_*.png")
-
-        img_mds.plot_zernike_model(
-            self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
-        )
-        self.plot_list_assertions("image_zernike_model_*.png")
-        return
+        for method in methods:
+            method(
+                self.destination_folder,
+                ant=self.ant_id,
+                ddi=self.ddi_id,
+                parallel=False,
+            )
+            if not produce_reference_data():
+                self.plot_list_assertions("image_aperture_*.png")

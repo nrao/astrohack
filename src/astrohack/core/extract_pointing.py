@@ -17,6 +17,7 @@ from astrohack.utils.algorithms import (
     data_statistics,
 )
 from astrohack.utils.conversion import convert_dict_from_numba
+from astrohack.utils.text import undscr
 from astrohack.utils.tools import get_valid_state_ids
 from astrohack.utils.constants import njit_caching
 
@@ -406,9 +407,9 @@ def post_process_evaluation(point_name):
 
     folder_size_stats = data_statistics(ant_folder_sizes)
     for i_folder, ant_folder in enumerate(ant_sub_dirs):
-        ant_name = ant_folder.split("_")[-1]
+        ant_name = ant_folder.split(undscr)[-1]
         size_deviation = ant_folder_sizes[i_folder] - folder_size_stats["median"]
-        if np.abs(size_deviation) > folder_size_stats["rms"]:
+        if np.abs(size_deviation) > 3 * folder_size_stats["rms"]:
             if size_deviation < 0:
                 qualifier = "smaller"
             else:

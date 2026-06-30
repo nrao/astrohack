@@ -6,6 +6,8 @@ from astrohack.antenna.base_panel import BasePanel
 from astrohack.antenna.panel_fitting import PanelPoint
 import numpy as np
 
+from astrohack.utils.text import spc
+
 
 class PolygonPanel(BasePanel):
 
@@ -89,7 +91,7 @@ class PolygonPanel(BasePanel):
         """
         print("########################################")
         print("{0:20s}={1:8d}".format("label", self.label))
-        print("{0:20s}={1:8s}".format("model", " " + self.model_name))
+        print("{0:20s}={1:8s}".format("model", spc + self.model_name))
         print("{0:20s}={1:8d}".format("nsamp", len(self.samples)))
         if verbose:
             for sample in self.samples:

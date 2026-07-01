@@ -99,7 +99,11 @@ def initialization_check(param_dict: dict, title: str):
     print(f"{title}:")
     print_dict_simple(param_dict)
     print()
+    proceed_check(param_dict)
+    print()
+
+
+def proceed_check(param_dict: dict):
     if not param_dict["assume_yes"]:
         if not yesno("Proceed?"):
             exit(0)
-    print()

@@ -1,7 +1,8 @@
 import argparse
+import time
+
 import casatools
 import numpy as np
-from casatasks import importasdm
 from pathlib import Path
 import shutil
 
@@ -9,17 +10,9 @@ from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
     file_is_asdm,
+    run_casatask,
+    proceed_check,
 )
-
-
-def run_import_asdm(param_dict: dict, msger):
-    msger.one_liner("Input is an ASDM, importing it...")
-    if Path(param_dict["msname"]).is_dir() and param_dict["overwrite"]:
-        msger.heading(f"{param_dict['msname']} already exists overwriting it")
-        shutil.rmtree(param_dict["msname"])
-
-    importasdm(asdm=param_dict["filename"], vis=param_dict["msname"], overwrite=False)
-    msger.one_liner("importasdm done!")
 
 
 def parse():
@@ -44,24 +37,24 @@ def parse():
 
     parser.add_argument(
         "-f",
-        "--fringe_fit_source",
+        "--fringefit_source",
         default="0319+415",
         help="Fringe fit source, default is 0319+415",
     )
     parser.add_argument(
         "-s",
         "--scans_to_flag",
-        default="",
+        default=None,
         type=str,
-        help="Comma separated list of scans to flag, default is no scan to flag",
+        help="Comma separated list of scans to flag, default is None",
     )
 
     parser.add_argument(
-        "-q",
-        "--quack-nchan",
-        default=4,
-        type=int,
-        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
+        "-i",
+        "--intent",
+        default="CALIBRATE_POINTING#ON_SOURCE",
+        type=str,
+        help="Intent for pointing observations.",
     )
 
     parser.add_argument(
@@ -73,216 +66,255 @@ def parse():
     )
 
     parser.add_argument(
+        "--starting-stage",
+        type=str,
+        default="calibration",
+        choices=["calibration", "locit", "plotting", "parminator"],
+        help="Starting stage in which to start processing (default: %(default)s).",
+    )
+
+    parser.add_argument(
         "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
     )
 
     return vars(parser.parse_args())
 
 
-def param_init(param_dict: dict, msger):
+def param_init(param_dict: dict, msger: MessageBoard):
     if param_dict["root_name"] is None:
         base_name = param_dict["filename"]
     else:
-        base_name = param_dict
+        base_name = param_dict["root_name"]
 
     param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
     if param_dict["is_asdm"]:
-        param_dict["msname"] = base_name + ".ms"
-        run_import_asdm(param_dict, msger)
+        param_dict["msname"] = f"{base_name}.ms"
+        msger.one_liner("Input is an ASDM, importing it...")
+        run_casatask(
+            "importasdm",
+            {
+                "asdm": param_dict["filename"],
+                "vis": param_dict["msname"],
+                "overwrite": param_dict["overwrite"],
+            },
+            msger,
+        )
     else:
         param_dict["msname"] = param_dict["filename"]
 
     param_dict["pointing_only_ms"] = f"{base_name}.pnt.ms"
-    param_dict["fringe_fit_caltable"] = f"{base_name}.sbd"
+    param_dict["fringefit_caltable"] = f"{base_name}.sbd"
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"
     param_dict["phase_caltable"] = f"{base_name}.pha.ms"
 
-    # Ms data fetching
-
-    initialization_check(param_dict, "Baseline CASA calibration parameters")
-
-
-def main():
-    msger = MessageBoard()
-    msger.heading("Welcome to CASA baseline calibration pipeline")
-
-    param_init(parse(), msger)
-
-    return
-    # Input file names
-    if args.is_ms:
-        ms_name = args.input_dataset
-        asdm_name = ""
+    if param_dict["scans_to_flag"] is None:
+        param_dict["scans_to_flag"] = []
     else:
-        asdm_name = args.input_dataset
-        ms_name = args.output_name + ".ms"
+        param_dict["scans_to_flag"] = param_dict["scans_to_flag"].split(",")
 
-    basename = args.output_name
-    scanstoflag = ""
-    ref_ant = args.reference_antenna
-    frg_src = args.fringe_fit_source
+    # Ms data fetching and some consistency checks
     pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
-
-    # Number of channels
-    n_chan = 64
-
-    # Name definitions
-    ext_pnt = "-pnt.ms"
-    ext_frg = "-frg.cal"
-    ext_avg = "-avg.ms"
-    ext_cal = "-pha.cal"
-    point_only = basename + ext_pnt
-    fring_cal = basename + ext_frg
-    avg_data = basename + ext_avg
-    gaincal_tab = basename + ext_cal
-
-    # The desired intent
-
-    if args.is_ms:
-        pass
-    else:
-        importasdm(asdm=asdm_name, vis=ms_name)
-
     msmd = casatools.msmetadata()
-    msmd.open(ms_name)
-    spws = msmd.datadescids()
-    field_names = msmd.fieldnames()
-    nchans = []
-    for spw_id in spws:
-        nchans.append(len(msmd.chanfreqs(spw_id)))
+    msmd.open(param_dict["msname"])
     ant_names = msmd.antennanames()
+    field_names = msmd.fieldnames()
+    spw_list = msmd.spwsforintent(pnt_intent)
+    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
     msmd.done()
 
-    unq_chan = np.unique(nchans)
-    if unq_chan.size != 1:
-        raise RuntimeError("SPWs do not have a consistent number of channels")
-    else:
-        nchan = unq_chan[0]
+    param_dict["n_chan"] = nchan[0]
 
-    if frg_src not in field_names:
-        print()
-        print("Available sources for fringe fitting:")
-        print(field_names)
-        print()
-        raise ValueError("Chosen fringe fit source is not available in dataset")
-
-    if ref_ant not in ant_names:
-        print()
-        print("Available antennas:")
-        print(ant_names)
-        print()
-        raise ValueError("Chosen reference antenna is not available in dataset")
-
-    print("Splitting out relevant scans...")
-    split(
-        vis=ms_name,  # Name of input visibility file
-        outputvis=point_only,  # Name of output visibility file
-        keepmms=True,  # keep Multi MS
-        field="",  # Select field using field id(s) or field name(s)
-        spw="",  # Select spectral window/channels
-        scan="",  # Scan number range
-        antenna="",  # Select data based on antenna/baseline
-        correlation="",  # Select data based on correlation
-        timerange="",  # Select data based on time range
-        intent=pnt_intent,  # Select observing intent
-        array="",  # Select (sub)array(s) by array ID number.
-        uvrange="",  # Select data by baseline length.
-        observation="",  # Select by observation ID(s)
-        feed="",  # Multi-feed numbers: Not yet implemented.
-        datacolumn="data",  # Which data column(s) to process.
-        keepflags=True,  #
-        width=1,  # Number of channels to average
-        timebin="0s",  # Bin width for time averaging
-    )
-
-    if len(scanstoflag) > 0:
-        print("Flagging out problematic scans...")
-        flagdata(
-            vis=point_only,  # Name of input visibility file
-            mode="manual",  # Flagging mode
-            autocorr=False,  # Flag only the auto-correlations?
-            spw="",  # Select spectral window/channels
-            field="",  # Select field id(s) or field name(s)
-            antenna="",  # Select data based on antenna/baseline
-            uvrange="",  # Select data by baseline length.
-            timerange="",  # Select data based on time range
-            correlation="",  # Select data based on correlation
-            scan=scanstoflag,  # Scan number range
-            intent="",  # Select observing intent
-            array="",  # (Sub)array numbers
-            observation="",  # Select by observation ID(s)
-            action="apply",  # Action to perform
-            display="report",  # Display (data/report/both).
-            flagbackup=False,  # Save in flagversions
-            savepars=False,  # Save  parameters to the FLAG_CMD
-            writeflags=True,  # Do not modify.
+    error_msgs = []
+    if param_dict["refant"] not in ant_names:
+        error_msgs.append(f"Chosen refant ({param_dict['refant']}) not present in ms.")
+    if param_dict["fringe_fit_source"] not in field_names:
+        error_msgs.append(
+            f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
         )
-        # Create our new flag state under the name 'baseflags'
-        flagmanager(vis=point_only, mode="save", versionname="baseflags")
+    if nchan.size != 1:
+        error_msgs.append(
+            "Spectral windows are not consistent with each other, is this really a pointing ms?"
+        )
+    if len(error_msgs) > 0:
+        raise RuntimeError("\n".join(error_msgs))
 
-    print("Running fringe fit...")
-    fringefit(
-        vis=point_only,  # Name of input visibility file
-        caltable=fring_cal,  # Name of output gain calibration table
-        field=frg_src,  # field names
-        solint="inf",  # Solution interval: egs. 'inf', '60s'
-        refant=ref_ant,  # Reference antenna name(s)
-        minsnr=3.0,  # Reject solutions below this snr
-        zerorates=True,  # Zero delay-rates in solution table
-        globalsolve=True,  # Refine estimates with global lst-sq solver
-        niter=100,  # Maximum number of iterations
-        corrdepflags=False,  # Respect correlation-dependent flags
-        paramactive=[],  # Control which parameters are solved for
-        parang=False,  # Apply para angle correction on the fly
+    initialization_check(param_dict, "Baseline CASA calibration parameters")
+    return param_dict
+
+
+def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
+    if Path(param_dict["pointing_only_ms"]).is_dir() and not param_dict["overwrite"]:
+        msger.one_liner(
+            f"{param_dict['pointing_only_ms']} already exists, skipping splitting."
+        )
+    else:
+        run_casatask(
+            "split",
+            {
+                "vis": param_dict["msname"],
+                "outputvis": param_dict["pointing_only_ms"],
+                "intent": param_dict["intent"],
+                "datacolumn": "data",
+            },
+            msger,
+        )
+
+    if len(param_dict["scans_to_flag"]) > 0:
+        run_casatask(
+            "flagdata",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "mode": "manual",
+                "scan": ",".join(param_dict["scans_to_flag"]),
+                "action": "apply",
+                "display": "report",
+                "flagbackup": False,
+            },
+            msger,
+        )
+        run_casatask(
+            "flagmanager",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "mode": "save",
+                "versionname": "baseflags",
+            },
+            msger,
+        )
+
+    if Path(param_dict["fringefit_caltable"]).is_dir() and not param_dict["overwrite"]:
+        msger.one_liner(
+            f"{param_dict['fringefit_caltable']} already exists, skipping fringefit."
+        )
+    else:
+        run_casatask(
+            "fringefit",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "caltable": param_dict["fringefit_caltable"],
+                "field": param_dict["fringefit_source"],
+                "solint": "inf",
+                "refant": param_dict["refant"],
+                "minsnr": 3.0,
+                "zerorates": True,
+                "globalsolve": True,
+                "niter": 100,
+            },
+            msger,
+        )
+    run_casatask(
+        "applycal",
+        {
+            "vis": param_dict["pointing_only_ms"],
+            "gaintable": [param_dict["fringefit_caltable"]],
+            "interp": ["nearest"],
+            "parang": False,
+        },
+        msger,
     )
-
-    print("Applying fringe fit results...")
-    applycal(vis=point_only, gaintable=[fring_cal], interp=["nearest"], parang=False)
 
     # Now we create a new dataset that is colapsed on the channel axis
     # within each spw, also create a flagversion to store current flag
     # state on the averaged MS
-    print("Averaging all channels...")
-    split(
-        vis=point_only,  # Name of input visibility file
-        outputvis=avg_data,  # Name of output visibility file
-        keepmms=True,  # keep Multi-ms
-        field="",  # Select field  field name(s)
-        spw="",  # Select spectral window/channels
-        scan="",  # Scan number range
-        antenna="",  # Select data based on antenna/baseline
-        correlation="",  # Select data based on correlation
-        timerange="",  # Select data based on time range
-        intent="",  # Select observing intent
-        array="",  # Select (sub)array(s) by array ID number.
-        uvrange="",  # Select data by baseline length.
-        observation="",  # Select by observation ID(s)
-        feed="",  # Multi-feed numbers: Not yet implemented.
-        datacolumn="corrected",  # Which data column(s) to process.
-        keepflags=False,  #
-        width=n_chan,  # Number of channels to average
-        timebin="0s",  # Bin width for time averaging
+    if Path(param_dict["freq_averaged_ms"]).is_dir() and not param_dict["overwrite"]:
+        msger.one_liner("Frequency averaged ms already exists, skipping its creation.")
+    else:
+        run_casatask(
+            "split",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "outputvis": param_dict["freq_averaged_ms"],
+                "datacolumn": "corrected",
+                "keepflags": False,  #
+                "width": param_dict["n_chan"],
+            },
+            msger,
+        )
+        run_casatask(
+            "flagmanager",
+            {
+                "vis": param_dict["freq_averaged_ms"],
+                "mode": "save",
+                "versionname": "original",
+            },
+            msger,
+        )
+
+    if Path(param_dict["phase_caltable"]).is_dir() and not param_dict["overwrite"]:
+        run_casatask(
+            "gaincal",
+            {
+                "vis": param_dict["freq_averaged_ms"],
+                "caltable": param_dict["phase_caltable"],
+                "solint": "10min",
+                "refant": param_dict["refant"],
+                "refantmode": "flex",  # Maybe we should use strict for this application?
+                "minblperant": 3,
+                "minsnr": 3.0,
+                "gaintype": "G",  # G is for gain
+                "calmode": "p",  # p is for phase
+                "solmode": "L1",  # -> least squares
+            },
+            msger,
+        )
+    run_casatask(
+        "applycal",
+        {
+            "vis": param_dict["freq_averaged_ms"],
+            "gaintable": [param_dict["phase_caltable"]],
+            "interp": ["nearest"],
+            "parang": False,
+        },
+        msger,
     )
-    flagmanager(vis=avg_data, mode="save", versionname="original")
 
-    print("Computing phase gains...")
-    gaincal(
-        vis=avg_data,  # Name of input visibility file
-        caltable=gaincal_tab,  # Name of output gain cal table
-        field="",  # Select field using field name(s)
-        solint="10min",  # Solution interval
-        refant=ref_ant,  # Reference antenna name(s)
-        refantmode="flex",  # Reference antenna mode
-        minblperant=3,  # Minimum baselines _per antenna_
-        minsnr=3.0,  # Reject solutions below this SNR
-        gaintype="G",  # G is gain
-        calmode="p",  # Type of solution" ('ap', 'p', 'a')
-        parang=False,  # Apply parallactic angle correction
-        solmode="L1",  # Solution mode L1 => least squares
+    if not param_dict["assume_yes"]:
+        run_casatask(
+            "plotms",
+            {
+                "vis": param_dict["freq_averaged_ms"],
+                "yaxis": "phase",
+                "ydatacolumn": "data",
+                "field": "*",
+                "avgtime": "10",
+                "correlation": "RR,LL",
+                "coloraxis": "spw",
+                "antenna": param_dict["refant"],
+                "iteraxis": "baseline",
+            },
+            msger,
+        )
+        print("Do phases look good in plot ms?")
+        proceed_check(param_dict)
+
+    return
+
+
+def main():
+    pipeline_start = time.time()
+    msger = MessageBoard()
+    msger.heading("Welcome to the astrohack baseline pipeline")
+
+    param_dict = param_init(parse(), msger)
+    processing_stage = param_dict["starting_stage"]
+
+    if processing_stage == "calibration":
+        run_casa_pre_locit_steps(param_dict, msger)
+        processing_stage = "locit"
+
+    if processing_stage == "locit":
+        msger.one_liner("LOCIT WILL COME HERE")
+        processing_stage = "plotting"
+
+    if processing_stage == "plotting":
+        msger.one_liner("PLOTTING WILL COME HERE")
+        processing_stage = "parminator"
+
+    if processing_stage == "parminator":
+        msger.one_liner("PARMINATOR WILL COME HERE")
+
+    pipeline_end = time.time()
+    msger.heading(
+        f"Baseline calibration finished in {pipeline_end-pipeline_start:.2f} s"
     )
-
-    print("Applying phase gains...")
-    applycal(vis=avg_data, gaintable=[gaincal_tab], interp=["nearest"], parang=False)
-
-    # plotms(vis=avg_data, yaxis='phase', ydatacolumn='data', field='*', avgtime='10', correlation='RR,LL', coloraxis='spw',
-    #        antenna=ref_ant, iteraxis='baseline')
+    return

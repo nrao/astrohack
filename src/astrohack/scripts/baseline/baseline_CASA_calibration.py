@@ -1,45 +1,52 @@
 import argparse
 import casatools
 import numpy as np
+from casatasks import importasdm
+from pathlib import Path
+import shutil
 
-from astrohack.utils.user_interaction import MessageBoard, initialization_check
+from astrohack.utils.pipeline_support import (
+    MessageBoard,
+    initialization_check,
+    file_is_asdm,
+)
 
-print()
-print(80 * "-")
-print()
-desc = "CASA pre-locit script\n"
-desc += "Execute fringe fit, averaging and phase cal to produce the cal table to ingested by astrohack's locit"
+
+def run_import_asdm(param_dict: dict, msger):
+    msger.one_liner("Input is an ASDM, importing it...")
+    if Path(param_dict["msname"]).is_dir() and param_dict["overwrite"]:
+        msger.heading(f"{param_dict['msname']} already exists overwriting it")
+        shutil.rmtree(param_dict["msname"])
+
+    importasdm(asdm=param_dict["filename"], vis=param_dict["msname"], overwrite=False)
+    msger.one_liner("importasdm done!")
 
 
 def parse():
+    desc = "CASA pre-locit script\n"
+    desc += "Execute fringe fit, averaging and phase cal to produce the cal table to ingested by astrohack's locit"
+
     parser = argparse.ArgumentParser(
         description=f"{desc}", formatter_class=argparse.RawTextHelpFormatter
     )
 
-    parser.add_argument("input_dataset", type=str, help="Input dataset usually an ASDM")
+    parser.add_argument("filename", type=str, help="Path to the input MS/ASDM file")
+
+    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
+
     parser.add_argument(
-        "output_name",
+        "-r",
+        "--root-name",
         type=str,
-        help="Base name for output name produced by this script",
+        default=None,
+        help="Root name for the calibration tables, default is filename without extension",
     )
-    parser.add_argument(
-        "-m",
-        "--is_ms",
-        default=False,
-        action="store_true",
-        help="Input file is a MS rather than an ASDM",
-    )
+
     parser.add_argument(
         "-f",
         "--fringe_fit_source",
         default="0319+415",
         help="Fringe fit source, default is 0319+415",
-    )
-    parser.add_argument(
-        "-r",
-        "--reference_antenna",
-        default="ea23",
-        help="Choose reference antenna for fringe fit and phase cal, default is ea23",
     )
     parser.add_argument(
         "-s",
@@ -48,16 +55,58 @@ def parse():
         type=str,
         help="Comma separated list of scans to flag, default is no scan to flag",
     )
-    param_dict = vars(parser.parse_args())
-    return param_dict
+
+    parser.add_argument(
+        "-q",
+        "--quack-nchan",
+        default=4,
+        type=int,
+        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        default=False,
+        action="store_true",
+        help="Overwrite existing calibration files",
+    )
+
+    parser.add_argument(
+        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
+    )
+
+    return vars(parser.parse_args())
+
+
+def param_init(param_dict: dict, msger):
+    if param_dict["root_name"] is None:
+        base_name = param_dict["filename"]
+    else:
+        base_name = param_dict
+
+    param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
+    if param_dict["is_asdm"]:
+        param_dict["msname"] = base_name + ".ms"
+        run_import_asdm(param_dict, msger)
+    else:
+        param_dict["msname"] = param_dict["filename"]
+
+    param_dict["pointing_only_ms"] = f"{base_name}.pnt.ms"
+    param_dict["fringe_fit_caltable"] = f"{base_name}.sbd"
+    param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"
+    param_dict["phase_caltable"] = f"{base_name}.pha.ms"
+
+    # Ms data fetching
+
+    initialization_check(param_dict, "Baseline CASA calibration parameters")
 
 
 def main():
     msger = MessageBoard()
     msger.heading("Welcome to CASA baseline calibration pipeline")
 
-    param_dict = parse()
-    initialization_check(param_dict, "Baseline CASA calibration parameters")
+    param_init(parse(), msger)
 
     return
     # Input file names

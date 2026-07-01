@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 
 from astrohack.utils.text import lnbr, spc
 
@@ -12,6 +13,11 @@ def yesno(prompt):
     else:
         print("Use <yes> or <no>")
         return yesno(prompt)
+
+
+def file_is_asdm(filename):
+    file_path = Path(f"{filename}/ASDM.xml")
+    return file_path.exists()
 
 
 class MessageBoard:

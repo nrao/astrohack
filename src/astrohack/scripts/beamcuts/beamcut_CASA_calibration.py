@@ -6,7 +6,11 @@ import numpy as np
 import casatools
 from pathlib import Path
 from casatasks import importasdm, gaincal, bandpass, applycal
-from astrohack.utils.pipeline_support import MessageBoard, initialization_check
+from astrohack.utils.pipeline_support import (
+    MessageBoard,
+    initialization_check,
+    file_is_asdm,
+)
 
 
 def parse():
@@ -62,7 +66,7 @@ class CalObject:
         self.filename = param_dict["filename"]
         self.refant = param_dict["refant"]
         self.overwrite = param_dict["overwrite"]
-        self.is_asdm = self._is_asdm()
+        self.is_asdm = file_is_asdm(self.filename)
 
         if param_dict["root_name"] is None:
             base_cal_name = f"{self.filename}."
@@ -94,10 +98,6 @@ class CalObject:
             "CASA calibration parameters",
         )
         self.msger = msger
-
-    def _is_asdm(self):
-        file_path = Path(f"{self.filename}/ASDM.xml")
-        return file_path.exists()
 
     def asdm_to_ms(self):
         if os.path.exists(self.msname) and self.overwrite:

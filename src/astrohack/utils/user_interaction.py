@@ -1,3 +1,5 @@
+import shutil
+
 from astrohack.utils.text import lnbr, spc
 
 
@@ -14,15 +16,19 @@ def yesno(prompt):
 
 class MessageBoard:
 
-    def __init__(self, width=100, block_char="#", spacing=1, blocking=3):
-        self.width = width
+    def __init__(self, width=None, block_char="#", spacing=1, blocking=3):
+        if width is None:
+            term_size = shutil.get_terminal_size((80, 20))
+            self.width = term_size.columns
+        else:
+            self.width = width
         self.block_char = block_char
         self.spacing = (spacing,)
         self.blocking = blocking
 
         self.capo = blocking * block_char + spacing * spc
         self.coda = self.capo[::-1] + lnbr
-        self.usable_width = width - 2 * spacing - 2 * blocking
+        self.usable_width = self.width - 2 * spacing - 2 * blocking
         self.block_line = self.width * self.block_char + lnbr
         self.block_len = len(self.capo)
 

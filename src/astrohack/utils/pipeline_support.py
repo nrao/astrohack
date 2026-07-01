@@ -21,9 +21,15 @@ def file_is_asdm(filename):
 
 
 def run_casatask(task_name: str, kwargs_dict: dict, msger):
-    import casatasks
+    if task_name == "plotms":
+        import casaplotms
 
-    casatask_func = getattr(casatasks, task_name)
+        casatask_func = getattr(casaplotms, "plotms")
+    else:
+        import casatasks
+
+        casatask_func = getattr(casatasks, task_name)
+
     msger.one_liner(f"Running {task_name}...")
     task_start_time = time.time()
     casatask_func(**kwargs_dict)
@@ -106,7 +112,7 @@ def initialization_check(param_dict: dict, title: str):
     print()
 
 
-def proceed_check(param_dict: dict):
+def proceed_check(param_dict: dict, prompt: str = "Proceed?"):
     if not param_dict["assume_yes"]:
-        if not yesno("Proceed?"):
+        if not yesno(prompt):
             exit(0)

@@ -139,7 +139,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     if len(error_msgs) > 0:
         raise RuntimeError("\n".join(error_msgs))
 
-    initialization_check(param_dict, "Baseline CASA calibration parameters")
+    initialization_check(param_dict, "Baseline determination parameters")
     return param_dict
 
 
@@ -295,7 +295,7 @@ def main():
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the astrohack baseline pipeline")
+    msger.heading("Welcome to the AstroHACK baseline pipeline")
 
     param_dict = param_init(parse(), msger)
     processing_stage = param_dict["starting_stage"]

@@ -98,6 +98,7 @@ def print_dict_simple(the_dict, ident=4):
 
 
 def initialization_check(param_dict: dict, title: str):
+    print()
     print(f"{title}:")
     print_dict_simple(param_dict)
     print()

@@ -6,7 +6,7 @@ import numpy as np
 import casatools
 from pathlib import Path
 from casatasks import importasdm, gaincal, bandpass, applycal
-from astrohack.utils.user_interaction import MessageBoard, initialization_check
+from astrohack.utils.pipeline_support import MessageBoard, initialization_check
 
 
 def parse():

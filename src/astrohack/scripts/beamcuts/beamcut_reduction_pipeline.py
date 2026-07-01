@@ -7,7 +7,7 @@ from astrohack import (
     open_pointing,
     open_beamcut,
 )
-from astrohack.utils.user_interaction import initialization_check, MessageBoard
+from astrohack.utils.pipeline_support import initialization_check, MessageBoard
 import inspect
 
 

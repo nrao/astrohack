@@ -26,7 +26,7 @@ def check_ms_exists(ms_name):
     ms_tbl_info_path = pathlib.Path(ms_name + "/table.info")
     if not ms_tbl_info_path.is_file():
         raise RuntimeError(
-            f"{ms_name} does not contain a table.info file, probably not a proper or cal table."
+            f"{ms_name} does not contain a table.info file, probably not a proper ms or cal table."
         )
 
 

@@ -13,6 +13,7 @@ from astrohack.utils.pipeline_support import (
     run_casatask,
     proceed_check,
 )
+from astrohack.utils.text import format_duration
 
 
 def parse():
@@ -62,7 +63,7 @@ def parse():
         "--overwrite",
         default=False,
         action="store_true",
-        help="Overwrite existing calibration files",
+        help="Overwrite existing files (MSes, caltables, locit files, plots)",
     )
 
     parser.add_argument(
@@ -103,9 +104,9 @@ def param_init(param_dict: dict, msger: MessageBoard):
         param_dict["msname"] = param_dict["filename"]
 
     param_dict["pointing_only_ms"] = f"{base_name}.pnt.ms"
-    param_dict["fringefit_caltable"] = f"{base_name}.sbd"
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"
-    param_dict["phase_caltable"] = f"{base_name}.pha.ms"
+    param_dict["fringefit_caltable"] = f"{base_name}.sbd"
+    param_dict["phase_caltable"] = f"{base_name}.pha.gcal"
 
     if param_dict["scans_to_flag"] is None:
         param_dict["scans_to_flag"] = []
@@ -127,7 +128,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     error_msgs = []
     if param_dict["refant"] not in ant_names:
         error_msgs.append(f"Chosen refant ({param_dict['refant']}) not present in ms.")
-    if param_dict["fringe_fit_source"] not in field_names:
+    if param_dict["fringefit_source"] not in field_names:
         error_msgs.append(
             f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
         )
@@ -293,6 +294,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
 def main():
     pipeline_start = time.time()
     msger = MessageBoard()
+    print()
     msger.heading("Welcome to the astrohack baseline pipeline")
 
     param_dict = param_init(parse(), msger)
@@ -315,6 +317,6 @@ def main():
 
     pipeline_end = time.time()
     msger.heading(
-        f"Baseline calibration finished in {pipeline_end-pipeline_start:.2f} s"
+        f"Baseline calibration finished in {format_duration(pipeline_end-pipeline_start)}"
     )
     return

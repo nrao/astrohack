@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 import time
-from astrohack.utils.text import lnbr, spc
+from astrohack.utils.text import lnbr, spc, format_duration
 
 
 def yesno(prompt):
@@ -28,7 +28,9 @@ def run_casatask(task_name: str, kwargs_dict: dict, msger):
     task_start_time = time.time()
     casatask_func(**kwargs_dict)
     task_end_time = time.time()
-    msger.one_liner(f"{task_name} finished in {task_end_time - task_start_time:.2f} s")
+    msger.one_liner(
+        f"{task_name} finished in {format_duration(task_end_time - task_start_time)}"
+    )
 
 
 class MessageBoard:

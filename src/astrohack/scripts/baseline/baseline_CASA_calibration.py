@@ -144,7 +144,8 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
 
 def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
-    if Path(param_dict["pointing_only_ms"]).is_dir() and not param_dict["overwrite"]:
+    point_exist = Path(param_dict["pointing_only_ms"]).is_dir()
+    if point_exist and not param_dict["overwrite"]:
         msger.one_liner(
             f"{param_dict['pointing_only_ms']} already exists, skipping splitting."
         )
@@ -203,16 +204,16 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             },
             msger,
         )
-    run_casatask(
-        "applycal",
-        {
-            "vis": param_dict["pointing_only_ms"],
-            "gaintable": [param_dict["fringefit_caltable"]],
-            "interp": ["nearest"],
-            "parang": False,
-        },
-        msger,
-    )
+        run_casatask(
+            "applycal",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "gaintable": [param_dict["fringefit_caltable"]],
+                "interp": ["nearest"],
+                "parang": False,
+            },
+            msger,
+        )
 
     # Now we create a new dataset that is colapsed on the channel axis
     # within each spw, also create a flagversion to store current flag
@@ -242,6 +243,8 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
         )
 
     if Path(param_dict["phase_caltable"]).is_dir() and not param_dict["overwrite"]:
+        msger.one_liner("Phase caltable already exists, skipping its creation.")
+    else:
         run_casatask(
             "gaincal",
             {
@@ -258,16 +261,16 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             },
             msger,
         )
-    run_casatask(
-        "applycal",
-        {
-            "vis": param_dict["freq_averaged_ms"],
-            "gaintable": [param_dict["phase_caltable"]],
-            "interp": ["nearest"],
-            "parang": False,
-        },
-        msger,
-    )
+        run_casatask(
+            "applycal",
+            {
+                "vis": param_dict["freq_averaged_ms"],
+                "gaintable": [param_dict["phase_caltable"]],
+                "interp": ["nearest"],
+                "parang": False,
+            },
+            msger,
+        )
 
     if not param_dict["assume_yes"]:
         run_casatask(
@@ -275,7 +278,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             {
                 "vis": param_dict["freq_averaged_ms"],
                 "yaxis": "phase",
-                "ydatacolumn": "data",
+                "ydatacolumn": "corrected",
                 "field": "*",
                 "avgtime": "10",
                 "correlation": "RR,LL",
@@ -285,8 +288,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             },
             msger,
         )
-        print("Do phases look good in plot ms?")
-        proceed_check(param_dict)
+        proceed_check(param_dict, "Are phases clustered around 0 in plotMS?")
 
     return
 

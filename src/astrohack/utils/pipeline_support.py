@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-
+import time
 from astrohack.utils.text import lnbr, spc
 
 
@@ -18,6 +18,17 @@ def yesno(prompt):
 def file_is_asdm(filename):
     file_path = Path(f"{filename}/ASDM.xml")
     return file_path.exists()
+
+
+def run_casatask(task_name: str, kwargs_dict: dict, msger):
+    import casatasks
+
+    casatask_func = getattr(casatasks, task_name)
+    msger.one_liner(f"Running {task_name}...")
+    task_start_time = time.time()
+    casatask_func(**kwargs_dict)
+    task_end_time = time.time()
+    msger.one_liner(f"{task_name} finished in {task_end_time - task_start_time:.2f} s")
 
 
 class MessageBoard:

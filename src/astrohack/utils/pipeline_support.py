@@ -146,3 +146,7 @@ def proceed_check(param_dict: dict, prompt: str = "Proceed?"):
     if not param_dict["assume_yes"]:
         if not yesno(prompt):
             exit(0)
+
+
+def list_input_tooltip(example):
+    return f"for a list use comma separated values with no spaces, e.g.: '{example}'"

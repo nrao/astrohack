@@ -7,7 +7,11 @@ from astrohack import (
     open_pointing,
     open_beamcut,
 )
-from astrohack.utils.pipeline_support import initialization_check, MessageBoard
+from astrohack.utils.pipeline_support import (
+    initialization_check,
+    MessageBoard,
+    list_input_tooltip,
+)
 import inspect
 
 
@@ -45,10 +49,6 @@ def create_param_dict(args):
     param_dict["ddi"] = param_dict["spectral_window"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
     return param_dict
-
-
-def list_input_tooltip(example):
-    return f"for a list use comma separated values with no spaces, e.g.: '{example}'"
 
 
 def parse():

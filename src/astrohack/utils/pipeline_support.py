@@ -1,3 +1,5 @@
+import glob
+import pathlib
 import shutil
 from pathlib import Path
 import time
@@ -18,25 +20,6 @@ def yesno(prompt):
 def file_is_asdm(filename):
     file_path = Path(f"{filename}/ASDM.xml")
     return file_path.exists()
-
-
-def run_casatask(task_name: str, kwargs_dict: dict, msger):
-    if task_name == "plotms":
-        import casaplotms
-
-        casatask_func = getattr(casaplotms, "plotms")
-    else:
-        import casatasks
-
-        casatask_func = getattr(casatasks, task_name)
-
-    msger.one_liner(f"Running {task_name}...")
-    task_start_time = time.time()
-    casatask_func(**kwargs_dict)
-    task_end_time = time.time()
-    msger.one_liner(
-        f"{task_name} finished in {format_duration(task_end_time - task_start_time)}"
-    )
 
 
 class MessageBoard:
@@ -91,6 +74,53 @@ class MessageBoard:
 
     def done(self):
         return self.one_liner("Done!")
+
+
+def run_casatask(
+    task_name: str,
+    kwargs_dict: dict,
+    msger: MessageBoard = None,
+    intended_output: str | None = None,
+    overwrite: bool = False,
+) -> bool:
+    """
+    Run a casatask and returns True if it has been run, False if it was skipped
+    :param task_name: Casatask name
+    :param kwargs_dict: Dict containing arguments for casatask
+    :param msger: MessageBoard object
+    :param intended_output: Possible intended output
+    :param overwrite: Overwrite flag (only used when there is an intended output)
+    :return: True when casatask was run, False otherwise
+    """
+    if intended_output is not None:
+        if pathlib.Path(intended_output).exists():
+            if overwrite:
+                msger.one_liner(f"{intended_output} already exists, overwriting it...")
+                shutil.rmtree(intended_output)
+                shutil.rmtree(f"{intended_output}.flagversions", ignore_errors=True)
+            else:
+                msger.one_liner(
+                    f"{intended_output} already exists, skipping its creation."
+                )
+                return False
+
+    if task_name == "plotms":
+        import casaplotms
+
+        casatask_func = getattr(casaplotms, "plotms")
+    else:
+        import casatasks
+
+        casatask_func = getattr(casatasks, task_name)
+
+    msger.one_liner(f"Running {task_name}...")
+    task_start_time = time.time()
+    casatask_func(**kwargs_dict)
+    task_end_time = time.time()
+    msger.one_liner(
+        f"{task_name} finished in {format_duration(task_end_time - task_start_time)}."
+    )
+    return True
 
 
 def print_dict_simple(the_dict, ident=4):

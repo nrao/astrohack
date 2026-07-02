@@ -144,22 +144,18 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
 
 def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
-    point_exist = Path(param_dict["pointing_only_ms"]).is_dir()
-    if point_exist and not param_dict["overwrite"]:
-        msger.one_liner(
-            f"{param_dict['pointing_only_ms']} already exists, skipping splitting."
-        )
-    else:
-        run_casatask(
-            "split",
-            {
-                "vis": param_dict["msname"],
-                "outputvis": param_dict["pointing_only_ms"],
-                "intent": param_dict["intent"],
-                "datacolumn": "data",
-            },
-            msger,
-        )
+    run_casatask(
+        "split",
+        {
+            "vis": param_dict["msname"],
+            "outputvis": param_dict["pointing_only_ms"],
+            "intent": param_dict["intent"],
+            "datacolumn": "data",
+        },
+        msger,
+        intended_output=param_dict["pointing_only_ms"],
+        overwrite=param_dict["overwrite"],
+    )
 
     if len(param_dict["scans_to_flag"]) > 0:
         run_casatask(
@@ -184,26 +180,24 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             msger,
         )
 
-    if Path(param_dict["fringefit_caltable"]).is_dir() and not param_dict["overwrite"]:
-        msger.one_liner(
-            f"{param_dict['fringefit_caltable']} already exists, skipping fringefit."
-        )
-    else:
-        run_casatask(
-            "fringefit",
-            {
-                "vis": param_dict["pointing_only_ms"],
-                "caltable": param_dict["fringefit_caltable"],
-                "field": param_dict["fringefit_source"],
-                "solint": "inf",
-                "refant": param_dict["refant"],
-                "minsnr": 3.0,
-                "zerorates": True,
-                "globalsolve": True,
-                "niter": 100,
-            },
-            msger,
-        )
+    fringefit_was_run = run_casatask(
+        "fringefit",
+        {
+            "vis": param_dict["pointing_only_ms"],
+            "caltable": param_dict["fringefit_caltable"],
+            "field": param_dict["fringefit_source"],
+            "solint": "inf",
+            "refant": param_dict["refant"],
+            "minsnr": 3.0,
+            "zerorates": True,
+            "globalsolve": True,
+            "niter": 100,
+        },
+        msger,
+        intended_output=param_dict["fringefit_caltable"],
+        overwrite=param_dict["overwrite"],
+    )
+    if fringefit_was_run:
         run_casatask(
             "applycal",
             {
@@ -218,20 +212,20 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
     # Now we create a new dataset that is colapsed on the channel axis
     # within each spw, also create a flagversion to store current flag
     # state on the averaged MS
-    if Path(param_dict["freq_averaged_ms"]).is_dir() and not param_dict["overwrite"]:
-        msger.one_liner("Frequency averaged ms already exists, skipping its creation.")
-    else:
-        run_casatask(
-            "split",
-            {
-                "vis": param_dict["pointing_only_ms"],
-                "outputvis": param_dict["freq_averaged_ms"],
-                "datacolumn": "corrected",
-                "keepflags": False,  #
-                "width": param_dict["n_chan"],
-            },
-            msger,
-        )
+    freq_average_was_run = run_casatask(
+        "split",
+        {
+            "vis": param_dict["pointing_only_ms"],
+            "outputvis": param_dict["freq_averaged_ms"],
+            "datacolumn": "corrected",
+            "keepflags": False,  #
+            "width": param_dict["n_chan"],
+        },
+        msger,
+        intended_output=param_dict["freq_averaged_ms"],
+        overwrite=param_dict["overwrite"],
+    )
+    if freq_average_was_run:
         run_casatask(
             "flagmanager",
             {
@@ -242,25 +236,25 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             msger,
         )
 
-    if Path(param_dict["phase_caltable"]).is_dir() and not param_dict["overwrite"]:
-        msger.one_liner("Phase caltable already exists, skipping its creation.")
-    else:
-        run_casatask(
-            "gaincal",
-            {
-                "vis": param_dict["freq_averaged_ms"],
-                "caltable": param_dict["phase_caltable"],
-                "solint": "10min",
-                "refant": param_dict["refant"],
-                "refantmode": "flex",  # Maybe we should use strict for this application?
-                "minblperant": 3,
-                "minsnr": 3.0,
-                "gaintype": "G",  # G is for gain
-                "calmode": "p",  # p is for phase
-                "solmode": "L1",  # -> least squares
-            },
-            msger,
-        )
+    gaincal_was_run = run_casatask(
+        "gaincal",
+        {
+            "vis": param_dict["freq_averaged_ms"],
+            "caltable": param_dict["phase_caltable"],
+            "solint": "10min",
+            "refant": param_dict["refant"],
+            "refantmode": "flex",  # Maybe we should use strict for this application?
+            "minblperant": 3,
+            "minsnr": 3.0,
+            "gaintype": "G",  # G is for gain
+            "calmode": "p",  # p is for phase
+            "solmode": "L1",  # -> least squares
+        },
+        msger,
+        intended_output=param_dict["freq_averaged_ms"],
+        overwrite=param_dict["overwrite"],
+    )
+    if gaincal_was_run:
         run_casatask(
             "applycal",
             {
@@ -277,6 +271,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             "plotms",
             {
                 "vis": param_dict["freq_averaged_ms"],
+                "xaxis": "time",
                 "yaxis": "phase",
                 "ydatacolumn": "corrected",
                 "field": "*",

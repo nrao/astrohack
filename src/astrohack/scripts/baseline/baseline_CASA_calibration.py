@@ -1,10 +1,8 @@
 import argparse
 import time
+import numpy as np
 
 import casatools
-import numpy as np
-from pathlib import Path
-import shutil
 
 from astrohack.utils.pipeline_support import (
     MessageBoard,
@@ -12,6 +10,7 @@ from astrohack.utils.pipeline_support import (
     file_is_asdm,
     run_casatask,
     proceed_check,
+    list_input_tooltip,
 )
 from astrohack.utils.text import format_duration
 
@@ -43,7 +42,7 @@ def parse():
         help="Fringe fit source, default is 0319+415",
     )
     parser.add_argument(
-        "-s",
+        "-S",
         "--scans_to_flag",
         default=None,
         type=str,
@@ -56,6 +55,57 @@ def parse():
         default="CALIBRATE_POINTING#ON_SOURCE",
         type=str,
         help="Intent for pointing observations.",
+    )
+
+    parser.add_argument(
+        "-s",
+        "--spectral-window",
+        type=str,
+        default="all",
+        help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-a",
+        "--antenna",
+        default="all",
+        help="Select antennas for which to produce antenna position corrections, "
+        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s"
+        "",
+    )
+
+    parser.add_argument(
+        "-e",
+        "--elevation-limit",
+        type=float,
+        default=10.0,
+        help="Lowest elevation of data for consideration in degrees, default is %(default).1f",
+    )
+
+    parser.add_argument(
+        "-p",
+        "--polarization",
+        type=str,
+        choices=["both", "L", "R"],
+        default="both",
+        help="Which polarization hands to be used for locit processing, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-c",
+        "--combination",
+        type=str,
+        choices=["simple, difference, no"],
+        default="simple",
+        help="How to combine different spws for locit processing, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-k",
+        "--fit_kterm",
+        action="store_true",
+        default=False,
+        help="Fit antennas K term (i.e. Offset between azimuth and elevation axes)",
     )
 
     parser.add_argument(
@@ -86,6 +136,9 @@ def param_init(param_dict: dict, msger: MessageBoard):
         base_name = param_dict["filename"]
     else:
         base_name = param_dict["root_name"]
+    base_name_wrds = base_name.split(".")
+    if base_name_wrds[-1] == "ms":
+        base_name = ".".join(base_name_wrds[:-1])
 
     param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
     if param_dict["is_asdm"]:
@@ -107,6 +160,11 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"
     param_dict["fringefit_caltable"] = f"{base_name}.sbd"
     param_dict["phase_caltable"] = f"{base_name}.pha.gcal"
+    param_dict["locit_name"] = f"{base_name}.locit.zarr"
+    param_dict["position_name"] = f"{base_name}.position.zarr"
+
+    param_dict["antenna"] = param_dict["antenna"].split(",")
+    param_dict["spectral_window"] = param_dict["spectral_window"].split(",")
 
     if param_dict["scans_to_flag"] is None:
         param_dict["scans_to_flag"] = []
@@ -251,7 +309,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             "solmode": "L1",  # -> least squares
         },
         msger,
-        intended_output=param_dict["freq_averaged_ms"],
+        intended_output=param_dict["phase_caltable"],
         overwrite=param_dict["overwrite"],
     )
     if gaincal_was_run:
@@ -288,6 +346,24 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
     return
 
 
+def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
+    astrohack_param_dict = {
+        "cal_table": param_dict["phase_caltable"],
+        "locit_name": param_dict["locit_name"],
+        "position_name": param_dict["position_name"],
+        "ant": param_dict["antenna"],
+        "ddi": param_dict["spectral_window"],
+        "overwrite": param_dict["overwrite"],
+        "fit_kterm": param_dict["fit_kterm"],
+        "fit_delay_rate": True,
+        "elevation_limit": param_dict["elevation_limit"],
+        "polarization": param_dict["polarization"],
+        "combine_ddis": param_dict["combination"],
+        "parallel": False,
+    }
+    return
+
+
 def main():
     pipeline_start = time.time()
     msger = MessageBoard()
@@ -302,7 +378,7 @@ def main():
         processing_stage = "locit"
 
     if processing_stage == "locit":
-        msger.one_liner("LOCIT WILL COME HERE")
+        run_astrohack_locit()
         processing_stage = "plotting"
 
     if processing_stage == "plotting":

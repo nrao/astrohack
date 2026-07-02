@@ -4,6 +4,9 @@ import numpy as np
 
 import casatools
 
+from astrohack import extract_locit, locit, open_locit, open_position
+from astrohack.utils.algorithms import rotate_to_gmt
+from astrohack.utils.constants import clight
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
@@ -11,6 +14,8 @@ from astrohack.utils.pipeline_support import (
     run_casatask,
     proceed_check,
     list_input_tooltip,
+    run_astrohack_function,
+    parse_list_or_all,
 )
 from astrohack.utils.text import format_duration
 
@@ -42,7 +47,7 @@ def parse():
         help="Fringe fit source, default is 0319+415",
     )
     parser.add_argument(
-        "-S",
+        "-s",
         "--scans_to_flag",
         default=None,
         type=str,
@@ -57,13 +62,13 @@ def parse():
         help="Intent for pointing observations.",
     )
 
-    parser.add_argument(
-        "-s",
-        "--spectral-window",
-        type=str,
-        default="all",
-        help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
-    )
+    # parser.add_argument(
+    #     "-s",
+    #     "--spectral-window",
+    #     type=str,
+    #     default="all",
+    #     help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
+    # )
 
     parser.add_argument(
         "-a",
@@ -95,7 +100,7 @@ def parse():
         "-c",
         "--combination",
         type=str,
-        choices=["simple, difference, no"],
+        choices=["simple", "difference"],
         default="simple",
         help="How to combine different spws for locit processing, default is %(default)s",
     )
@@ -120,7 +125,7 @@ def parse():
         "--starting-stage",
         type=str,
         default="calibration",
-        choices=["calibration", "locit", "plotting", "parminator"],
+        choices=["calibration", "locit", "exports", "correction_check"],
         help="Starting stage in which to start processing (default: %(default)s).",
     )
 
@@ -160,11 +165,13 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"
     param_dict["fringefit_caltable"] = f"{base_name}.sbd"
     param_dict["phase_caltable"] = f"{base_name}.pha.gcal"
+    param_dict["antpos_caltable"] = f"{base_name}.antpos"
     param_dict["locit_name"] = f"{base_name}.locit.zarr"
     param_dict["position_name"] = f"{base_name}.position.zarr"
+    param_dict["exports_name"] = f"{base_name}.exports"
 
-    param_dict["antenna"] = param_dict["antenna"].split(",")
-    param_dict["spectral_window"] = param_dict["spectral_window"].split(",")
+    param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
+    # param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
 
     if param_dict["scans_to_flag"] is None:
         param_dict["scans_to_flag"] = []
@@ -352,7 +359,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "locit_name": param_dict["locit_name"],
         "position_name": param_dict["position_name"],
         "ant": param_dict["antenna"],
-        "ddi": param_dict["spectral_window"],
+        "ddi": "all",
         "overwrite": param_dict["overwrite"],
         "fit_kterm": param_dict["fit_kterm"],
         "fit_delay_rate": True,
@@ -361,6 +368,108 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "combine_ddis": param_dict["combination"],
         "parallel": False,
     }
+    locit_functions = [extract_locit, locit]
+    for function in locit_functions:
+        status, exec_exception = run_astrohack_function(
+            astrohack_param_dict, function, msger
+        )
+        if not status:
+            raise RuntimeError(
+                f"{function.__name__} failed see above for details."
+            ) from exec_exception
+
+
+def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
+    astrohack_param_dict = {
+        "destination": param_dict["exports_name"],
+        "ant": param_dict["antenna"],
+        "filename": f"{param_dict['exports_name']}/parminator.par",
+        "parallel": False,
+    }
+    locit_mds = open_locit(param_dict["locit_name"])
+    position_mds = open_position(param_dict["position_name"])
+    plotting_methods = [
+        locit_mds.plot_source_positions,
+        position_mds.plot_delays,
+        position_mds.plot_position_corrections,
+        position_mds.export_locit_fit_results,
+        position_mds.export_results_to_parminator,
+    ]
+    for plot_method in plotting_methods:
+        status, exec_exception = run_astrohack_function(
+            astrohack_param_dict, plot_method, msger
+        )
+        if not status:
+            raise RuntimeError(
+                f"{plot_method.__name__} failed see above for details."
+            ) from exec_exception
+
+    return
+
+
+def run_casa_post_locit_checks(param_dict: dict, msger: MessageBoard):
+    pos_corrections = []
+    ant_names = []
+    position_mds = open_position(param_dict["position_name"])
+    for ant_key, ant_xdt in position_mds.items():
+        attributes = ant_xdt.attrs
+        geo_delays, _ = rotate_to_gmt(
+            np.copy(attributes["position_fit"]),
+            attributes["position_error"],
+            attributes["antenna_info"]["longitude"],
+        )
+        pos_corrections.extend(clight * geo_delays)
+        ant_names.append(attributes["antenna_info"]["name"])
+
+    gencal_was_run = run_casatask(
+        "gencal",
+        {
+            "vis": param_dict["pointing_only_ms"],
+            "caltable": param_dict["antpos_caltable"],
+            "caltype": "antpos",
+            "antenna": ",".join(ant_names),
+            "parameter": pos_corrections,
+        },
+        msger,
+        intended_output=param_dict["antpos_caltable"],
+        overwrite=param_dict["overwrite"],
+    )
+    if gencal_was_run:
+        run_casatask(
+            "applycal",
+            {
+                "vis": param_dict["pointing_only_ms"],
+                "gaintable": [param_dict["antpos_caltable"]],
+                "interp": ["nearest"],
+                "parang": False,
+            },
+            msger,
+        )
+
+    data_columns = ["corrected", "data"]
+    for ant_name in ant_names:
+        if ant_name != param_dict["refant"]:
+            for data_column in data_columns:
+                run_casatask(
+                    "plotms",
+                    {
+                        "vis": param_dict["pointing_only_ms"],
+                        "xaxis": "channel",
+                        "yaxis": "phase",
+                        "ydatacolumn": data_column,
+                        "antenna": f"{ant_name}&{param_dict['refant']}",
+                        "field": param_dict["fringefit_source"],
+                        "avgtime": "10000",
+                        "title": f"Baseline: {ant_name}&{param_dict['refant']}; column: {data_column}",
+                        "avgscan": True,
+                        "correlation": "RR,LL",
+                        "coloraxis": "spw",
+                        "plotfile": f"{param_dict['exports_name']}/phases-antpos-{data_column}-{ant_name}.png",
+                        "showgui": False,
+                    },
+                    msger,
+                )
+
     return
 
 
@@ -368,7 +477,7 @@ def main():
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the AstroHACK baseline pipeline")
+    msger.heading("Welcome to the AstroHACK baseline pipeline for the VLA")
 
     param_dict = param_init(parse(), msger)
     processing_stage = param_dict["starting_stage"]
@@ -378,18 +487,19 @@ def main():
         processing_stage = "locit"
 
     if processing_stage == "locit":
-        run_astrohack_locit()
-        processing_stage = "plotting"
+        run_astrohack_locit(param_dict, msger)
+        processing_stage = "exports"
 
-    if processing_stage == "plotting":
-        msger.one_liner("PLOTTING WILL COME HERE")
-        processing_stage = "parminator"
+    if processing_stage == "exports":
+        run_astrohack_exports(param_dict, msger)
+        processing_stage = "correction_check"
 
-    if processing_stage == "parminator":
-        msger.one_liner("PARMINATOR WILL COME HERE")
+    if processing_stage == "correction_check":
+        run_casa_post_locit_checks(param_dict, msger)
 
     pipeline_end = time.time()
     msger.heading(
-        f"Baseline calibration finished in {format_duration(pipeline_end-pipeline_start)}"
+        f"Baseline processing finished in {format_duration(pipeline_end-pipeline_start)}, "
+        + f"locit results (including parminator file) saved at: {param_dict['exports_name']}"
     )
     return

@@ -1,4 +1,5 @@
 import glob
+import inspect
 import pathlib
 import shutil
 from pathlib import Path
@@ -150,3 +151,11 @@ def proceed_check(param_dict: dict, prompt: str = "Proceed?"):
 
 def list_input_tooltip(example):
     return f"for a list use comma separated values with no spaces, e.g.: '{example}'"
+
+
+def created_filtered_kwargs_dict(param_dict, function):
+    valid_kwarg_keys = inspect.signature(function).parameters
+    filtered_dict = {
+        key: value for key, value in param_dict.items() if key in valid_kwarg_keys
+    }
+    return filtered_dict

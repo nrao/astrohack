@@ -11,8 +11,8 @@ from astrohack.utils.pipeline_support import (
     initialization_check,
     MessageBoard,
     list_input_tooltip,
+    created_filtered_kwargs_dict,
 )
-import inspect
 
 
 def create_param_dict(args):
@@ -156,14 +156,6 @@ def parse():
     param_dict = create_param_dict(args)
 
     return param_dict
-
-
-def created_filtered_kwargs_dict(param_dict, function):
-    valid_kwarg_keys = inspect.signature(function).parameters
-    filtered_dict = {
-        key: value for key, value in param_dict.items() if key in valid_kwarg_keys
-    }
-    return filtered_dict
 
 
 def execute_step(param_dict, function, next_stage, msger):

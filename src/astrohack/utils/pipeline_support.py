@@ -124,6 +124,13 @@ def run_casatask(
     return True
 
 
+def parse_list_or_all(parameter_value: str):
+    if parameter_value == "all":
+        return "all"
+    else:
+        return parameter_value.split(",")
+
+
 def print_dict_simple(the_dict, ident=4):
     key_len = 0
     for key in the_dict.keys():
@@ -153,9 +160,24 @@ def list_input_tooltip(example):
     return f"for a list use comma separated values with no spaces, e.g.: '{example}'"
 
 
-def created_filtered_kwargs_dict(param_dict, function):
+def created_filtered_kwargs_dict(param_dict: dict, function):
     valid_kwarg_keys = inspect.signature(function).parameters
     filtered_dict = {
         key: value for key, value in param_dict.items() if key in valid_kwarg_keys
     }
     return filtered_dict
+
+
+def run_astrohack_function(param_dict: dict, function, msger: MessageBoard):
+    function_name = function.__name__
+    try:
+        msger.one_liner(f"Running {function_name}...")
+        function_start_time = time.time()
+        function(**created_filtered_kwargs_dict(param_dict, function))
+        function_end_time = time.time()
+        msger.one_liner(
+            f"{function_name} finished in {format_duration(function_end_time - function_start_time)}."
+        )
+        return True, None
+    except Exception as the_exception:
+        return False, the_exception

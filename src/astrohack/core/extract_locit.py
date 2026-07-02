@@ -246,7 +246,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
             if i_refant != i_best_ant:
                 logger.info(
                     f"Discarding gains derived with antenna "
-                    f'{extract_locit_parms["full_antenna_list"][ref_antennas[i_refant]]}'
+                    f'{locit_mds.root.attrs["full_antenna_list"][ref_antennas[i_refant]]}'
                     f" as reference ({100 * counts[i_refant] / n_gains:.2f}% of the data)"
                 )
                 sel_refant = antenna2 != ref_antennas[i_refant]

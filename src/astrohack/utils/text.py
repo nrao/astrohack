@@ -835,6 +835,14 @@ def make_header(heading, separator, header_width, buffer_width):
     return outstr
 
 
+def add_heading_to_html(content, heading_level):
+    return f"<h{heading_level}>{content}</h{heading_level}>{lnbr}"
+
+
+def add_paragraph_to_html(content):
+    return f"<p>{content}</p>{lnbr}"
+
+
 def create_html_file_from_body(body_text, title, html_file):
     out_file_str = f"""<!DOCTYPE html>
 <html lang="en">
@@ -873,9 +881,9 @@ def create_embedded_html_image(image_file, description, width=None, height=None)
 
 
 def create_single_html_image_with_header(
-    image_file, description, width="80%", height=None
+    image_file, description, width="80%", height=None, heading_level: int = 2
 ):
-    image_str = f"<h2>{description}</h2>{lnbr}"
+    image_str = add_heading_to_html(description, heading_level)
     return (
         image_str
         + create_embedded_html_image(image_file, description, width, height)
@@ -884,11 +892,16 @@ def create_single_html_image_with_header(
 
 
 def create_side_by_side_html_images_with_header(
-    image_file1, image_file2, description, width=None, height=None
+    image_file1,
+    image_file2,
+    description,
+    width=None,
+    height=None,
+    heading_level: int = 2,
 ):
     if width is None:
         width = "40%"
-    image_str = f"<h2>{description}</h2>{lnbr}"
+    image_str = add_heading_to_html(description, heading_level)
     image_str += f"<div>{lnbr}"
     image_str += (
         create_embedded_html_image(image_file1, description, width, height) + lnbr
@@ -900,11 +913,12 @@ def create_side_by_side_html_images_with_header(
     return image_str
 
 
-def add_preformatted_text_file_to_html(text_file_path, header):
+def add_preformatted_text_file_to_html(text_file_path, header, heading_level: int = 2):
     with open(text_file_path, "r") as text_file:
         full_text_str = text_file.read()
 
-    html_str = f"<h2>{header}</h2>{lnbr}<pre>{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"
+    html_str = add_heading_to_html(header, heading_level)
+    html_str += f"<pre>{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"
     return html_str
 
 

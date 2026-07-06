@@ -1,4 +1,5 @@
 import argparse
+import glob
 import time
 import numpy as np
 
@@ -16,13 +17,22 @@ from astrohack.utils.pipeline_support import (
     list_input_tooltip,
     run_astrohack_function,
     parse_list_or_all,
+    make_dict_str_simple,
 )
-from astrohack.utils.text import format_duration
+from astrohack.utils.text import (
+    format_duration,
+    create_html_file_from_body,
+    lnbr,
+    create_single_html_image_with_header,
+    add_preformatted_text_file_to_html,
+    create_side_by_side_html_images_with_header,
+    add_heading_to_html,
+    spc,
+)
 
 
 def parse():
-    desc = "CASA pre-locit script\n"
-    desc += "Execute fringe fit, averaging and phase cal to produce the cal table to ingested by astrohack's locit"
+    desc = "CASA baseline pipeline"
 
     parser = argparse.ArgumentParser(
         description=f"{desc}", formatter_class=argparse.RawTextHelpFormatter
@@ -125,7 +135,7 @@ def parse():
         "--starting-stage",
         type=str,
         default="calibration",
-        choices=["calibration", "locit", "exports", "correction_check"],
+        choices=["calibration", "locit", "exports", "report"],
         help="Starting stage in which to start processing (default: %(default)s).",
     )
 
@@ -169,6 +179,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["locit_name"] = f"{base_name}.locit.zarr"
     param_dict["position_name"] = f"{base_name}.position.zarr"
     param_dict["exports_name"] = f"{base_name}.exports"
+    param_dict["report_name"] = f"{base_name}-report.html"
 
     param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
     # param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
@@ -390,6 +401,7 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     position_mds = open_position(param_dict["position_name"])
     plotting_methods = [
         locit_mds.plot_source_positions,
+        locit_mds.plot_array_configuration,
         position_mds.plot_delays,
         position_mds.plot_position_corrections,
         position_mds.export_locit_fit_results,
@@ -407,7 +419,7 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_casa_post_locit_checks(param_dict: dict, msger: MessageBoard):
+def run_casa_post_locit_plots(param_dict: dict, msger: MessageBoard):
     pos_corrections = []
     ant_names = []
     position_mds = open_position(param_dict["position_name"])
@@ -424,7 +436,7 @@ def run_casa_post_locit_checks(param_dict: dict, msger: MessageBoard):
     gencal_was_run = run_casatask(
         "gencal",
         {
-            "vis": param_dict["pointing_only_ms"],
+            "vis": param_dict["freq_averaged_ms"],
             "caltable": param_dict["antpos_caltable"],
             "caltype": "antpos",
             "antenna": ",".join(ant_names),
@@ -438,7 +450,7 @@ def run_casa_post_locit_checks(param_dict: dict, msger: MessageBoard):
         run_casatask(
             "applycal",
             {
-                "vis": param_dict["pointing_only_ms"],
+                "vis": param_dict["freq_averaged_ms"],
                 "gaintable": [param_dict["antpos_caltable"]],
                 "interp": ["nearest"],
                 "parang": False,
@@ -447,30 +459,151 @@ def run_casa_post_locit_checks(param_dict: dict, msger: MessageBoard):
         )
 
     data_columns = ["corrected", "data"]
+    msger.one_liner("Running plotms...")
+    start = time.time()
     for ant_name in ant_names:
         if ant_name != param_dict["refant"]:
             for data_column in data_columns:
+                plot_file = f"{param_dict['exports_name']}/phases-antpos-{data_column}-{ant_name}.png"
                 run_casatask(
                     "plotms",
                     {
-                        "vis": param_dict["pointing_only_ms"],
-                        "xaxis": "channel",
+                        "vis": param_dict["freq_averaged_ms"],
+                        "xaxis": "time",
                         "yaxis": "phase",
                         "ydatacolumn": data_column,
                         "antenna": f"{ant_name}&{param_dict['refant']}",
-                        "field": param_dict["fringefit_source"],
                         "avgtime": "10000",
+                        "avgfield": True,
                         "title": f"Baseline: {ant_name}&{param_dict['refant']}; column: {data_column}",
-                        "avgscan": True,
                         "correlation": "RR,LL",
-                        "coloraxis": "spw",
-                        "plotfile": f"{param_dict['exports_name']}/phases-antpos-{data_column}-{ant_name}.png",
+                        "coloraxis": "correlation",
+                        "plotfile": plot_file,
                         "showgui": False,
+                        "dpi": 300,
+                        "plotrange": [np.nan, np.nan, -180, 180],
                     },
                     msger,
+                    intended_output=plot_file,
+                    overwrite=param_dict["overwrite"],
+                    verbose=False,
                 )
-
+    stop = time.time()
+    msger.one_liner("Plotms finished in {:.2f} seconds".format(stop - start))
     return
+
+
+def get_time_string_from_dict(time_dict, qa):
+    time_str = qa.time(
+        qa.quantity(
+            time_dict["m0"]["value"],
+            "d",
+        ),
+        form="ymd",
+    )[0]
+    time_str_wrds = time_str.split("/")
+    out_str = "-".join(time_str_wrds[:3]) + spc + time_str_wrds[-1]
+    return out_str
+
+
+def get_lst_string_from_time_str(time_str):
+    from astropy.coordinates import EarthLocation
+    from astropy.time import Time
+    import astropy.units as u
+
+    vla_location = EarthLocation(
+        lat=34.0785 * u.deg, lon=-107.6184 * u.deg, height=2124 * u.m
+    )
+    observing_time = Time(time_str, scale="utc", location=vla_location)
+    lst = observing_time.sidereal_time("apparent").to_string(
+        unit=u.hour, pad=True, sep=":"
+    )
+    return lst
+
+
+def add_basic_time_information_to_report(param_dict: dict):
+    msmd = casatools.msmetadata()
+    msmd.open(param_dict["msname"])
+    timerange = msmd.timerangeforobs(0)
+    start_time = timerange["begin"]
+    end_time = timerange["end"]
+    msmd.done()
+    qa = casatools.quanta()
+
+    start_time = get_time_string_from_dict(start_time, qa)
+    end_time = get_time_string_from_dict(end_time, qa)
+    times_dict = {
+        "Observation start (UTC)": start_time,
+        "Starting LST": get_lst_string_from_time_str(start_time),
+        "Observation end (UTC)": end_time,
+        "End LST": get_lst_string_from_time_str(end_time),
+    }
+    html_str = add_preformatted_text_file_to_html(
+        make_dict_str_simple(times_dict), "Basic information:"
+    )
+
+    html_str += add_preformatted_text_file_to_html(
+        make_dict_str_simple(param_dict), "Pipeline parameters:"
+    )
+
+    return html_str
+
+
+def prepare_html_report(param_dict: dict, msger: MessageBoard):
+    msger.one_liner("Preparing report...")
+    start = time.time()
+    exports_name = param_dict["exports_name"]
+    images_to_include = {
+        "locit_source_table_fk5.png": "Source positions over the sky",
+        "locit_array_configuration.png": "VLA configuration during observation",
+        "position_corrections_combined_simple.png": "Graphical representation of antenna position corrections",
+    }
+
+    report_title = f"Baseline Report for {param_dict['filename']}"
+    html_body = add_heading_to_html(report_title, 1)
+
+    html_body += add_basic_time_information_to_report(param_dict)
+
+    for image_file, image_desc in images_to_include.items():
+        image_path = f"{exports_name}/{image_file}"
+        html_body += (
+            f"{create_single_html_image_with_header(image_path, image_desc)}{lnbr}"
+        )
+
+    html_body += add_preformatted_text_file_to_html(
+        f"{exports_name}/position_combined_simple_fit_results.txt",
+        "Measured antenna position corrections",
+    )
+
+    html_body += add_preformatted_text_file_to_html(
+        f"{exports_name}/parminator.par",
+        "Proposed parminator corrections",
+    )
+
+    delay_plot_files = glob.glob(f"{exports_name}/position_delays_ant_*.png")
+    antenna_name_list = np.sort(
+        [dpf.split("/")[1].split("_")[3] for dpf in delay_plot_files]
+    )
+
+    for ant_name in antenna_name_list:
+        if ant_name != param_dict["refant"]:
+            delay_plot_file = f"{exports_name}/position_delays_ant_{ant_name}_combined_{param_dict["combination"]}.png"
+            html_body += add_heading_to_html(f"Results for {ant_name}", 2)
+            html_body += create_single_html_image_with_header(
+                delay_plot_file,
+                f"Measure and fitted delays for {ant_name}",
+                heading_level=3,
+            )
+            html_body += create_side_by_side_html_images_with_header(
+                f"{exports_name}/phases-antpos-data-{ant_name}.png",
+                f"{exports_name}/phases-antpos-corrected-{ant_name}.png",
+                f"Phase before and after correction",
+                heading_level=3,
+            )
+
+    create_html_file_from_body(html_body, report_title, param_dict["report_name"])
+    stop = time.time()
+    msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
 
 
 def main():
@@ -492,14 +625,16 @@ def main():
 
     if processing_stage == "exports":
         run_astrohack_exports(param_dict, msger)
-        processing_stage = "correction_check"
+        run_casa_post_locit_plots(param_dict, msger)
+        processing_stage = "report"
 
-    if processing_stage == "correction_check":
-        run_casa_post_locit_checks(param_dict, msger)
+    if processing_stage == "report":
+        prepare_html_report(param_dict, msger)
 
     pipeline_end = time.time()
     msger.heading(
         f"Baseline processing finished in {format_duration(pipeline_end-pipeline_start)}, "
-        + f"locit results (including parminator file) saved at: {param_dict['exports_name']}"
+        + f"locit results (including parminator file) saved at: {param_dict['exports_name']}."
+        + f" Checkout the HTML report at: {param_dict['report_name']}."
     )
     return

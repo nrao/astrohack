@@ -96,14 +96,18 @@ def run_casatask(
     :return: True when casatask was run, False otherwise
     """
     if intended_output is not None:
-        if pathlib.Path(intended_output).exists():
+        intended_path = pathlib.Path(intended_output)
+        if intended_path.exists():
             if overwrite:
                 if verbose:
                     msger.one_liner(
                         f"{intended_output} already exists, overwriting it..."
                     )
+                if intended_path.is_dir():
                     shutil.rmtree(intended_output)
                     shutil.rmtree(f"{intended_output}.flagversions", ignore_errors=True)
+                else:
+                    intended_path.unlink(missing_ok=True)
             else:
                 if verbose:
                     msger.one_liner(

@@ -843,14 +843,14 @@ def add_paragraph_to_html(content):
     return f"<p>{content}</p>{lnbr}"
 
 
-def create_html_file_from_body(body_text, title, html_file):
+def create_html_file_from_body(body_text, title, html_file, alignment="left"):
     out_file_str = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>{title}</title>
 <style>
-    body {{ font-family: sans-serif; text-align: center; margin-top: 50px; }}
+    body {{ font-family: sans-serif; text-align: {alignment}; margin-top: 50px; }}
     img {{ max-width: 100%; height: auto; border: 2px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }}
 </style>
 </head>
@@ -913,17 +913,21 @@ def create_side_by_side_html_images_with_header(
     return image_str
 
 
-def add_preformatted_text_file_to_html(text_file, header, heading_level: int = 2):
+def add_preformatted_text_file_to_html(
+    text_file, header, heading_level: int = 2, alignment: str = "left"
+):
     import pathlib
 
-    if pathlib.Path(text_file).exists():
+    if len(text_file) > 255:
+        full_text_str = text_file
+    elif pathlib.Path(text_file).exists():
         with open(text_file, "r") as opened_text_file:
             full_text_str = opened_text_file.read()
     else:
         full_text_str = text_file
 
     html_str = add_heading_to_html(header, heading_level)
-    html_str += f"<pre>{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"
+    html_str += f"""<pre style="text-align: {alignment};">{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"""
     return html_str
 
 

@@ -143,20 +143,22 @@ def parse_list_or_all(parameter_value: str):
         return parameter_value.split(",")
 
 
-def print_dict_simple(the_dict, ident=4):
+def make_dict_str_simple(the_dict, ident=4):
     key_len = 0
     for key in the_dict.keys():
         if len(key) > key_len:
             key_len = len(key)
 
+    outstr = ""
     for key, value in the_dict.items():
-        print(f"{ident*' '}{key:{key_len}s} => {value}")
+        outstr += f"{ident*' '}{key:{key_len}s} => {value}{lnbr}"
+    return outstr
 
 
 def initialization_check(param_dict: dict, title: str):
     print()
     print(f"{title}:")
-    print_dict_simple(param_dict)
+    print(make_dict_str_simple(param_dict))
     print()
     proceed_check(param_dict)
     print()

@@ -833,3 +833,87 @@ def make_header(heading, separator, header_width, buffer_width):
     outstr += f"{buffer}{before_blank*spc}{heading}{after_blank*spc}{buffer}{lnbr}"
     outstr += sep_line + lnbr
     return outstr
+
+
+def create_html_file_from_body(body_text, title, html_file):
+    out_file_str = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{title}</title>
+<style>
+    body {{ font-family: sans-serif; text-align: center; margin-top: 50px; }}
+    img {{ max-width: 100%; height: auto; border: 2px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }}
+</style>
+</head>
+<body>"""
+    out_file_str += body_text
+
+    out_file_str += f"""</body>
+</html>"""
+
+    with open(html_file, "w") as f:
+        f.write(out_file_str)
+    return
+
+
+def create_embedded_html_image(image_file, description, width=None, height=None):
+    img_binary_str = get_image_binary_data(image_file)
+    img_ext = image_file.split(".")[-1]
+    if height is None:
+        height_str = "auto"
+    else:
+        height_str = str(height)
+    if width is None:
+        width_str = "auto"
+    else:
+        width_str = str(width)
+    image_str = f"""<img src="data:image/{img_ext};base64,{img_binary_str}" alt="{description}" style="width: {width_str}; height: {height_str};">"""
+    return image_str
+
+
+def create_single_html_image_with_header(
+    image_file, description, width="80%", height=None
+):
+    image_str = f"<h2>{description}</h2>{lnbr}"
+    return (
+        image_str
+        + create_embedded_html_image(image_file, description, width, height)
+        + lnbr
+    )
+
+
+def create_side_by_side_html_images_with_header(
+    image_file1, image_file2, description, width=None, height=None
+):
+    if width is None:
+        width = "40%"
+    image_str = f"<h2>{description}</h2>{lnbr}"
+    image_str += f"<div>{lnbr}"
+    image_str += (
+        create_embedded_html_image(image_file1, description, width, height) + lnbr
+    )
+    image_str += (
+        create_embedded_html_image(image_file2, description, width, height) + lnbr
+    )
+    image_str += f"</div>{lnbr}"
+    return image_str
+
+
+def add_preformatted_text_file_to_html(text_file_path, header):
+    with open(text_file_path, "r") as text_file:
+        full_text_str = text_file.read()
+
+    html_str = f"<h2>{header}</h2>{lnbr}<pre>{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"
+    return html_str
+
+
+def get_image_binary_data(image_path):
+    import base64
+
+    with open(image_path, "rb") as image_file:
+        # Read the raw binary data
+        binary_data = image_file.read()
+        # Encode to base64 bytes, then decode to an ASCII string
+        base64_string = base64.b64encode(binary_data).decode("utf-8")
+        return base64_string

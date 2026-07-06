@@ -913,9 +913,14 @@ def create_side_by_side_html_images_with_header(
     return image_str
 
 
-def add_preformatted_text_file_to_html(text_file_path, header, heading_level: int = 2):
-    with open(text_file_path, "r") as text_file:
-        full_text_str = text_file.read()
+def add_preformatted_text_file_to_html(text_file, header, heading_level: int = 2):
+    import pathlib
+
+    if pathlib.Path(text_file).exists():
+        with open(text_file, "r") as opened_text_file:
+            full_text_str = opened_text_file.read()
+    else:
+        full_text_str = text_file
 
     html_str = add_heading_to_html(header, heading_level)
     html_str += f"<pre>{lnbr}{full_text_str}{lnbr}</pre>{lnbr}"

@@ -83,6 +83,7 @@ def run_casatask(
     msger: MessageBoard = None,
     intended_output: str | None = None,
     overwrite: bool = False,
+    verbose: bool = True,
 ) -> bool:
     """
     Run a casatask and returns True if it has been run, False if it was skipped
@@ -91,18 +92,23 @@ def run_casatask(
     :param msger: MessageBoard object
     :param intended_output: Possible intended output
     :param overwrite: Overwrite flag (only used when there is an intended output)
+    :param verbose: Verbose flag (print messages regarding execution and execution time)
     :return: True when casatask was run, False otherwise
     """
     if intended_output is not None:
         if pathlib.Path(intended_output).exists():
             if overwrite:
-                msger.one_liner(f"{intended_output} already exists, overwriting it...")
-                shutil.rmtree(intended_output)
-                shutil.rmtree(f"{intended_output}.flagversions", ignore_errors=True)
+                if verbose:
+                    msger.one_liner(
+                        f"{intended_output} already exists, overwriting it..."
+                    )
+                    shutil.rmtree(intended_output)
+                    shutil.rmtree(f"{intended_output}.flagversions", ignore_errors=True)
             else:
-                msger.one_liner(
-                    f"{intended_output} already exists, skipping its creation."
-                )
+                if verbose:
+                    msger.one_liner(
+                        f"{intended_output} already exists, skipping its creation."
+                    )
                 return False
 
     if task_name == "plotms":
@@ -114,13 +120,15 @@ def run_casatask(
 
         casatask_func = getattr(casatasks, task_name)
 
-    msger.one_liner(f"Running {task_name}...")
+    if verbose:
+        msger.one_liner(f"Running {task_name}...")
     task_start_time = time.time()
     casatask_func(**kwargs_dict)
     task_end_time = time.time()
-    msger.one_liner(
-        f"{task_name} finished in {format_duration(task_end_time - task_start_time)}."
-    )
+    if verbose:
+        msger.one_liner(
+            f"{task_name} finished in {format_duration(task_end_time - task_start_time)}."
+        )
     return True
 
 
@@ -168,16 +176,20 @@ def created_filtered_kwargs_dict(param_dict: dict, function):
     return filtered_dict
 
 
-def run_astrohack_function(param_dict: dict, function, msger: MessageBoard):
+def run_astrohack_function(
+    param_dict: dict, function, msger: MessageBoard, verbose: bool = True
+):
     function_name = function.__name__
     try:
-        msger.one_liner(f"Running {function_name}...")
+        if verbose:
+            msger.one_liner(f"Running {function_name}...")
         function_start_time = time.time()
         function(**created_filtered_kwargs_dict(param_dict, function))
         function_end_time = time.time()
-        msger.one_liner(
-            f"{function_name} finished in {format_duration(function_end_time - function_start_time)}."
-        )
+        if verbose:
+            msger.one_liner(
+                f"{function_name} finished in {format_duration(function_end_time - function_start_time)}."
+            )
         return True, None
     except Exception as the_exception:
         return False, the_exception

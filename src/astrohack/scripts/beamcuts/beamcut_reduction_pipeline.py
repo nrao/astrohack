@@ -15,10 +15,11 @@ from astrohack.utils.pipeline_support import (
     initialization_check,
     MessageBoard,
     list_input_tooltip,
-    created_filtered_kwargs_dict,
     base_name_determination,
     asdm_test_and_import,
     parse_list_or_all,
+    run_casatask,
+    run_astrohack_function,
 )
 from astrohack.utils.text import format_duration
 
@@ -133,12 +134,6 @@ def parse():
     )
 
     parser.add_argument(
-        "--plot-array-configuration",
-        action="store_true",
-        help="Plot array configuration, default is %(default)s",
-    )
-
-    parser.add_argument(
         "--plot-pointing",
         action="store_true",
         help="Plot antenna pointing, default is %(default)s",
@@ -226,37 +221,98 @@ def param_init(param_dict: dict, msger: MessageBoard):
         param_dict["exclude_bad_antennas"] = parse_list_or_all(
             param_dict["exclude_bad_antennas"]
         )
-
+    param_dict["parallel"] = param_dict["ncores"] >= 2
     initialization_check(param_dict, "Beam cut reduction parameters")
+    return param_dict
 
+
+def run_casa_calibration(param_dict, msger):
+    gaintable = []
+    delay_ok = run_casatask(
+        "gaincal",
+        {
+            "vis": param_dict["msname"],
+            "caltable": param_dict["delay_cal_name"],
+            "refant": param_dict["refant"],
+            "solint": "inf",
+            "spw": param_dict["quacked_spw_selection"],
+            "scan": param_dict["calibration_scans"],
+            "gaintype": "K",
+        },
+        msger,
+        intended_output=param_dict["delay_cal_name"],
+        overwrite=param_dict["overwrite"],
+    )
+
+    if delay_ok:
+        gaintable.append(param_dict["delay_cal_name"])
+        bandpass_ok = run_casatask(
+            "bandpass",
+            {
+                "vis": param_dict["msname"],
+                "caltable": param_dict["bandpass_cal_name"],
+                "refant": param_dict["refant"],
+                "solint": "10s",
+                "spw": param_dict["quacked_spw_selection"],
+                "scan": param_dict["calibration_scans"],
+                "solnorm": True,
+                "gaintable": gaintable,
+            },
+            msger,
+            intended_output=param_dict["bandpass_cal_name"],
+            overwrite=param_dict["overwrite"],
+        )
+    else:
+        bandpass_ok = False
+
+    if bandpass_ok:
+        gaintable.append(param_dict["bandpass_cal_name"])
+        gaincal_ok = run_casatask(
+            "gaincal",
+            {
+                "vis": param_dict["msname"],
+                "caltable": param_dict["gain_cal_name"],
+                "refant": param_dict["refant"],
+                "calmode": "ap",
+                "solint": "inf",
+                "spw": param_dict["quacked_spw_selection"],
+                "minsnr": 2,
+                "minblperant": 2,
+                "scan": param_dict["calibration_scans"],
+                "gaintable": gaintable,
+            },
+            msger,
+            intended_output=param_dict["gain_cal_name"],
+            overwrite=param_dict["overwrite"],
+        )
+    else:
+        gaincal_ok = False
+
+    if gaincal_ok:
+        gaintable.append(param_dict["gain_cal_name"])
+        run_casatask(
+            "applycal",
+            {
+                "vis": param_dict["msname"],
+                "field": f"{param_dict["beamcut_field"]}",
+                "spw": param_dict["quacked_spw_selection"],
+                "applymode": "calonly",
+                "gaintable": gaintable,
+            },
+            msger,
+        )
+
+    return
+
+
+def run_astrohack_reduction(param_dict, msger):
     # Astrohack convenience changes
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spectral_window"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
-    param_dict["parallel"] = param_dict["ncores"] >= 2
-    return param_dict
 
+    param_dict["ms_name"] = param_dict["msname"]
 
-def casa_calibration(param_dict, msger):
-    return
-
-
-def execute_step(param_dict, function, next_stage, msger):
-    function_name = function.__name__
-    if param_dict["processing_stage"] == function_name:
-        try:
-            msger.one_liner(f"Executing {function_name}...")
-            function(**created_filtered_kwargs_dict(param_dict, function))
-            msger.done()
-            param_dict["processing_stage"] = next_stage
-            return True, None
-        except Exception as the_exception:
-            return False, the_exception
-    else:
-        return True, None
-
-
-def data_reduction(param_dict, msger):
     status = True
     exec_exception = None
     exec_list = [
@@ -266,9 +322,13 @@ def data_reduction(param_dict, msger):
     ]
     for next_stage, function in exec_list:
         if status:
-            status, exec_exception = execute_step(
-                param_dict, function, next_stage, msger
+            status, exec_exception = run_astrohack_function(
+                param_dict,
+                function,
+                msger,
             )
+            if status:
+                param_dict["processing_stage"] = next_stage
 
     if not status:
         raise RuntimeError(
@@ -278,36 +338,34 @@ def data_reduction(param_dict, msger):
     return
 
 
-def post_processing(param_dict, msger):
+def run_astrohack_exports(param_dict, msger):
     param_dict["destination"] = param_dict["exports_name"]
+    pnt_mds = open_pointing(param_dict["point_name"])
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
-    if bmc_mds is not None:
-        msger.heading("Producing pipeline exports...")
-        beamcut_methods = [
-            bmc_mds.plot_in_amplitude,
-            bmc_mds.plot_in_phase,
-            bmc_mds.plot_in_db,
-            bmc_mds.plot_lm_offsets,
-            bmc_mds.export_report,
-        ]
-        for method in beamcut_methods:
-            msger.one_liner(f"Running {method.__name__}...")
-            method(**created_filtered_kwargs_dict(param_dict, method))
-        msger.one_liner("Beamcut exports Done!")
 
-    if param_dict["plot_array_configuration"] or param_dict["plot_pointing"]:
-        pnt_mds = open_pointing(param_dict["point_name"])
-        if pnt_mds is not None:
-            msger.heading("Producing pointing exports...")
-            pnt_methods = []
-            if param_dict["plot_array_configuration"]:
-                pnt_methods.append(pnt_mds.plot_array_configuration)
-            if param_dict["plot_pointing"]:
-                pnt_methods.append(pnt_mds.plot_pointing_in_time)
-            for method in pnt_methods:
-                msger.one_liner(f"Running {method.__name__}...")
-                method(**created_filtered_kwargs_dict(param_dict, method))
-            msger.one_liner("Pointing exports Done!")
+    plotting_methods = [
+        pnt_mds.plot_array_configuration,
+        bmc_mds.plot_in_amplitude,
+        bmc_mds.plot_in_phase,
+        bmc_mds.plot_in_db,
+        bmc_mds.plot_lm_offsets,
+        bmc_mds.export_report,
+    ]
+    if param_dict["plot_pointing"]:
+        param_dict["plot_antennas_separately"] = True
+        plotting_methods.append(pnt_mds.plot_pointing_in_time)
+
+    for plot_method in plotting_methods:
+        status, exec_exception = run_astrohack_function(param_dict, plot_method, msger)
+        if not status:
+            raise RuntimeError(
+                f"{plot_method.__name__} failed see above for details."
+            ) from exec_exception
+
+    return
+
+
+def create_beamcut_report(param_dict, msger):
     return
 
 
@@ -318,6 +376,11 @@ def main():
     msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
     main_param_dict = param_init(parse(), msger)
 
+    main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
+
+    if main_param_dict["processing_stage"] == "calibration":
+        run_casa_calibration(main_param_dict, msger)
+
     if main_param_dict["parallel"]:
         client = local_client(
             cores=main_param_dict["ncores"],
@@ -326,11 +389,14 @@ def main():
     else:
         client = None
 
-    main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
-    data_reduction(main_param_dict, msger)
+    run_astrohack_reduction(main_param_dict, msger)
 
     if main_param_dict["processing_stage"] == "plotting":
-        post_processing(main_param_dict, msger)
+        run_astrohack_exports(main_param_dict, msger)
+        main_param_dict["processing_stage"] = "report"
+
+    if main_param_dict["processing_stage"] == "report":
+        create_beamcut_report(main_param_dict, msger)
 
     if main_param_dict["parallel"]:
         client.shutdown()

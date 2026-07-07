@@ -219,7 +219,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         destination: str,
         stations: bool = True,
         zoff: bool = False,
-        unit: str = "m",
+        unit: str = "km",
         box_size: Union[int, float, None] = None,
         display: bool = False,
         figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,

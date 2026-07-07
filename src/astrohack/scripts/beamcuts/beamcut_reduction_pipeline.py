@@ -15,46 +15,12 @@ from astrohack.utils.pipeline_support import (
 )
 
 
-def create_param_dict(args):
-    extensions = {
-        "point": ".point.zarr",
-        "holog": ".holog.zarr",
-        "beamcut": ".beamcut.zarr",
-        "exports": ".exports",
-    }
-    param_dict = {}
-    param_dict.update(vars(args))
-
-    param_dict["parallel"] = args.ncores >= 2
-    if args.root_name is None:
-        name_components = args.ms_name.split(".")[:-1]
-        if len(name_components) == 0:
-            param_dict["root_name"] = args.ms_name
-        else:
-            param_dict["root_name"] = ".".join(name_components)
-    for identifier, extension in extensions.items():
-        param_dict[f"{identifier}_name"] = param_dict["root_name"] + extension
-
-    if args.antenna != "all":
-        param_dict["antenna"] = args.antenna.split(",")
-    if args.spectral_window != "all":
-        param_dict["spectral_window"] = [
-            int(spw_id) for spw_id in args.spectral_window.split(",")
-        ]
-    if args.exclude_bad_antennas is not None:
-        param_dict["exclude_bad_antennas"] = args.exclude_bad_antennas.split(",")
-
-    initialization_check(param_dict, "Beam cut reduction parameters")
-    param_dict["ant"] = param_dict["antenna"]
-    param_dict["ddi"] = param_dict["spectral_window"]
-    param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
-    return param_dict
-
-
 def parse():
     parser = argparse.ArgumentParser(description="Beam cut reduction pipeline")
 
     parser.add_argument("ms_name", type=str, help="Path to the input ms to process.")
+
+    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
 
     parser.add_argument(
         "-r",
@@ -63,6 +29,22 @@ def parse():
         default=None,
         help="Root name for the products of the pipeline, default"
         " is ms_name without extension",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--quack-nchan",
+        default=4,
+        type=int,
+        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "-f",
+        "--beamcut-field",
+        default=None,
+        type=str,
+        help="Field Id or name of the beam cut data (default is to determine it from data)",
     )
 
     parser.add_argument(
@@ -121,8 +103,15 @@ def parse():
     parser.add_argument(
         "--starting-stage",
         type=str,
-        default="extract_pointing",
-        choices=["extract_pointing", "extract_holog", "beamcut", "plotting"],
+        default="calibration",
+        choices=[
+            "calibration",
+            "extract_pointing",
+            "extract_holog",
+            "beamcut",
+            "exports",
+            "report",
+        ],
         help="Starting stage in which to start processing (default: %(default)s).",
     )
 
@@ -155,6 +144,46 @@ def parse():
     args = parser.parse_args()
     param_dict = create_param_dict(args)
 
+    return param_dict
+
+
+def create_param_dict(args):
+    extensions = {
+        "delay_cal": ".dcal",
+        "bandpass_cal": ".bcal",
+        "gain_cal": ".gcal",
+        "point": ".point.zarr",
+        "holog": ".holog.zarr",
+        "beamcut": ".beamcut.zarr",
+        "exports": ".exports",
+        "report": "-report.html",
+    }
+    param_dict = {}
+    param_dict.update(vars(args))
+
+    param_dict["parallel"] = args.ncores >= 2
+    if args.root_name is None:
+        name_components = args.ms_name.split(".")[:-1]
+        if len(name_components) == 0:
+            param_dict["root_name"] = args.ms_name
+        else:
+            param_dict["root_name"] = ".".join(name_components)
+    for identifier, extension in extensions.items():
+        param_dict[f"{identifier}_name"] = param_dict["root_name"] + extension
+
+    if args.antenna != "all":
+        param_dict["antenna"] = args.antenna.split(",")
+    if args.spectral_window != "all":
+        param_dict["spectral_window"] = [
+            int(spw_id) for spw_id in args.spectral_window.split(",")
+        ]
+    if args.exclude_bad_antennas is not None:
+        param_dict["exclude_bad_antennas"] = args.exclude_bad_antennas.split(",")
+
+    initialization_check(param_dict, "Beam cut reduction parameters")
+    param_dict["ant"] = param_dict["antenna"]
+    param_dict["ddi"] = param_dict["spectral_window"]
+    param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
     return param_dict
 
 

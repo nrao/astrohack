@@ -19,6 +19,7 @@ from astrohack.utils.pipeline_support import (
     parse_list_or_all,
     make_dict_str_simple,
     base_name_determination,
+    asdm_test_and_import,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -165,21 +166,7 @@ def parse():
 
 def param_init(param_dict: dict, msger: MessageBoard):
     base_name = base_name_determination(param_dict)
-    param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
-    if param_dict["is_asdm"]:
-        param_dict["msname"] = f"{base_name}.ms"
-        msger.one_liner("Input is an ASDM, importing it...")
-        run_casatask(
-            "importasdm",
-            {
-                "asdm": param_dict["filename"],
-                "vis": param_dict["msname"],
-                "overwrite": param_dict["overwrite"],
-            },
-            msger,
-        )
-    else:
-        param_dict["msname"] = param_dict["filename"]
+    param_dict = asdm_test_and_import(param_dict, msger, base_name)
 
     param_dict["pointing_only_ms"] = f"{base_name}.pnt.ms"
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"

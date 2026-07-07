@@ -210,3 +210,24 @@ def base_name_determination(param_dict: dict):
     if base_name_wrds[-1] == "ms":
         base_name = ".".join(base_name_wrds[:-1])
     return base_name
+
+
+def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
+    param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
+
+    if param_dict["is_asdm"]:
+        param_dict["msname"] = f"{base_name}.ms"
+        msger.one_liner("Input is an ASDM, importing it...")
+        run_casatask(
+            "importasdm",
+            {
+                "asdm": param_dict["filename"],
+                "vis": param_dict["msname"],
+                "overwrite": param_dict["overwrite"],
+            },
+            msger,
+        )
+    else:
+        param_dict["msname"] = param_dict["filename"]
+
+    return param_dict

@@ -12,7 +12,7 @@ from astrohack.visualization.plot_tools import (
 )
 
 
-def plot_array_configuration(input_dict, xdtree, caller, box_default_size=0.2):
+def plot_array_configuration(input_dict, xdtree, caller):
     telescope_name = xdtree.attrs["telescope_name"]
     telescope = get_proper_telescope(telescope_name)
     stations = input_dict["stations"]
@@ -22,7 +22,6 @@ def plot_array_configuration(input_dict, xdtree, caller, box_default_size=0.2):
     destination = input_dict["destination"]
     filename = f"{destination}/{caller}_array_configuration.png"
     length_unit = input_dict["unit"]
-    box_size = input_dict["box_size"]  # In user input unit
     plot_zoff = input_dict["zoff"]
 
     len_fac = convert_unit("m", length_unit, "length")
@@ -43,12 +42,10 @@ def plot_array_configuration(input_dict, xdtree, caller, box_default_size=0.2):
         ant_texts.append(text)
 
     ant_offs = np.array(ant_offs)
-    if box_size is None:
-        ew_min, ew_max = np.min(ant_offs[:, 0]), np.max(ant_offs[:, 0])
-        ew_range = ew_max - ew_min
-        ns_min, ns_max = np.min(ant_offs[:, 1]), np.max(ant_offs[:, 1])
-        ns_range = ns_max - ns_min
-        box_size = box_default_size * np.max([ew_range, ns_range])
+    box_size = define_inner_box_size(
+        input_dict["box_size"],
+        ant_offs,
+    )
 
     fig, axes = create_figure_and_axes(figure_size, [1, 2], default_figsize=[10, 5])
     inner_ax = axes[1]
@@ -68,6 +65,30 @@ def plot_array_configuration(input_dict, xdtree, caller, box_default_size=0.2):
     title = f"{len(xdtree.keys())} antennas during observation"
     close_figure(fig, title, filename, dpi, display)
     return
+
+
+def define_inner_box_size(user_box_size, ant_offs, box_max_size=0.2, threshold=4):
+    if user_box_size is None:
+        ew_min, ew_max = np.min(ant_offs[:, 0]), np.max(ant_offs[:, 0])
+        max_ew_range = ew_max - ew_min
+        ns_min, ns_max = np.min(ant_offs[:, 1]), np.max(ant_offs[:, 1])
+        max_ns_range = ns_max - ns_min
+        distances = np.sqrt(ant_offs[:, 0] ** 2 + ant_offs[:, 1] ** 2)
+        min_range = np.min((max_ew_range, max_ns_range))
+        distances = np.sort(distances)
+        dist_jumps = np.diff(distances)
+        max_dist = box_max_size * min_range / 2
+        for i_ant, jump in enumerate(dist_jumps[1:]):
+            prev_jump = dist_jumps[i_ant]
+            if jump > threshold * prev_jump:
+                max_dist = 1.05 * distances[i_ant]
+        box_size = 2 * max_dist
+        if box_size > box_max_size * min_range:
+            box_size = box_max_size * min_range
+        return box_size
+
+    else:
+        return user_box_size
 
 
 def plot_one_antenna_position(

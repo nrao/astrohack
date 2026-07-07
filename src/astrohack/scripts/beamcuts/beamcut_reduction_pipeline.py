@@ -1,4 +1,8 @@
 import argparse
+import time
+import casatools
+
+import numpy as np
 from toolviper.dask.client import local_client
 from astrohack import (
     extract_pointing,
@@ -12,13 +16,19 @@ from astrohack.utils.pipeline_support import (
     MessageBoard,
     list_input_tooltip,
     created_filtered_kwargs_dict,
+    base_name_determination,
+    asdm_test_and_import,
+    parse_list_or_all,
 )
+from astrohack.utils.text import format_duration
 
 
 def parse():
     parser = argparse.ArgumentParser(description="Beam cut reduction pipeline")
 
-    parser.add_argument("ms_name", type=str, help="Path to the input ms to process.")
+    parser.add_argument(
+        "filename", type=str, help="Path to the input dataset to process."
+    )
 
     parser.add_argument("refant", type=str, help="Reference antenna for calibration")
 
@@ -141,13 +151,55 @@ def parse():
         help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
     )
 
-    args = parser.parse_args()
-    param_dict = create_param_dict(args)
+    return vars(parser.parse_args())
 
+
+def fetch_ms_metadata(param_dict: dict):
+    # Fetch metadata from ms
+    msmd = casatools.msmetadata()
+    msmd.open(param_dict["msname"])
+    cal_scans = msmd.scansforintent("*PHASE*")
+    beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
+    spw_list = msmd.spwsforintent("*MAP*")
+    beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
+    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+    all_fields = msmd.fieldnames()
+    msmd.done()
+
+    if param_dict["beamcut_field"] is None:
+        if beamcut_fields.size > 1:
+            raise RuntimeError("More than 1 beam cut field, try splitting the ms")
+        param_dict["beamcut_field"] = beamcut_fields[0]
+    else:
+        try:
+            field_id = int(param_dict["beamcut_field"])
+            if field_id > all_fields.size - 1 or field_id < 0:
+                raise RuntimeError("Specified beam cut field ID is out of range")
+        except ValueError:
+            if param_dict["beamcut_field"] not in all_fields:
+                raise RuntimeError(
+                    f"{param_dict['beamcut_field']} not present in the ms"
+                )
+
+    if nchan.size > 1:
+        raise RuntimeError(
+            "Spectral windows have different nchans, don't know how to proceed automatically"
+        )
+
+    # Convert to comma-separated string
+    param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
+    param_dict["beamcut_scans"] = ",".join(map(str, beamcut_scans))
+
+    fchan = param_dict["quack_nchan"]
+    lchan = nchan[0] - param_dict["quack_nchan"]
+    minspw = f"{round(np.min(spw_list)):d}"
+    maxspw = f"{round(np.max(spw_list)):d}"
+    spwrange = f"{minspw}~{maxspw}"
+    param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
     return param_dict
 
 
-def create_param_dict(args):
+def param_init(param_dict: dict, msger: MessageBoard):
     extensions = {
         "delay_cal": ".dcal",
         "bandpass_cal": ".bcal",
@@ -158,33 +210,35 @@ def create_param_dict(args):
         "exports": ".exports",
         "report": "-report.html",
     }
-    param_dict = {}
-    param_dict.update(vars(args))
 
-    param_dict["parallel"] = args.ncores >= 2
-    if args.root_name is None:
-        name_components = args.ms_name.split(".")[:-1]
-        if len(name_components) == 0:
-            param_dict["root_name"] = args.ms_name
-        else:
-            param_dict["root_name"] = ".".join(name_components)
+    base_name = base_name_determination(param_dict)
+    param_dict = asdm_test_and_import(param_dict, base_name, msger)
+
     for identifier, extension in extensions.items():
-        param_dict[f"{identifier}_name"] = param_dict["root_name"] + extension
+        param_dict[f"{identifier}_name"] = base_name + extension
 
-    if args.antenna != "all":
-        param_dict["antenna"] = args.antenna.split(",")
-    if args.spectral_window != "all":
-        param_dict["spectral_window"] = [
-            int(spw_id) for spw_id in args.spectral_window.split(",")
-        ]
-    if args.exclude_bad_antennas is not None:
-        param_dict["exclude_bad_antennas"] = args.exclude_bad_antennas.split(",")
+    param_dict = fetch_ms_metadata(param_dict)
+
+    param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
+    param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
+
+    if param_dict["exclude_bad_antennas"] is not None:
+        param_dict["exclude_bad_antennas"] = parse_list_or_all(
+            param_dict["exclude_bad_antennas"]
+        )
 
     initialization_check(param_dict, "Beam cut reduction parameters")
+
+    # Astrohack convenience changes
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spectral_window"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
+    param_dict["parallel"] = param_dict["ncores"] >= 2
     return param_dict
+
+
+def casa_calibration(param_dict, msger):
+    return
 
 
 def execute_step(param_dict, function, next_stage, msger):
@@ -258,9 +312,11 @@ def post_processing(param_dict, msger):
 
 
 def main():
+    pipeline_start = time.time()
     msger = MessageBoard()
-    msger.heading("Welcome to AstroHACK BeamCut Pipeline")
-    main_param_dict = parse()
+    print()
+    msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
+    main_param_dict = param_init(parse(), msger)
 
     if main_param_dict["parallel"]:
         client = local_client(
@@ -279,4 +335,9 @@ def main():
     if main_param_dict["parallel"]:
         client.shutdown()
 
-    msger.heading("Beamcut pipeline complete!")
+    pipeline_end = time.time()
+    msger.heading(
+        f"Beamcut processing finished in {format_duration(pipeline_end - pipeline_start)}, "
+        + f"individual plots and text results saved at: {main_param_dict['exports_name']}."
+        + f" Checkout the HTML report at: {main_param_dict['report_name']}."
+    )

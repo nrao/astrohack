@@ -199,3 +199,14 @@ def run_astrohack_function(
         return True, None
     except Exception as the_exception:
         return False, the_exception
+
+
+def base_name_determination(param_dict: dict):
+    if param_dict["root_name"] is None:
+        base_name = param_dict["filename"]
+    else:
+        base_name = param_dict["root_name"]
+    base_name_wrds = base_name.split(".")
+    if base_name_wrds[-1] == "ms":
+        base_name = ".".join(base_name_wrds[:-1])
+    return base_name

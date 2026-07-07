@@ -18,6 +18,7 @@ from astrohack.utils.pipeline_support import (
     run_astrohack_function,
     parse_list_or_all,
     make_dict_str_simple,
+    base_name_determination,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -163,14 +164,7 @@ def parse():
 
 
 def param_init(param_dict: dict, msger: MessageBoard):
-    if param_dict["root_name"] is None:
-        base_name = param_dict["filename"]
-    else:
-        base_name = param_dict["root_name"]
-    base_name_wrds = base_name.split(".")
-    if base_name_wrds[-1] == "ms":
-        base_name = ".".join(base_name_wrds[:-1])
-
+    base_name = base_name_determination(param_dict)
     param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
     if param_dict["is_asdm"]:
         param_dict["msname"] = f"{base_name}.ms"

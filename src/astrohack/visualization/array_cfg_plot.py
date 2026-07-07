@@ -13,6 +13,16 @@ from astrohack.visualization.plot_tools import (
 
 
 def plot_array_configuration(input_dict, xdtree, caller):
+    """
+    Plot array configuration with an inner and an outer box.
+    Args:
+        input_dict: Dictionary of input parameters
+        xdtree: Xarray xdtree containing the antenna information as attributes.
+        caller: Who is calling this function
+
+    Returns:
+        None
+    """
     telescope_name = xdtree.attrs["telescope_name"]
     telescope = get_proper_telescope(telescope_name)
     stations = input_dict["stations"]
@@ -67,13 +77,26 @@ def plot_array_configuration(input_dict, xdtree, caller):
     return
 
 
-def define_inner_box_size(user_box_size, ant_offs, box_max_size=0.2, threshold=4):
+def define_inner_box_size(
+    user_box_size, antenna_offsets, box_max_size=0.2, threshold=4
+):
+    """
+    Compute the inner array box size based on the distribution of the antennas if user_box_size is None
+    Args:
+        user_box_size: User requested box size
+        antenna_offsets: Antenna offsets from array center
+        box_max_size: Fractional maximum box size relative to the maximum array extent
+        threshold: how big must be the jump between one antenna and the next relative to the previous jump
+
+    Returns:
+        user_box_size when Not None, else returns the heuristically defined box size
+    """
     if user_box_size is None:
-        ew_min, ew_max = np.min(ant_offs[:, 0]), np.max(ant_offs[:, 0])
+        ew_min, ew_max = np.min(antenna_offsets[:, 0]), np.max(antenna_offsets[:, 0])
         max_ew_range = ew_max - ew_min
-        ns_min, ns_max = np.min(ant_offs[:, 1]), np.max(ant_offs[:, 1])
+        ns_min, ns_max = np.min(antenna_offsets[:, 1]), np.max(antenna_offsets[:, 1])
         max_ns_range = ns_max - ns_min
-        distances = np.sqrt(ant_offs[:, 0] ** 2 + ant_offs[:, 1] ** 2)
+        distances = np.sqrt(antenna_offsets[:, 0] ** 2 + antenna_offsets[:, 1] ** 2)
         min_range = np.min((max_ew_range, max_ns_range))
         distances = np.sort(distances)
         dist_jumps = np.diff(distances)

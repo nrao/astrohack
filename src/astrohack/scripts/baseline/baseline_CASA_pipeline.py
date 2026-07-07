@@ -124,6 +124,22 @@ def parse():
     )
 
     parser.add_argument(
+        "-l",
+        "--delay_limits",
+        type=str,
+        default="-0.1,0.1",
+        help='Delay limits for delay plots, values must be given between quotes("), default is "%(default)s"',
+    )
+
+    parser.add_argument(
+        "-d",
+        "--dpi",
+        type=int,
+        default=300,
+        help="DPI for png figures (default: %(default)s)",
+    )
+
+    parser.add_argument(
         "-o",
         "--overwrite",
         default=False,
@@ -188,6 +204,13 @@ def param_init(param_dict: dict, msger: MessageBoard):
         param_dict["scans_to_flag"] = []
     else:
         param_dict["scans_to_flag"] = param_dict["scans_to_flag"].split(",")
+
+    try:
+        param_dict["delay_limits"] = [
+            float(lim) for lim in param_dict["delay_limits"].split(",")
+        ]
+    except Exception as e:
+        raise RuntimeError(f"Error parsing delay_limits: {e}")
 
     # Ms data fetching and some consistency checks
     pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
@@ -396,6 +419,8 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         "ant": param_dict["antenna"],
         "filename": f"{param_dict['exports_name']}/parminator.par",
         "parallel": False,
+        "dpi": param_dict["dpi"],
+        "delay_limits": param_dict["delay_limits"],
     }
     locit_mds = open_locit(param_dict["locit_name"])
     position_mds = open_position(param_dict["position_name"])
@@ -480,7 +505,7 @@ def run_casa_post_locit_plots(param_dict: dict, msger: MessageBoard):
                         "coloraxis": "correlation",
                         "plotfile": plot_file,
                         "showgui": False,
-                        "dpi": 300,
+                        "dpi": param_dict["dpi"],
                         "plotrange": [np.nan, np.nan, -180, 180],
                     },
                     msger,

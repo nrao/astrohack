@@ -34,7 +34,10 @@ from astrohack.visualization import (
     close_figure,
     plot_boxes_limits_and_labels,
 )
-from astrohack.visualization.array_cfg_plot import plot_one_antenna_position
+from astrohack.visualization.array_cfg_plot import (
+    plot_one_antenna_position,
+    define_inner_box_size,
+)
 
 
 class AstrohackPositionFile(AstrohackBaseFile):
@@ -415,7 +418,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         ant: Union[str, List[str]] = "all",
         ddi: Union[str, int, List[int]] = "all",
         unit: str = "km",
-        box_size: Union[int, float] = 5,
+        box_size: Union[int, float] = None,
         scaling: Union[int, float] = 250,
         figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
         display: bool = False,
@@ -833,7 +836,6 @@ def _plot_antenna_position_corrections_sub(
     len_fac = convert_unit("m", length_unit, "length")
     corr_fac = clight * scaling
     figure_size = parm_dict["figure_size"]
-    box_size = parm_dict["box_size"]
     dpi = parm_dict["dpi"]
     display = parm_dict["display"]
 
@@ -846,31 +848,49 @@ def _plot_antenna_position_corrections_sub(
     z_whole = axes[1, 0]
     z_inner = axes[1, 1]
 
+    antenna_offsets = []
+    antenna_corrections = []
+    antenna_texts = []
+
     for attributes in attributes_list:
         antenna = attributes["antenna_info"]
         ew_off, ns_off, _, _ = compute_antenna_relative_off(
             antenna, tel_lon, tel_lat, tel_rad, len_fac
         )
-        corrections, _ = rotate_to_gmt(
+        this_corrections, _ = rotate_to_gmt(
             np.copy(attributes["position_fit"]),
             attributes["position_error"],
             antenna["longitude"],
         )
-        corrections = np.array(corrections) * corr_fac
-        text = "  " + antenna["name"]
+        this_corrections = np.array(this_corrections) * corr_fac
+        this_text = "  " + antenna["name"]
         if antenna["name"] == ref_ant:
-            text += "*"
+            this_text += "*"
+        antenna_offsets.append([ew_off, ns_off])
+        antenna_texts.append(this_text)
+        antenna_corrections.append(this_corrections)
+
+    box_size = define_inner_box_size(parm_dict["box_size"], np.array(antenna_offsets))
+    for i_ant, this_corrections in enumerate(antenna_corrections):
+        this_text = antenna_texts[i_ant]
+        ew_off, ns_off = antenna_offsets[i_ant]
         plot_one_antenna_position(
-            xy_whole, xy_inner, ew_off, ns_off, text, box_size, marker="+"
+            xy_whole, xy_inner, ew_off, ns_off, this_text, box_size, marker="+"
         )
         _add_antenna_position_corrections_to_plot(
-            xy_whole, xy_inner, ew_off, ns_off, corrections[0], corrections[1], box_size
+            xy_whole,
+            xy_inner,
+            ew_off,
+            ns_off,
+            this_corrections[0],
+            this_corrections[1],
+            box_size,
         )
         plot_one_antenna_position(
-            z_whole, z_inner, ew_off, ns_off, text, box_size, marker="+"
+            z_whole, z_inner, ew_off, ns_off, this_text, box_size, marker="+"
         )
         _add_antenna_position_corrections_to_plot(
-            z_whole, z_inner, ew_off, ns_off, 0, corrections[2], box_size
+            z_whole, z_inner, ew_off, ns_off, 0, this_corrections[2], box_size
         )
 
     plot_boxes_limits_and_labels(

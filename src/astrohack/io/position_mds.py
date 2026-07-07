@@ -335,6 +335,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         time_unit: str = "hour",
         angle_unit: str = "deg",
         delay_unit: str = "nsec",
+        delay_limits: Union[Tuple, List[float | int], np.ndarray, None] = None,
         plot_model: bool = True,
         display: bool = False,
         figure_size: Union[Tuple, List[float | int], np.ndarray, None] = None,
@@ -360,6 +361,9 @@ class AstrohackPositionFile(AstrohackBaseFile):
 
         :param delay_unit: Unit for delay in plots, defaults to 'nsec'
         :type delay_unit: str, optional
+
+        :param delay_limits: Y Limits for the delay plots, default is None (i.e. guess from data)
+        :type delay_limits: numpy.ndarray, list, tuple, optional
 
         :param plot_model: Plot the fitted model results alongside the data.
         :type plot_model: bool, optional
@@ -637,9 +641,12 @@ def _plot_delays_chunk(parm_dict):
     elelim, elelines, declim, declines, halim = _compute_plot_borders(
         angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
     )
-    delay_minmax = [np.min(delays), np.max(delays)]
-    delay_border = 0.05 * (delay_minmax[1] - delay_minmax[0])
-    delaylim = [delay_minmax[0] - delay_border, delay_minmax[1] + delay_border]
+    if parm_dict["delay_limits"] is None:
+        delay_minmax = [np.min(delays), np.max(delays)]
+        delay_border = 0.05 * (delay_minmax[1] - delay_minmax[0])
+        delaylim = [delay_minmax[0] - delay_border, delay_minmax[1] + delay_border]
+    else:
+        delaylim = parm_dict["delay_limits"]
 
     fig, axes = create_figure_and_axes(figuresize, [2, 2])
 

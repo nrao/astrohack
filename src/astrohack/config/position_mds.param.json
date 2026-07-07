@@ -140,6 +140,14 @@
             "type": ["string"],
             "check allowed with": "units.time"
         },
+        "delay_limits": {
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["list", "tuple", "ndarray"]
+        },
         "plot_model":{
             "nullable": false,
             "required": false,

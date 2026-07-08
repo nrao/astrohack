@@ -18,7 +18,7 @@ from astrohack.utils.pipeline_support import (
     parse_list_or_all,
     base_name_determination,
     asdm_test_and_import,
-    add_basic_time_information_to_report,
+    add_basic_info_and_parameters_to_report,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -510,7 +510,7 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     report_title = f"Baseline Report for {param_dict['filename']}"
     html_body = add_heading_to_html(report_title, 1)
 
-    html_body += add_basic_time_information_to_report(param_dict)
+    html_body += add_basic_info_and_parameters_to_report(param_dict)
 
     for image_file, image_desc in images_to_include.items():
         image_path = f"{exports_name}/{image_file}"

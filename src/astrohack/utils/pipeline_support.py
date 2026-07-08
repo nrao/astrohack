@@ -266,7 +266,7 @@ def get_lst_string_from_time_str(time_str):
     return lst
 
 
-def add_basic_time_information_to_report(param_dict: dict):
+def add_basic_info_and_parameters_to_report(param_dict: dict):
     import casatools
 
     msmd = casatools.msmetadata()
@@ -286,11 +286,11 @@ def add_basic_time_information_to_report(param_dict: dict):
         "End LST": get_lst_string_from_time_str(end_time),
     }
     html_str = add_preformatted_text_file_to_html(
-        make_dict_str_simple(times_dict), "Basic information:"
+        make_dict_str_simple(param_dict), "Pipeline parameters:"
     )
 
     html_str += add_preformatted_text_file_to_html(
-        make_dict_str_simple(param_dict), "Pipeline parameters:"
+        make_dict_str_simple(times_dict), "Basic Time information:"
     )
 
     return html_str

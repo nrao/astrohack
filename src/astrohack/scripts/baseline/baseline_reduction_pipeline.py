@@ -166,7 +166,7 @@ def parse():
 
 def param_init(param_dict: dict, msger: MessageBoard):
     base_name = base_name_determination(param_dict)
-    param_dict = asdm_test_and_import(param_dict, msger, base_name)
+    param_dict = asdm_test_and_import(param_dict, base_name, msger)
 
     param_dict["pointing_only_ms"] = f"{base_name}.pnt.ms"
     param_dict["freq_averaged_ms"] = f"{base_name}.avg.ms"

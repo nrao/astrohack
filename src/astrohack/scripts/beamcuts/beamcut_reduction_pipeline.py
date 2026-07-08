@@ -27,6 +27,8 @@ from astrohack.utils.text import (
     create_html_file_from_body,
     add_heading_to_html,
     create_single_html_image_with_header,
+    make_collapsible_block,
+    add_preformatted_text_file_to_html,
 )
 
 
@@ -385,7 +387,7 @@ def prepare_html_report(param_dict, msger):
     html_body += add_basic_info_and_parameters_to_report(param_dict)
     html_body += create_single_html_image_with_header(
         f"{exports_name}/point_array_configuration.png",
-        "array configuration during observation",
+        "Array configuration during observation",
         heading_level=2,
     )
 
@@ -398,15 +400,47 @@ def prepare_html_report(param_dict, msger):
     ]
 
     for ant_name in antenna_list:
-        ant_html = add_heading_to_html(f"Beamcut data for {ant_name}:", 2)
+        ant_html = ""
+        if param_dict["plot_pointing"]:
+            ant_html += create_single_html_image_with_header(
+                f"{exports_name}/point_directional_cosines_ant_{ant_name}.png",
+                "Pointing over time:",
+                heading_level=3,
+            )
+            ant_html += create_single_html_image_with_header(
+                f"{exports_name}/beamcut_lm_offsets_ant_{ant_name}_ddi_{ddi_list[0]}.png",
+                "Pointing over sky:",
+                heading_level=3,
+            )
         for ddi_name in ddi_list:
-            spw_html = add_heading_to_html(f"Spectral window {ddi_name}:", 3)
-            if param_dict["plot_pointing"]:
-                pass
-            # Collapsible wrapping here
-            ant_html += spw_html
+            spw_html = create_single_html_image_with_header(
+                f"{exports_name}/beamcut_db_ant_{ant_name}_ddi_{ddi_name}.png",
+                "Beam cut in dB",
+                heading_level=4,
+            )
+            spw_html += create_single_html_image_with_header(
+                f"{exports_name}/beamcut_amplitude_ant_{ant_name}_ddi_{ddi_name}.png",
+                "Beam cut in amplitude",
+                heading_level=4,
+            )
+            spw_html += create_single_html_image_with_header(
+                f"{exports_name}/beamcut_phase_ant_{ant_name}_ddi_{ddi_name}.png",
+                "Beam cut in phase",
+                heading_level=4,
+            )
+            spw_html += add_preformatted_text_file_to_html(
+                f"{exports_name}/beamcut_report_ant_{ant_name}_ddi_{ddi_name}.txt",
+                "Beam cut fit report",
+                heading_level=4,
+            )
+            ant_html += make_collapsible_block(
+                spw_html,
+                add_heading_to_html(f"\t{ant_name} spectral window {ddi_name}:", 3),
+            )
         # collapsible wrapping here
-        html_body += ant_html
+        html_body += make_collapsible_block(
+            ant_html, add_heading_to_html(f"Beam cut data for {ant_name}:", 2)
+        )
 
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()
@@ -421,12 +455,16 @@ def main():
     msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
     main_param_dict = param_init(parse(), msger)
 
+    astrohack_stages = ["extract_holog", "extract_pointing", "beamcut", "exports"]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
 
     if main_param_dict["processing_stage"] == "calibration":
         run_casa_calibration(main_param_dict, msger)
 
-    if main_param_dict["parallel"]:
+    if (
+        main_param_dict["parallel"]
+        and main_param_dict["processing_stage"] in astrohack_stages
+    ):
         client = local_client(
             cores=main_param_dict["ncores"],
             memory_limit=main_param_dict["memory_per_core"],
@@ -434,7 +472,8 @@ def main():
     else:
         client = None
 
-    run_astrohack_reduction(main_param_dict, msger)
+    if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
+        run_astrohack_reduction(main_param_dict, msger)
 
     if main_param_dict["processing_stage"] == "exports":
         run_astrohack_exports(main_param_dict, msger)
@@ -443,7 +482,7 @@ def main():
     if main_param_dict["processing_stage"] == "report":
         prepare_html_report(main_param_dict, msger)
 
-    if main_param_dict["parallel"]:
+    if client is not None:
         client.shutdown()
 
     pipeline_end = time.time()

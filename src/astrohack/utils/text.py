@@ -843,7 +843,9 @@ def add_paragraph_to_html(content):
     return f"<p>{content}</p>{lnbr}"
 
 
-def create_html_file_from_body(body_text, title, html_file, alignment="left"):
+def create_html_file_from_body(
+    body_text, title, html_file, alignment="left", add_collapsible_tools=True
+):
     out_file_str = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -852,14 +854,57 @@ def create_html_file_from_body(body_text, title, html_file, alignment="left"):
 <style>
     body {{ font-family: sans-serif; text-align: {alignment}; margin-top: 50px; }}
     img {{ max-width: 100%; height: auto; border: 2px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }}
+"""
+    if add_collapsible_tools:
+        out_file_str += """/* Style the button */
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 2px;
+  width: 35%;
+  border: 2px;
+  margin: 10px;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+}
+
+/* Add a background color to the button if it is clicked on */
+.active, .collapsible:hover {
+  background-color: #000;
+}
+
+/* Hide the collapsible content by default */
+.content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #ffffff;
+}"""
+    out_file_str += """
 </style>
 </head>
 <body>"""
     out_file_str += body_text
 
+    if add_collapsible_tools:
+        out_file_str += """<script>
+const coll = document.getElementsByClassName("collapsible");
+for (let i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    const content = this.nextElementSibling;
+    if (content.style.display === "block") {
+      content.style.display = "none";
+    } else {
+      content.style.display = "block";
+    }
+  });
+}
+</script>"""
     out_file_str += f"""</body>
 </html>"""
-
     with open(html_file, "w") as f:
         f.write(out_file_str)
     return
@@ -881,7 +926,7 @@ def create_embedded_html_image(image_file, description, width=None, height=None)
 
 
 def create_single_html_image_with_header(
-    image_file, description, width="80%", height=None, heading_level: int = 2
+    image_file, description, width="60%", height=None, heading_level: int = 2
 ):
     image_str = add_heading_to_html(description, heading_level)
     return (
@@ -889,6 +934,15 @@ def create_single_html_image_with_header(
         + create_embedded_html_image(image_file, description, width, height)
         + lnbr
     )
+
+
+def make_collapsible_block(html_content: str, summary: str):
+    class_name = "collapsible"
+    collapsible_block = f'<button class="{class_name}">{summary}</button>{lnbr}'
+    collapsible_block += f'<div class="content">{lnbr}'
+    collapsible_block += html_content + lnbr
+    collapsible_block += f"</div>{lnbr}"
+    return collapsible_block
 
 
 def create_side_by_side_html_images_with_header(

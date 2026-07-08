@@ -11,15 +11,14 @@ from astrohack.utils.constants import clight
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
-    file_is_asdm,
     run_casatask,
     proceed_check,
     list_input_tooltip,
     run_astrohack_function,
     parse_list_or_all,
-    make_dict_str_simple,
     base_name_determination,
     asdm_test_and_import,
+    add_basic_time_information_to_report,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -29,7 +28,6 @@ from astrohack.utils.text import (
     add_preformatted_text_file_to_html,
     create_side_by_side_html_images_with_header,
     add_heading_to_html,
-    spc,
 )
 
 
@@ -497,62 +495,6 @@ def run_casa_post_locit_plots(param_dict: dict, msger: MessageBoard):
     stop = time.time()
     msger.one_liner("Plotms finished in {:.2f} seconds".format(stop - start))
     return
-
-
-def get_time_string_from_dict(time_dict, qa):
-    time_str = qa.time(
-        qa.quantity(
-            time_dict["m0"]["value"],
-            "d",
-        ),
-        form="ymd",
-    )[0]
-    time_str_wrds = time_str.split("/")
-    out_str = "-".join(time_str_wrds[:3]) + spc + time_str_wrds[-1]
-    return out_str
-
-
-def get_lst_string_from_time_str(time_str):
-    from astropy.coordinates import EarthLocation
-    from astropy.time import Time
-    import astropy.units as u
-
-    vla_location = EarthLocation(
-        lat=34.0785 * u.deg, lon=-107.6184 * u.deg, height=2124 * u.m
-    )
-    observing_time = Time(time_str, scale="utc", location=vla_location)
-    lst = observing_time.sidereal_time("apparent").to_string(
-        unit=u.hour, pad=True, sep=":"
-    )
-    return lst
-
-
-def add_basic_time_information_to_report(param_dict: dict):
-    msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
-    timerange = msmd.timerangeforobs(0)
-    start_time = timerange["begin"]
-    end_time = timerange["end"]
-    msmd.done()
-    qa = casatools.quanta()
-
-    start_time = get_time_string_from_dict(start_time, qa)
-    end_time = get_time_string_from_dict(end_time, qa)
-    times_dict = {
-        "Observation start (UTC)": start_time,
-        "Starting LST": get_lst_string_from_time_str(start_time),
-        "Observation end (UTC)": end_time,
-        "End LST": get_lst_string_from_time_str(end_time),
-    }
-    html_str = add_preformatted_text_file_to_html(
-        make_dict_str_simple(times_dict), "Basic information:"
-    )
-
-    html_str += add_preformatted_text_file_to_html(
-        make_dict_str_simple(param_dict), "Pipeline parameters:"
-    )
-
-    return html_str
 
 
 def prepare_html_report(param_dict: dict, msger: MessageBoard):

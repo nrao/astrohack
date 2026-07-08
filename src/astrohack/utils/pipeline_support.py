@@ -4,7 +4,12 @@ import pathlib
 import shutil
 from pathlib import Path
 import time
-from astrohack.utils.text import lnbr, spc, format_duration
+from astrohack.utils.text import (
+    lnbr,
+    spc,
+    format_duration,
+    add_preformatted_text_file_to_html,
+)
 
 
 def yesno(prompt):
@@ -231,3 +236,61 @@ def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
         param_dict["msname"] = param_dict["filename"]
 
     return param_dict
+
+
+def get_time_string_from_dict(time_dict, qa):
+    time_str = qa.time(
+        qa.quantity(
+            time_dict["m0"]["value"],
+            "d",
+        ),
+        form="ymd",
+    )[0]
+    time_str_wrds = time_str.split("/")
+    out_str = "-".join(time_str_wrds[:3]) + spc + time_str_wrds[-1]
+    return out_str
+
+
+def get_lst_string_from_time_str(time_str):
+    from astropy.coordinates import EarthLocation
+    from astropy.time import Time
+    import astropy.units as u
+
+    vla_location = EarthLocation(
+        lat=34.0785 * u.deg, lon=-107.6184 * u.deg, height=2124 * u.m
+    )
+    observing_time = Time(time_str, scale="utc", location=vla_location)
+    lst = observing_time.sidereal_time("apparent").to_string(
+        unit=u.hour, pad=True, sep=":"
+    )
+    return lst
+
+
+def add_basic_time_information_to_report(param_dict: dict):
+    import casatools
+
+    msmd = casatools.msmetadata()
+    msmd.open(param_dict["msname"])
+    timerange = msmd.timerangeforobs(0)
+    start_time = timerange["begin"]
+    end_time = timerange["end"]
+    msmd.done()
+    qa = casatools.quanta()
+
+    start_time = get_time_string_from_dict(start_time, qa)
+    end_time = get_time_string_from_dict(end_time, qa)
+    times_dict = {
+        "Observation start (UTC)": start_time,
+        "Starting LST": get_lst_string_from_time_str(start_time),
+        "Observation end (UTC)": end_time,
+        "End LST": get_lst_string_from_time_str(end_time),
+    }
+    html_str = add_preformatted_text_file_to_html(
+        make_dict_str_simple(times_dict), "Basic information:"
+    )
+
+    html_str += add_preformatted_text_file_to_html(
+        make_dict_str_simple(param_dict), "Pipeline parameters:"
+    )
+
+    return html_str

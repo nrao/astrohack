@@ -460,6 +460,7 @@ def main():
 
     if main_param_dict["processing_stage"] == "calibration":
         run_casa_calibration(main_param_dict, msger)
+        main_param_dict["processing_stage"] = "extract_pointing"
 
     if (
         main_param_dict["parallel"]

@@ -20,8 +20,14 @@ from astrohack.utils.pipeline_support import (
     parse_list_or_all,
     run_casatask,
     run_astrohack_function,
+    add_basic_info_and_parameters_to_report,
 )
-from astrohack.utils.text import format_duration
+from astrohack.utils.text import (
+    format_duration,
+    create_html_file_from_body,
+    add_heading_to_html,
+    create_single_html_image_with_header,
+)
 
 
 def parse():
@@ -318,7 +324,7 @@ def run_astrohack_reduction(param_dict, msger):
     exec_list = [
         ["extract_holog", extract_pointing],
         ["beamcut", extract_holog],
-        ["plotting", beamcut],
+        ["exports", beamcut],
     ]
     for next_stage, function in exec_list:
         if status:
@@ -341,7 +347,11 @@ def run_astrohack_reduction(param_dict, msger):
 def run_astrohack_exports(param_dict, msger):
     param_dict["destination"] = param_dict["exports_name"]
     pnt_mds = open_pointing(param_dict["point_name"])
+    if pnt_mds is None:
+        raise RuntimeError(f"{param_dict['point_name']} not found")
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
+    if bmc_mds is None:
+        raise RuntimeError(f"{param_dict['beamcut_name']} not found")
 
     plotting_methods = [
         pnt_mds.plot_array_configuration,
@@ -365,7 +375,42 @@ def run_astrohack_exports(param_dict, msger):
     return
 
 
-def create_beamcut_report(param_dict, msger):
+def prepare_html_report(param_dict, msger):
+    msger.one_liner("Preparing report...")
+    start = time.time()
+    exports_name = param_dict["exports_name"]
+    report_title = f"Beamcut report for {param_dict['filename']}"
+
+    html_body = add_heading_to_html(report_title, 1)
+    html_body += add_basic_info_and_parameters_to_report(param_dict)
+    html_body += create_single_html_image_with_header(
+        f"{exports_name}/point_array_configuration.png",
+        "array configuration during observation",
+        heading_level=2,
+    )
+
+    bmc_mds = open_beamcut(param_dict["beamcut_name"])
+    if bmc_mds is None:
+        raise RuntimeError(f"{param_dict['beamcut_name']} not found")
+    antenna_list = [ant_key.split("_")[-1] for ant_key in bmc_mds.keys()]
+    ddi_list = [
+        ddi_key.split("_")[-1] for ddi_key in bmc_mds[f"ant_{antenna_list[0]}"].keys()
+    ]
+
+    for ant_name in antenna_list:
+        ant_html = add_heading_to_html(f"Beamcut data for {ant_name}:", 2)
+        for ddi_name in ddi_list:
+            spw_html = add_heading_to_html(f"Spectral window {ddi_name}:", 3)
+            if param_dict["plot_pointing"]:
+                pass
+            # Collapsible wrapping here
+            ant_html += spw_html
+        # collapsible wrapping here
+        html_body += ant_html
+
+    create_html_file_from_body(html_body, report_title, param_dict["report_name"])
+    stop = time.time()
+    msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
     return
 
 
@@ -391,12 +436,12 @@ def main():
 
     run_astrohack_reduction(main_param_dict, msger)
 
-    if main_param_dict["processing_stage"] == "plotting":
+    if main_param_dict["processing_stage"] == "exports":
         run_astrohack_exports(main_param_dict, msger)
         main_param_dict["processing_stage"] = "report"
 
     if main_param_dict["processing_stage"] == "report":
-        create_beamcut_report(main_param_dict, msger)
+        prepare_html_report(main_param_dict, msger)
 
     if main_param_dict["parallel"]:
         client.shutdown()

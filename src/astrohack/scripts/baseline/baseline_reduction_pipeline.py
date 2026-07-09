@@ -6,8 +6,9 @@ import numpy as np
 import casatools
 
 from astrohack import extract_locit, locit, open_locit, open_position
-from astrohack.utils.algorithms import rotate_to_gmt
-from astrohack.utils.constants import clight
+from astrohack.utils.algorithms import rotate_to_gmt, data_statistics
+from astrohack.utils.constants import clight, pol_str
+from astrohack.utils.conversion import convert_unit
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
@@ -28,7 +29,10 @@ from astrohack.utils.text import (
     add_preformatted_text_file_to_html,
     create_side_by_side_html_images_with_header,
     add_heading_to_html,
+    make_collapsible_block,
 )
+from astrohack.visualization import create_figure_and_axes, close_figure
+from astrohack.visualization.plot_tools import filter_duplicates_in_legend
 
 
 def parse():
@@ -423,7 +427,177 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_casa_post_locit_plots(param_dict: dict, msger: MessageBoard):
+def make_single_antenna_phase_over_time(
+    exports_name,
+    refant_name,
+    ant_name,
+    corr_axis,
+    scan_list,
+    plt_times,
+    raw_phases,
+    corr_phases,
+    dpi,
+):
+    import matplotlib.ticker as ticker
+
+    def forward(x_val):
+        return np.interp(x_val, plt_times, scan_list)
+
+    def inverse(x_val):
+        return np.interp(x_val, scan_list, plt_times)
+
+    corr_styles = ["+", "x"]
+    fig, ax = create_figure_and_axes(None, [1, 1])
+    for i_corr, corr in enumerate(corr_axis):
+        legend = f"{corr}"
+        ax.plot(
+            plt_times,
+            raw_phases[:, :, i_corr],
+            f"r{corr_styles[i_corr]}",
+            label=f"DATA, {legend}",
+        )
+        ax.plot(
+            plt_times,
+            corr_phases[:, :, i_corr],
+            f"b{corr_styles[i_corr]}",
+            label=f"CORRECTED, {legend}",
+        )
+    raw_rms = data_statistics(raw_phases)["rms"]
+    corr_rms = data_statistics(corr_phases)["rms"]
+    ax.legend()
+    ax.set_xlabel("Time since observation start [hour]")
+    ax.set_ylabel("Phase [deg]")
+    ax.set_ylim([-180, 180])
+    secax = ax.secondary_xaxis("top", functions=(forward, inverse))
+    secax.set_xlabel("Scan number")
+    secax.xaxis.set_major_locator(ticker.MultipleLocator(5))
+    if corr_rms < 0.3 * raw_rms:
+        status = "Greatly improved!"
+    elif corr_rms < 0.8 * raw_rms:
+        status = "Improved!"
+    else:
+        status = "Not improved..."
+    ax.set_title(
+        f"data RMS: {raw_rms:.2f} [deg], corrected RMS: {corr_rms:.2f} [deg] ({status})"
+    )
+    filter_duplicates_in_legend(ax)
+    close_figure(
+        fig,
+        f"Phases before and after antenna position corrections for {ant_name}&{refant_name}",
+        f"{exports_name}/phases-antpos-{ant_name}.png",
+        dpi,
+        False,
+        True,
+    )
+    return
+
+
+def make_all_antenna_phases_plot(
+    param_dict: dict, ant_names: list, msger: MessageBoard
+):
+    from casacoretables import tables
+
+    start = time.time()
+    msger.one_liner("Preparing phase over time plots...")
+
+    rad2deg = convert_unit("rad", "deg", "trigonometric")
+    sec2hr = convert_unit("sec", "hour", "time")
+
+    avg_ms = param_dict["freq_averaged_ms"]
+    ant_table = tables.table(avg_ms + "/ANTENNA")
+    ms_ant_names = ant_table.getcol("NAME")
+    ant_table.close()
+
+    pol_table = tables.table(avg_ms + "/POLARIZATION")
+    corr_axis = pol_str[pol_table.getcol("CORR_TYPE")[0, :]]
+    pol_table.close()
+    corr_select = np.logical_or(corr_axis == "RR", corr_axis == "LL")
+    corr_axis = corr_axis[corr_select]
+
+    ms_table = tables.table(avg_ms)
+    vis_time = ms_table.getcol("TIME")
+    vis_raw = ms_table.getcol("DATA")[:, 0, corr_select]
+    vis_corr = ms_table.getcol("CORRECTED_DATA")[:, 0, corr_select]
+    ant_1 = ms_table.getcol("ANTENNA1")
+    ant_2 = ms_table.getcol("ANTENNA2")
+    scans = ms_table.getcol("SCAN_NUMBER")
+    weights = ms_table.getcol("WEIGHT")[:, corr_select]
+    flags = ms_table.getcol("FLAG")[:, 0, corr_select]
+    spws = ms_table.getcol("DATA_DESC_ID")
+    ms_table.close()
+
+    spw_list = np.unique(spws)
+    scan_list = np.unique(scans)
+    n_spws = spw_list.shape[0]
+    n_scans = scan_list.shape[0]
+    n_corrs = corr_axis.shape[0]
+
+    first_time = np.min(np.unique(vis_time))
+
+    refant_id = ms_ant_names.index(param_dict["refant"])
+    for ant_name in ant_names:
+        if ant_name == param_dict["refant"]:
+            continue
+        ant_id = ms_ant_names.index(ant_name)
+        ant_select = np.logical_or(
+            np.logical_and(ant_1 == ant_id, ant_2 == refant_id),
+            np.logical_and(ant_2 == ant_id, ant_1 == refant_id),
+        )
+        ant_sel_scans = scans[ant_select]
+        ant_sel_flags = flags[ant_select]
+        ant_sel_time = vis_time[ant_select]
+
+        ant_sel_raw = np.ma.masked_array(vis_raw[ant_select], ant_sel_flags)
+        ant_sel_corr = np.ma.masked_array(vis_corr[ant_select], ant_sel_flags)
+        ant_sel_weights = weights[ant_select]
+        ant_sel_spws = spws[ant_select]
+
+        phase_shape = (n_scans, n_spws, n_corrs)
+        plt_times = np.full_like(scan_list, np.nan, dtype=float)
+        raw_phases = np.full(phase_shape, np.nan, dtype=float)
+        corr_phases = np.full(phase_shape, np.nan, dtype=float)
+        for i_scan, scan in enumerate(scan_list):
+            scan_select = ant_sel_scans == scan
+            plt_times[i_scan] = (
+                np.average(ant_sel_time[scan_select]) - first_time
+            ) * sec2hr
+            scan_sel_weights = ant_sel_weights[scan_select]
+            scan_sel_corr = ant_sel_corr[scan_select]
+            scan_sel_raw = ant_sel_raw[scan_select]
+            scan_sel_spws = ant_sel_spws[scan_select]
+            for i_spw, spw in enumerate(spw_list):
+                spw_select = scan_sel_spws == spw
+                avg_raw = np.ma.average(
+                    scan_sel_raw[spw_select],
+                    weights=scan_sel_weights[spw_select],
+                    axis=0,
+                )
+                raw_phases[i_scan, i_spw, :] = np.angle(avg_raw) * rad2deg
+                avg_corr = np.ma.average(
+                    scan_sel_corr[spw_select],
+                    weights=scan_sel_weights[spw_select],
+                    axis=0,
+                )
+                corr_phases[i_scan, i_spw, :] = np.angle(avg_corr) * rad2deg
+
+        make_single_antenna_phase_over_time(
+            param_dict["exports_name"],
+            param_dict["refant"],
+            ant_name,
+            corr_axis,
+            scan_list,
+            plt_times,
+            raw_phases,
+            corr_phases,
+            param_dict["dpi"],
+        )
+
+    stop = time.time()
+    msger.one_liner(f"Plotting finished in {format_duration(stop - start)}")
+    return
+
+
+def run_post_locit_plots(param_dict: dict, msger: MessageBoard):
     pos_corrections = []
     ant_names = []
     position_mds = open_position(param_dict["position_name"])
@@ -462,38 +636,7 @@ def run_casa_post_locit_plots(param_dict: dict, msger: MessageBoard):
             msger,
         )
 
-    data_columns = ["corrected", "data"]
-    msger.one_liner("Running plotms...")
-    start = time.time()
-    for ant_name in ant_names:
-        if ant_name != param_dict["refant"]:
-            for data_column in data_columns:
-                plot_file = f"{param_dict['exports_name']}/phases-antpos-{data_column}-{ant_name}.png"
-                run_casatask(
-                    "plotms",
-                    {
-                        "vis": param_dict["freq_averaged_ms"],
-                        "xaxis": "time",
-                        "yaxis": "phase",
-                        "ydatacolumn": data_column,
-                        "antenna": f"{ant_name}&{param_dict['refant']}",
-                        "avgtime": "10000",
-                        "avgfield": True,
-                        "title": f"Baseline: {ant_name}&{param_dict['refant']}; column: {data_column}",
-                        "correlation": "RR,LL",
-                        "coloraxis": "correlation",
-                        "plotfile": plot_file,
-                        "showgui": False,
-                        "dpi": param_dict["dpi"],
-                        "plotrange": [np.nan, np.nan, -180, 180],
-                    },
-                    msger,
-                    intended_output=plot_file,
-                    overwrite=param_dict["overwrite"],
-                    verbose=False,
-                )
-    stop = time.time()
-    msger.one_liner("Plotms finished in {:.2f} seconds".format(stop - start))
+    make_all_antenna_phases_plot(param_dict, ant_names, msger)
     return
 
 
@@ -536,19 +679,19 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     for ant_name in antenna_name_list:
         if ant_name != param_dict["refant"]:
             delay_plot_file = f"{exports_name}/position_delays_ant_{ant_name}_combined_{param_dict["combination"]}.png"
-            html_body += add_heading_to_html(f"Results for {ant_name}", 2)
-            html_body += create_single_html_image_with_header(
+            ant_html = create_single_html_image_with_header(
                 delay_plot_file,
-                f"Measure and fitted delays for {ant_name}",
+                f"Measured and fitted delays",
                 heading_level=3,
             )
-            html_body += create_side_by_side_html_images_with_header(
-                f"{exports_name}/phases-antpos-data-{ant_name}.png",
-                f"{exports_name}/phases-antpos-corrected-{ant_name}.png",
+            ant_html += create_single_html_image_with_header(
+                f"{exports_name}/phases-antpos-{ant_name}.png",
                 f"Phase before and after correction",
                 heading_level=3,
             )
-
+            html_body += make_collapsible_block(
+                ant_html, add_heading_to_html(f"Results for {ant_name}", 2)
+            )
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()
     msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
@@ -572,8 +715,8 @@ def main():
         processing_stage = "exports"
 
     if processing_stage == "exports":
-        run_astrohack_exports(param_dict, msger)
-        run_casa_post_locit_plots(param_dict, msger)
+        # run_astrohack_exports(param_dict, msger)
+        run_post_locit_plots(param_dict, msger)
         processing_stage = "report"
 
     if processing_stage == "report":

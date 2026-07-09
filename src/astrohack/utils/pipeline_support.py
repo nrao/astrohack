@@ -141,11 +141,14 @@ def run_casatask(
     return True
 
 
-def parse_list_or_all(parameter_value: str):
+def parse_list_or_all(parameter_value: str, int_list: bool = False):
     if parameter_value == "all":
         return "all"
     else:
-        return parameter_value.split(",")
+        wrd_list = parameter_value.split(",")
+        if int_list:
+            wrd_list = [int(wrd) for wrd in wrd_list]
+        return wrd_list
 
 
 def make_dict_str_simple(the_dict, ident=4):

@@ -40,11 +40,15 @@ def process_beamcut_chunk(beamcut_chunk_params: dict, output_mds: AstrohackBeamc
     ddi_key = beamcut_chunk_params["this_ddi"]
     ant_key = beamcut_chunk_params["this_ant"]
     xdt_data = beamcut_chunk_params["xdt_data"]
+    datalabel = create_dataset_label(ant_key, ddi_key)
 
     # This assumes that there will be no more than one mapping
-    input_xds = xdt_data["map_0"]
+    try:
+        input_xds = xdt_data["map_0"]
+    except KeyError:
+        logger.warning(f"No beamcut data for {datalabel}")
+        return
 
-    datalabel = create_dataset_label(ant_key, ddi_key)
     logger.info(f"processing {datalabel}")
 
     cut_xdtree = _extract_cuts_from_visibilities(input_xds, ant_key, ddi_key)

@@ -69,7 +69,7 @@ def parse():
 
     parser.add_argument(
         "-s",
-        "--spectral-window",
+        "--spw",
         type=str,
         default="all",
         help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
@@ -224,9 +224,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict = fetch_ms_metadata(param_dict)
 
     param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
-    param_dict["spectral_window"] = parse_list_or_all(
-        param_dict["spectral_window"], int_list=True
-    )
+    param_dict["spw"] = parse_list_or_all(param_dict["spw"], int_list=True)
 
     if param_dict["exclude_bad_antennas"] is not None:
         param_dict["exclude_bad_antennas"] = parse_list_or_all(
@@ -319,7 +317,7 @@ def run_casa_calibration(param_dict, msger):
 def run_astrohack_reduction(param_dict, msger):
     # Astrohack convenience changes
     param_dict["ant"] = param_dict["antenna"]
-    param_dict["ddi"] = param_dict["spectral_window"]
+    param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
 
     param_dict["ms_name"] = param_dict["msname"]

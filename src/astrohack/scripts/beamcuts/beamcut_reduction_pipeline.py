@@ -29,6 +29,7 @@ from astrohack.utils.text import (
     create_single_html_image_with_header,
     make_collapsible_block,
     add_preformatted_text_file_to_html,
+    lnbr,
 )
 
 
@@ -223,7 +224,9 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict = fetch_ms_metadata(param_dict)
 
     param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
-    param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
+    param_dict["spectral_window"] = parse_list_or_all(
+        param_dict["spectral_window"], int_list=True
+    )
 
     if param_dict["exclude_bad_antennas"] is not None:
         param_dict["exclude_bad_antennas"] = parse_list_or_all(
@@ -390,6 +393,7 @@ def prepare_html_report(param_dict, msger):
         "Array configuration during observation",
         heading_level=2,
     )
+    html_body += f"{lnbr}<br>{lnbr}"
 
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
     if bmc_mds is None:
@@ -398,7 +402,6 @@ def prepare_html_report(param_dict, msger):
     ddi_list = [
         ddi_key.split("_")[-1] for ddi_key in bmc_mds[f"ant_{antenna_list[0]}"].keys()
     ]
-
     for ant_name in antenna_list:
         ant_html = ""
         if param_dict["plot_pointing"]:

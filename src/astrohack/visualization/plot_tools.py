@@ -573,3 +573,9 @@ def set_y_axis_lims_from_default(
             applied_scale[i_lim] = sub_lims[i_lim]
 
     ax.set_ylim(applied_scale)
+
+
+def filter_duplicates_in_legend(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys())

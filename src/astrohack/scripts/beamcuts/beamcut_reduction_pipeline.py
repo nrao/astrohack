@@ -332,7 +332,7 @@ def run_astrohack_reduction(param_dict, msger):
         ["exports", beamcut],
     ]
     for next_stage, function in exec_list:
-        if status:
+        if status and param_dict["processing_stage"] == function.__name__:
             status, exec_exception = run_astrohack_function(
                 param_dict,
                 function,

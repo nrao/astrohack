@@ -516,7 +516,17 @@ def _identify_pb_and_sidelobes_in_fit(
     return n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio
 
 
-def estimate_pb_center_and_fwhm_from_data(x_data, y_data):
+def estimate_pb_center_and_fwhm_from_data(x_data, y_data, datalabel):
+    """
+    Estimate primary beam parameters forcefully from data
+    :param x_data: Cut X data
+    :param y_data: Cut Y data
+    :param datalabel: Data label
+    :return: estimated primary beam center, fwhm and amplitude.
+    """
+    logger.info(
+        f"Estimating primary beam center and fwhm from maximum amplitude for {datalabel}"
+    )
     i_max = np.argmax(y_data.values)
     amp_max = y_data.values[i_max]
     pb_center = x_data[i_max]
@@ -596,7 +606,9 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
                 )
             else:
                 pb_center, pb_fwhm, first_side_lobe_ratio, amp_max = (
-                    estimate_pb_center_and_fwhm_from_data(x_data, y_data)
+                    estimate_pb_center_and_fwhm_from_data(
+                        x_data, y_data, this_corr_data_label
+                    )
                 )
                 fit = _multi_gaussian(x_data, pb_center, amp_max, pb_fwhm)
                 n_peaks = 1

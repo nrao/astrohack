@@ -150,17 +150,20 @@ def extract_pointing_chunk(pnt_params: dict, output_mds: AstrohackPointFile):
         "select DIRECTION, TIME, TARGET, ENCODER, ANTENNA_ID, POINTING_OFFSET from $table_obj WHERE ANTENNA_ID == %s"
         % ant_id
     )
-
     # NB: Add check if directions reference frame is Azimuth Elevation (AZELGEO)
     try:
-        direction = tb.getcol("DIRECTION")[:, 0, :]
-        target = tb.getcol("TARGET")[:, 0, :]
+        direction = tb.getcol("DIRECTION")
+        target = tb.getcol("TARGET")
         encoder = tb.getcol("ENCODER")
         direction_time = tb.getcol("TIME")
-        pointing_offset = tb.getcol("POINTING_OFFSET")[:, 0, :]
+        pointing_offset = tb.getcol("POINTING_OFFSET")
 
-    except RuntimeError:
-        logger.warning("Skipping antenna " + str(ant_id) + " no pointing info")
+        direction = direction[:, 0, :]
+        target = target[:, 0, :]
+        pointing_offset = pointing_offset[:, 0, :]
+    except IndexError or RuntimeError:
+        warn_msg = f"Skipping {ant_name}, no valid pointing info"
+        logger.warning(warn_msg)
         return
 
     tb.close()

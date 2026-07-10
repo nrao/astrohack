@@ -244,7 +244,6 @@ def process_extract_holog_chunk(
     sel_state_ids = inp_data_dict["sel_state_ids"]
     chan_setup = inp_data_dict["chan_setup"]
     pol = inp_data_dict["pol_setup"]["pol"]
-
     chan_freq = chan_setup["chan_freq"]
 
     # This piece of information is no longer used leaving them here commented out for completeness
@@ -295,6 +294,27 @@ def process_extract_holog_chunk(
     map_ref_dict = _get_map_ref_dict(
         map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
+    # (
+    #     time_vis,
+    #     vis_map_dict,
+    #     weight_map_dict,
+    #     flagged_mapping_antennas,
+    #     used_samples_dict,
+    #     scan_time_ranges,
+    #     unq_scans,
+    # ) = _extract_holog_chunk_jit(
+    #     vis_data,
+    #     weight,
+    #     ant1,
+    #     ant2,
+    #     time_vis_row,
+    #     flag,
+    #     flag_row,
+    #     ref_ant_per_map_ant_tuple,
+    #     map_ant_tuple,
+    #     time_interval,
+    #     scan_list,
+    # )
     (
         time_vis,
         vis_map_dict,
@@ -303,7 +323,7 @@ def process_extract_holog_chunk(
         used_samples_dict,
         scan_time_ranges,
         unq_scans,
-    ) = _extract_holog_chunk_jit(
+    ) = _match_visibilities_to_time_bins(
         vis_data,
         weight,
         ant1,
@@ -478,8 +498,9 @@ def _extract_holog_chunk_jit(
         used_samples_dict[antenna_id] = np.full(n_time, False, dtype=bool)
 
     time_index = 0
+    n_included = 0
     for row in range(n_row):
-        if flag_row is False:
+        if flag_row[row]:
             continue
 
         # Find index of time_vis_row[row] in time_samples, assumes time_vis_row is ordered in time
@@ -515,10 +536,13 @@ def _extract_holog_chunk_jit(
                 vis_baseline = vis_data[row, :, :]  # n_chan x n_pol
         else:
             continue
+        n_included += 1
 
         for chan in range(n_chan):
             for pol in range(n_pol):
-                if ~(flag[row, chan, pol]):
+                if flag[row, chan, pol]:
+                    print(row, chan, pol)
+                else:
                     # Calculate running weighted sum of visibilities
                     used_samples_dict[map_ant_id][time_index] = True
                     vis_map_dict[map_ant_id][time_index, chan, pol] = (
@@ -552,6 +576,125 @@ def _extract_holog_chunk_jit(
         if sum_of_sum_weight == 0:
             flagged_mapping_antennas.append(map_ant_id)
 
+    return (
+        time_samples,
+        vis_map_dict,
+        sum_weight_map_dict,
+        flagged_mapping_antennas,
+        used_samples_dict,
+        scan_time_ranges,
+        unq_scans,
+    )
+
+
+def _match_visibilities_to_time_bins(
+    vis_data,
+    weight,
+    ant1,
+    ant2,
+    time_vis_row,
+    flag,
+    flag_row,
+    ref_ant_per_map_ant_tuple,
+    map_ant_tuple,
+    time_interval,
+    scan_list,
+):
+    """function to extract relevant visibility data from chunk after flagging and applying weights.
+
+    Args:
+        vis_data (numpy.ndarray): Visibility data (row, channel, polarization)
+        weight (numpy.ndarray): Data weight values (row, polarization)
+        ant1 (numpy.ndarray): List of antenna_ids for antenna1
+        ant2 (numpy.ndarray): List of antenna_ids for antenna2
+        time_vis_row (numpy.ndarray): Array of full time values by row
+        flag (numpy.ndarray): Array of data quality flags to apply to data
+        flag_row (numpy.ndarray): Array indicating when a full row of data should be flagged
+        ref_ant_per_map_ant_tuple(tuple): reference antenna per mapping antenna
+        map_ant_tuple(tuple): mapping antennas?
+        time_interval(float): time smoothing interval
+        scan_list(list): list of valid holography scans
+
+    Returns:
+        dict: Antenna_id referenced (key) dictionary containing the visibility data selected by (time, channel,
+        polarization)
+    """
+    time_samples, scan_time_ranges, unq_scans = _get_time_intervals(
+        time_vis_row, scan_list, time_interval
+    )
+    n_time = len(time_samples)
+    n_row, n_chan, n_pol = vis_data.shape
+    half_int = time_interval / 2
+
+    flagged_mapping_antennas = []
+    vis_map_dict = {}
+    sum_weight_map_dict = {}
+    used_samples_dict = {}
+    vis_shape = (n_time, n_chan, n_pol)
+    for ant_id in map_ant_tuple:
+        refant_ids = ref_ant_per_map_ant_tuple[map_ant_tuple.index(ant_id)]
+
+        ant_vis_sum = np.zeros(vis_shape, dtype=np.complex128)
+        ant_wei_sum = np.zeros(vis_shape, dtype=np.float64)
+        ant_valid_data = np.full(n_time, False)
+        ant_select = np.full(n_row, False)
+        for refant_id in refant_ids:
+            ant_select = np.logical_or(
+                np.logical_and(ant1 == ant_id, ant2 == refant_id),
+                np.logical_and(ant2 == ant_id, ant1 == refant_id),
+                ant_select,
+            )
+
+        ant2_selected = ant2[ant_select]
+        vis_selected = vis_data[ant_select, :, :]
+        wei_selected = weight[ant_select, :]
+        flag_selected = flag[ant_select, :, :]
+        flag_row_selected = flag_row[ant_select]
+        time_selected = time_vis_row[ant_select]
+        is_conjugate = ant2_selected == ant_id
+
+        vis_selected = np.where(
+            is_conjugate[:, np.newaxis, np.newaxis],
+            np.conjugate(vis_selected),
+            vis_selected,
+        )
+
+        time_index = 0
+        n_included = 0
+        for row, row_flag in enumerate(flag_row_selected):
+            if row_flag:
+                continue
+            if time_selected[row] < time_samples[time_index] - half_int:
+                continue
+            else:
+                time_index = _get_time_index(
+                    time_selected[row], time_index, time_samples, half_int
+                )
+            if time_index < 0:
+                break
+            n_included += 1
+
+            for chan in range(n_chan):
+                for pol in range(n_pol):
+                    if flag_selected[row, chan, pol]:
+                        pass
+                    else:
+                        ant_valid_data[time_index] = True
+                        vis_val = vis_selected[row, chan, pol]
+                        wei_val = wei_selected[row, pol]
+                        ant_vis_sum[time_index, chan, pol] += vis_val * wei_val
+                        ant_wei_sum[time_index, chan, pol] += wei_val
+
+        if np.sum(ant_wei_sum) == 0:
+            flagged_mapping_antennas.append(ant_id)
+            vis_map_dict[ant_id] = ant_wei_sum
+            sum_weight_map_dict[ant_id] = ant_wei_sum
+        else:
+            vis_map_dict[ant_id] = np.where(
+                ant_wei_sum != 0, ant_vis_sum / ant_wei_sum, 0
+            )
+            sum_weight_map_dict[ant_id] = ant_wei_sum
+        used_samples_dict[ant_id] = ant_valid_data
     return (
         time_samples,
         vis_map_dict,
@@ -632,7 +775,9 @@ def _create_holog_file(
             pnt_xds = pnt_map_dict[map_ant_key]
             vis_data = vis_map_dict[map_ant_index]
             wei_data = weight_map_dict[map_ant_index]
-            valid_data = used_samples_dict[map_ant_index] == 1.0
+            # HERE VVVV
+            # valid_data = used_samples_dict[map_ant_index] == 1.0
+            valid_data = used_samples_dict[map_ant_index]
             ant_time_vis = time_vis[valid_data]
 
             time_vis_days = ant_time_vis / (3600 * 24)
@@ -640,8 +785,9 @@ def _create_holog_file(
             time_samples, indicies = _get_time_samples(astro_time_vis)
             coords = {"time": ant_time_vis, "chan": chan, "pol": pol}
 
+            chosen_key = "DIRECTIONAL_COSINES"
             direction = np.take(
-                pnt_xds["DIRECTIONAL_COSINES"].values,
+                pnt_xds[chosen_key].values,
                 indicies,
                 axis=0,
             )
@@ -665,7 +811,7 @@ def _create_holog_file(
             )
 
             xds["DIRECTIONAL_COSINES"] = xr.DataArray(
-                pnt_xds["DIRECTIONAL_COSINES"].values[valid_data, ...],
+                pnt_xds[chosen_key].values[valid_data, ...],
                 dims=["time", "lm"],
             )
 

@@ -9,77 +9,89 @@ from astrohack.utils.text import format_duration
 
 def set_tests_to_update():
     test_dict = {
-        "unit/mdses/test_beamcut_mds.py": {
+        # "unit/mdses/test_beamcut_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "beamcut_exports",
+        #         "destiny": "ref_beamcut_products",
+        #         "description": "beamcut reference export products",
+        #         "type": "Beam cut",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["beamcut_data"],
+        # },
+        # "unit/mdses/test_image_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "image_exports",
+        #         "destiny": "ref_image_products",
+        #         "description": "image export products",
+        #         "type": "Holography",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["image_data"],
+        # },
+        # "unit/mdses/test_locit_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "locit_exports",
+        #         "destiny": "ref_locit_products",
+        #         "description": "locit reference export products",
+        #         "type": "Antenna position corrections",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["locit_data"],
+        # },
+        # "unit/mdses/test_panel_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "panel_exports",
+        #         "destiny": "ref_panel_products",
+        #         "description": "panel export products",
+        #         "type": "Holography",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["panel_data"],
+        # },
+        # "unit/mdses/test_position_mds.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "position_exports",
+        #         "destiny": "ref_position_products",
+        #         "description": "position export products",
+        #         "type": "Antenna position corrections",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["position_data"],
+        # },
+        # "unit/user_facing_functions/test_beamcut.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
+        #         "destiny": "kband_beamcut_small.beamcut.zarr",
+        #         "description": "beamcut reference Astrohack beamcut file",
+        #         "type": "Beam cut",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["beamcut_data"],
+        # },
+        "unit/user_facing_functions/test_extract_holog.py": {
             "n_items": 1,
             "item_0": {
-                "creation": "beamcut_exports",
-                "destiny": "ref_beamcut_products",
-                "description": "beamcut reference export products",
-                "type": "Beam cut",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["beamcut_data"],
-        },
-        "unit/mdses/test_image_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "image_exports",
-                "destiny": "ref_image_products",
-                "description": "image export products",
+                "creation": "ext_holog_data/ea25_cal_small_before_fixed.split.holog.zarr",
+                "destiny": "ea25_cal_small_before_reference.holog.zarr",
+                "description": "Reference Astrohack holog file",
                 "type": "Holography",
                 "telescope": "VLA",
                 "update_manifest": False,
             },
-            "cleanup_names": ["image_data"],
-        },
-        "unit/mdses/test_locit_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "locit_exports",
-                "destiny": "ref_locit_products",
-                "description": "locit reference export products",
-                "type": "Antenna position corrections",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["locit_data"],
-        },
-        "unit/mdses/test_panel_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "panel_exports",
-                "destiny": "ref_panel_products",
-                "description": "panel export products",
-                "type": "Holography",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["panel_data"],
-        },
-        "unit/mdses/test_position_mds.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "position_exports",
-                "destiny": "ref_position_products",
-                "description": "position export products",
-                "type": "Antenna position corrections",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["position_data"],
-        },
-        "unit/user_facing_functions/test_beamcut.py": {
-            "n_items": 1,
-            "item_0": {
-                "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
-                "destiny": "kband_beamcut_small.beamcut.zarr",
-                "description": "beamcut reference Astrohack beamcut file",
-                "type": "Beam cut",
-                "telescope": "VLA",
-                "update_manifest": False,
-            },
-            "cleanup_names": ["beamcut_data"],
+            "cleanup_names": ["ext_holog_data"],
         },
     }
 

@@ -51,6 +51,8 @@ class TestExtractHolog:
 
         ref_hlg_mds = open_holog(self.ref_hlg_name)
 
+        if produce_reference_data():
+            return
         assert new_hlg_mds.is_close_to(
             ref_hlg_mds
         ), "Reference and new mdses are different."

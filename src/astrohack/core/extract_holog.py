@@ -430,163 +430,6 @@ def _get_time_intervals(time_vis_row, scan_list, time_interval):
 
 
 @njit(cache=njit_caching, nogil=True)
-def _extract_holog_chunk_jit(
-    vis_data,
-    weight,
-    ant1,
-    ant2,
-    time_vis_row,
-    flag,
-    flag_row,
-    ref_ant_per_map_ant_tuple,
-    map_ant_tuple,
-    time_interval,
-    scan_list,
-):
-    """JIT compiled function to extract relevant visibilty data from chunk after flagging and applying weights.
-
-    Args:
-        vis_data (numpy.ndarray): Visibility data (row, channel, polarization)
-        weight (numpy.ndarray): Data weight values (row, polarization)
-        ant1 (numpy.ndarray): List of antenna_ids for antenna1
-        ant2 (numpy.ndarray): List of antenna_ids for antenna2
-        time_vis_row (numpy.ndarray): Array of full time talues by row
-        flag (numpy.ndarray): Array of data quality flags to apply to data
-        flag_row (numpy.ndarray): Array indicating when a full row of data should be flagged
-        ref_ant_per_map_ant_tuple(tuple): reference antenna per mapping antenna
-        map_ant_tuple(tuple): mapping antennas?
-        time_interval(float): time smoothing interval
-        scan_list(list): list of valid holography scans
-
-    Returns:
-        dict: Antenna_id referenced (key) dictionary containing the visibility data selected by (time, channel,
-        polarization)
-    """
-
-    time_samples, scan_time_ranges, unq_scans = _get_time_intervals(
-        time_vis_row, scan_list, time_interval
-    )
-    n_time = len(time_samples)
-
-    n_row, n_chan, n_pol = vis_data.shape
-
-    half_int = time_interval / 2
-
-    vis_map_dict = {}
-    sum_weight_map_dict = {}
-    used_samples_dict = {}
-
-    for antenna_id in map_ant_tuple:
-        vis_map_dict[antenna_id] = np.zeros(
-            (n_time, n_chan, n_pol),
-            dtype=types.complex128,
-        )
-        sum_weight_map_dict[antenna_id] = np.zeros(
-            (n_time, n_chan, n_pol),
-            dtype=types.float64,
-        )
-
-        # This code here is to be uncommented and the snippet above commited for this function to work outside jit
-        # vis_map_dict[antenna_id] = np.zeros(
-        #     (n_time, n_chan, n_pol),
-        #     dtype=np.complex128,
-        # )
-        # sum_weight_map_dict[antenna_id] = np.zeros(
-        #     (n_time, n_chan, n_pol),
-        #     dtype=np.float64,
-        # )
-        used_samples_dict[antenna_id] = np.full(n_time, False, dtype=bool)
-
-    time_index = 0
-    n_included = 0
-    for row in range(n_row):
-        if flag_row[row]:
-            continue
-
-        # Find index of time_vis_row[row] in time_samples, assumes time_vis_row is ordered in time
-        if time_vis_row[row] < time_samples[time_index] - half_int:
-            continue
-        else:
-            time_index = _get_time_index(
-                time_vis_row[row], time_index, time_samples, half_int
-            )
-        if time_index < 0:
-            break
-
-        ant1_id = ant1[row]
-        ant2_id = ant2[row]
-
-        if ant1_id in map_ant_tuple:
-            indx = map_ant_tuple.index(ant1_id)
-            conjugate = False
-            ref_ant_id = ant2_id
-            map_ant_id = ant1_id  # mapping antenna index
-        elif ant2_id in map_ant_tuple:
-            indx = map_ant_tuple.index(ant2_id)
-            conjugate = True
-            ref_ant_id = ant1_id
-            map_ant_id = ant2_id  # mapping antenna index
-        else:
-            continue
-
-        if ref_ant_id in ref_ant_per_map_ant_tuple[indx]:
-            if conjugate:
-                vis_baseline = np.conjugate(vis_data[row, :, :])
-            else:
-                vis_baseline = vis_data[row, :, :]  # n_chan x n_pol
-        else:
-            continue
-        n_included += 1
-
-        for chan in range(n_chan):
-            for pol in range(n_pol):
-                if flag[row, chan, pol]:
-                    print(row, chan, pol)
-                else:
-                    # Calculate running weighted sum of visibilities
-                    used_samples_dict[map_ant_id][time_index] = True
-                    vis_map_dict[map_ant_id][time_index, chan, pol] = (
-                        vis_map_dict[map_ant_id][time_index, chan, pol]
-                        + vis_baseline[chan, pol] * weight[row, pol]
-                    )
-
-                    # Calculate running sum of weights
-                    sum_weight_map_dict[map_ant_id][time_index, chan, pol] = (
-                        sum_weight_map_dict[map_ant_id][time_index, chan, pol]
-                        + weight[row, pol]
-                    )
-
-    flagged_mapping_antennas = []
-
-    for map_ant_id in vis_map_dict.keys():
-        sum_of_sum_weight = 0
-
-        for time_index in range(n_time):
-            for chan in range(n_chan):
-                for pol in range(n_pol):
-                    sum_weight = sum_weight_map_dict[map_ant_id][time_index, chan, pol]
-                    sum_of_sum_weight = sum_of_sum_weight + sum_weight
-                    if sum_weight == 0:
-                        vis_map_dict[map_ant_id][time_index, chan, pol] = 0.0
-                    else:
-                        vis_map_dict[map_ant_id][time_index, chan, pol] = (
-                            vis_map_dict[map_ant_id][time_index, chan, pol] / sum_weight
-                        )
-
-        if sum_of_sum_weight == 0:
-            flagged_mapping_antennas.append(map_ant_id)
-
-    return (
-        time_samples,
-        vis_map_dict,
-        sum_weight_map_dict,
-        flagged_mapping_antennas,
-        used_samples_dict,
-        scan_time_ranges,
-        unq_scans,
-    )
-
-
 def _match_visibilities_to_time_bins(
     vis_data,
     weight,
@@ -634,10 +477,18 @@ def _match_visibilities_to_time_bins(
     for ant_id in map_ant_tuple:
         refant_ids = ref_ant_per_map_ant_tuple[map_ant_tuple.index(ant_id)]
 
-        ant_vis_sum = np.zeros(vis_shape, dtype=np.complex128)
-        ant_wei_sum = np.zeros(vis_shape, dtype=np.float64)
-        ant_valid_data = np.full(n_time, False)
-        ant_select = np.full(n_row, False)
+        # To be uncommented if trying to debug code when unjitted.
+        # ant_vis_sum = np.zeros(vis_shape, dtype=np.complex128)
+        # ant_wei_sum = np.zeros(vis_shape, dtype=np.float64)
+        # ant_valid_data = np.full(n_time, False)
+        # ant_select = np.full(n_row, False)
+
+        # To be commented if trying to debug code when unjitted.
+        ant_vis_sum = np.zeros(vis_shape, dtype=types.complex128)
+        ant_wei_sum = np.zeros(vis_shape, dtype=types.float64)
+        ant_valid_data = np.full(n_time, False, dtype=types.bool)
+        ant_select = np.full(n_row, False, dtype=types.bool)
+
         for refant_id in refant_ids:
             ant_select = np.logical_or(
                 np.logical_and(ant1 == ant_id, ant2 == refant_id),
@@ -651,16 +502,9 @@ def _match_visibilities_to_time_bins(
         flag_selected = flag[ant_select, :, :]
         flag_row_selected = flag_row[ant_select]
         time_selected = time_vis_row[ant_select]
-        is_conjugate = ant2_selected == ant_id
-
-        vis_selected = np.where(
-            is_conjugate[:, np.newaxis, np.newaxis],
-            np.conjugate(vis_selected),
-            vis_selected,
-        )
 
         time_index = 0
-        n_included = 0
+        total_wei_sum = 0.0
         for row, row_flag in enumerate(flag_row_selected):
             if row_flag:
                 continue
@@ -672,28 +516,37 @@ def _match_visibilities_to_time_bins(
                 )
             if time_index < 0:
                 break
-            n_included += 1
 
+            is_conjugate = ant2_selected[row] == ant_id
             for chan in range(n_chan):
                 for pol in range(n_pol):
                     if flag_selected[row, chan, pol]:
                         pass
                     else:
                         ant_valid_data[time_index] = True
-                        vis_val = vis_selected[row, chan, pol]
+                        if is_conjugate:
+                            vis_val = np.conjugate(vis_selected[row, chan, pol])
+                        else:
+                            vis_val = vis_selected[row, chan, pol]
                         wei_val = wei_selected[row, pol]
                         ant_vis_sum[time_index, chan, pol] += vis_val * wei_val
                         ant_wei_sum[time_index, chan, pol] += wei_val
+                        total_wei_sum += wei_val
 
-        if np.sum(ant_wei_sum) == 0:
+        if total_wei_sum == 0:
             flagged_mapping_antennas.append(ant_id)
-            vis_map_dict[ant_id] = ant_wei_sum
-            sum_weight_map_dict[ant_id] = ant_wei_sum
+            ant_vis_sum[:, :, :] = 0.0 + 0j
+
         else:
-            vis_map_dict[ant_id] = np.where(
-                ant_wei_sum != 0, ant_vis_sum / ant_wei_sum, 0
-            )
-            sum_weight_map_dict[ant_id] = ant_wei_sum
+            for row in range(vis_shape[0]):
+                for chan in range(vis_shape[1]):
+                    for pol in range(vis_shape[2]):
+                        if ant_wei_sum[row, chan, pol] == 0:
+                            ant_vis_sum[row, chan, pol] = 0
+                        else:
+                            ant_vis_sum[row, chan, pol] /= ant_wei_sum[row, chan, pol]
+        vis_map_dict[ant_id] = ant_vis_sum
+        sum_weight_map_dict[ant_id] = ant_wei_sum
         used_samples_dict[ant_id] = ant_valid_data
     return (
         time_samples,
@@ -775,8 +628,6 @@ def _create_holog_file(
             pnt_xds = pnt_map_dict[map_ant_key]
             vis_data = vis_map_dict[map_ant_index]
             wei_data = weight_map_dict[map_ant_index]
-            # HERE VVVV
-            # valid_data = used_samples_dict[map_ant_index] == 1.0
             valid_data = used_samples_dict[map_ant_index]
             ant_time_vis = time_vis[valid_data]
 

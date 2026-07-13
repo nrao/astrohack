@@ -69,30 +69,30 @@ def set_tests_to_update():
         #     },
         #     "cleanup_names": ["position_data"],
         # },
-        # "unit/user_facing_functions/test_beamcut.py": {
-        #     "n_items": 1,
-        #     "item_0": {
-        #         "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
-        #         "destiny": "kband_beamcut_small.beamcut.zarr",
-        #         "description": "beamcut reference Astrohack beamcut file",
-        #         "type": "Beam cut",
-        #         "telescope": "VLA",
-        #         "update_manifest": False,
-        #     },
-        #     "cleanup_names": ["beamcut_data"],
-        # },
-        "unit/user_facing_functions/test_extract_holog.py": {
+        "unit/user_facing_functions/test_beamcut.py": {
             "n_items": 1,
             "item_0": {
-                "creation": "ext_holog_data/ea25_cal_small_before_fixed.split.holog.zarr",
-                "destiny": "ea25_cal_small_before_reference.holog.zarr",
-                "description": "Reference Astrohack holog file",
-                "type": "Holography",
+                "creation": "beamcut_data/kband_beamcut_small_local.beamcut.zarr",
+                "destiny": "kband_beamcut_small.beamcut.zarr",
+                "description": "beamcut reference Astrohack beamcut file",
+                "type": "Beam cut",
                 "telescope": "VLA",
                 "update_manifest": False,
             },
-            "cleanup_names": ["ext_holog_data"],
+            "cleanup_names": ["beamcut_data"],
         },
+        # "unit/user_facing_functions/test_extract_holog.py": {
+        #     "n_items": 1,
+        #     "item_0": {
+        #         "creation": "ext_holog_data/ea25_cal_small_before_fixed.split.holog.zarr",
+        #         "destiny": "ea25_cal_small_before_reference.holog.zarr",
+        #         "description": "Reference Astrohack holog file",
+        #         "type": "Holography",
+        #         "telescope": "VLA",
+        #         "update_manifest": False,
+        #     },
+        #     "cleanup_names": ["ext_holog_data"],
+        # },
     }
 
     return test_dict

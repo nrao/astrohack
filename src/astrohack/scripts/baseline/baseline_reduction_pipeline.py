@@ -27,7 +27,6 @@ from astrohack.utils.text import (
     lnbr,
     create_single_html_image_with_header,
     add_preformatted_text_file_to_html,
-    create_side_by_side_html_images_with_header,
     add_heading_to_html,
     make_collapsible_block,
 )
@@ -690,7 +689,9 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
                 heading_level=3,
             )
             html_body += make_collapsible_block(
-                ant_html, add_heading_to_html(f"Results for {ant_name}", 2)
+                ant_html,
+                add_heading_to_html(f"Results for {ant_name}", 2),
+                f"ant_{ant_name}",
             )
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()

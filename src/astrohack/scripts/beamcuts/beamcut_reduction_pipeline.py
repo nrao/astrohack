@@ -437,10 +437,13 @@ def prepare_html_report(param_dict, msger):
             ant_html += make_collapsible_block(
                 spw_html,
                 add_heading_to_html(f"\t{ant_name} spectral window {ddi_name}:", 3),
+                f"ant_{ant_name}_spw_{ddi_name}",
             )
         # collapsible wrapping here
         html_body += make_collapsible_block(
-            ant_html, add_heading_to_html(f"Beam cut data for {ant_name}:", 2)
+            ant_html,
+            add_heading_to_html(f"Beam cut data for {ant_name}:", 2),
+            f"ant_{ant_name}",
         )
 
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])

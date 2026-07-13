@@ -590,7 +590,7 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
         ax.text(itk * pb_fwhm, y_max, f"{itk:d}", va="bottom", ha="center")
 
 
-def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
+def _add_lobe_identification_to_plot(ax, centers, peaks, y_off, y_lims):
     """
     Add gaussians identification to plot
 
@@ -610,7 +610,10 @@ def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
     :rtype: NoneType
     """
     for i_peak, peak in enumerate(peaks):
-        ax.text(centers[i_peak], peak + y_off, f"{i_peak+1})", ha="center", va="bottom")
+        text_y_coor = peak + y_off
+        if text_y_coor < y_lims[1] - y_off:
+            text_y_coor = y_lims[1] - y_off
+        ax.text(centers[i_peak], text_y_coor, f"{i_peak+1})", ha="center", va="bottom")
 
 
 def _add_beam_parameters_box(
@@ -739,10 +742,7 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
             amps = np.array(cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][1::3])
 
             _add_lobe_identification_to_plot(
-                this_ax,
-                centers,
-                amps,
-                y_off,
+                this_ax, centers, amps, y_off, (-y_off, max_amp + 3 * y_off)
             )
         else:
             scatter_plot(
@@ -856,6 +856,7 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
                 centers,
                 amps,
                 y_off,
+                phase_scale,
             )
         else:
             scatter_plot(

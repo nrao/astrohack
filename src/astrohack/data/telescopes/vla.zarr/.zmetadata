@@ -1,6 +1,7 @@
 {
     "metadata": {
         ".zattrs": {
+            "_panel_label": null,
             "antenna_list": [
                 "ea01",
                 "ea02",
@@ -29,7 +30,8 @@
                 "ea25",
                 "ea26",
                 "ea27",
-                "ea28"
+                "ea28",
+                "na29"
             ],
             "arm_shadow_rotation": 0,
             "arm_shadow_width": [
@@ -72,6 +74,9 @@
             },
             "comment": "Data taken from AIPS source code and EVLA memo 212, Screw offset taken from measurements done insitu by VSM on March 14 2023, Array center location from CASA 6.5.5.21",
             "diameter": 25.0,
+            "el_axis_offset": null,
+            "file_name": "vla.zarr",
+            "file_path": "/Users/vdesouza/work/Holography/astrohack/src/astrohack/data/telescopes",
             "focus": 8.8,
             "gain_wavelengths": [
                 0.2,
@@ -84,16 +89,7 @@
                 0.007
             ],
             "inner_radial_limit": 2.0,
-            "panel_inner_radii": [
-                1.983,
-                3.683,
-                5.563,
-                7.391,
-                9.144,
-                10.87
-            ],
             "magnification": 13.0,
-            "name": "VLA",
             "n_panel_per_ring": [
                 12,
                 16,
@@ -103,8 +99,18 @@
                 40
             ],
             "n_rings_of_panels": 6,
+            "name": "VLA",
             "onaxisoptics": true,
             "outer_radial_limit": 12.0,
+            "panel_inner_radii": [
+                1.983,
+                3.683,
+                5.563,
+                7.391,
+                9.144,
+                10.87
+            ],
+            "panel_numbering": "ring, clockwise, top",
             "panel_outer_radii": [
                 3.683,
                 5.563,
@@ -113,7 +119,6 @@
                 10.87,
                 12.5
             ],
-            "panel_numbering": "ring, clockwise, top",
             "ringed": true,
             "screw_description": [
                 "il",
@@ -124,6 +129,8 @@
             "screw_offset": 0.0635,
             "secondary_distance_to_focus": 0.522,
             "secondary_support": "+",
+            "secondary_support_shape": null,
+            "station_distance_dict": null,
             "surp_slope": 0.7
         },
         ".zgroup": {

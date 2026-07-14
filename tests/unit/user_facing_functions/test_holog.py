@@ -3,14 +3,17 @@ import pytest
 import pathlib
 import shutil
 import toolviper
+import json
 
 import numpy as np
 
 from astrohack import open_image
 from astrohack.holog import holog
+from astrohack.utils.text import print_dict_types
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 
@@ -20,11 +23,17 @@ class TestHolog:
 
     def_img_name = "ea25_cal_small_before_reference.image.zarr"
     ref_img_name = "ea25_cal_before_reference.image.zarr"
+    phase_fit_img_name = "phase_fit.image.zarr"
+    zern_pha_fit_name = "zern_pha.image.zarr"
+    zern_coeff_name = "zern_coeff.image.zarr"
 
     ant_id = "ea25"
     ddi_id = 0
     ant_key = f"ant_{ant_id}"
     ddi_key = f"ddi_{ddi_id}"
+
+    ref_json_name = "holog-ref-values.json"
+    ref_json_dict = {}
 
     @classmethod
     def setup_class(cls):
@@ -32,6 +41,7 @@ class TestHolog:
         such as fetching test data"""
         toolviper.utils.data.download(file=cls.hlg_name, folder=cls.data_dir)
         toolviper.utils.data.download(file=cls.ref_img_name, folder=cls.data_dir)
+        toolviper.utils.data.download(file=cls.ref_json_name, folder=cls.data_dir)
 
         add_data_folder_to_names_in_class(cls)
 
@@ -41,6 +51,9 @@ class TestHolog:
         such as deleting test data"""
         if execute_cleanup():
             shutil.rmtree(cls.data_dir)
+        if produce_reference_data():
+            with open(cls.ref_json_name, "w", encoding="utf-8") as json_file:
+                json.dump(cls.ref_json_dict, json_file, indent=4)
 
     def test_defaults(self):
         """
@@ -53,6 +66,8 @@ class TestHolog:
         assert pathlib.Path(
             self.def_img_name
         ).is_dir(), f"A .image.zarr file named {self.def_img_name} does not exist."
+        if produce_reference_data():
+            return
 
         ref_img_mds = open_image(self.ref_img_name)
         assert new_img_mds.is_close_to(
@@ -60,6 +75,8 @@ class TestHolog:
         ), "Reference and new mdses are different."
 
     def test_data_selection(self):
+        if produce_reference_data():
+            return
         image_mds = holog(
             holog_name=self.hlg_name,
             ant=self.ant_id,
@@ -83,7 +100,8 @@ class TestHolog:
         """
         Specify a padding factor to use in the image creation; check that image size is created.
         """
-
+        if produce_reference_data():
+            return
         pad_list = [[5, 256], [10, 512]]
 
         for pad_fac, ap_size in pad_list:
@@ -114,6 +132,8 @@ class TestHolog:
         """
         Check that channel average flag was set holog is run.
         """
+        if produce_reference_data():
+            return
         ref_nchan = 1
         image_mds = holog(
             holog_name=self.hlg_name,
@@ -135,6 +155,8 @@ class TestHolog:
         """
         Check that to_stokes flag was set holog is run.
         """
+        if produce_reference_data():
+            return
         stokes_axis = np.array(["I", "Q", "U", "V"])
         image_mds = holog(
             holog_name=self.hlg_name,
@@ -153,6 +175,8 @@ class TestHolog:
         """
         Specify the output file should be overwritten; check that it WAS.
         """
+        if produce_reference_data():
+            return
         initial_time = os.path.getctime(self.def_img_name)
 
         holog(
@@ -181,7 +205,7 @@ class TestHolog:
     def test_perturbation_phase_fit(self):
         image_mds = holog(
             holog_name=self.hlg_name,
-            image_name=self.def_img_name,
+            image_name=self.phase_fit_img_name,
             phase_fit_engine="perturbations",
             ant=self.ant_id,
             ddi=self.ddi_id,
@@ -190,43 +214,27 @@ class TestHolog:
             overwrite=True,
             parallel=False,
         )
-        keys = [
-            "phase_offset",
-            "x_cassegrain_offset",
-            "x_focus_offset",
-            "x_point_offset",
-            "x_subreflector_tilt",
-            "y_cassegrain_offset",
-            "y_focus_offset",
-            "y_point_offset",
-            "y_subreflector_tilt",
-            "z_focus_offset",
-        ]
-        references = [
-            0.07578374993954257,
-            -28.033780511487777,
-            -1.9620592050595538,
-            0.00016673100624246893,
-            0.00036714280075938257,
-            -22.752401475110595,
-            -3.3596837733268057,
-            0.00032344494918384674,
-            -0.0006101436903899218,
-            0.07222802059408939,
-        ]
 
         pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"][
             "map_0"
         ]["14167000000.0"]["I"]
 
-        for ikey, key in enumerate(keys):
-            assert np.isclose(pha_fit_res[key]["value"], references[ikey]), (
+        if produce_reference_data():
+            self.ref_json_dict["phase_fit_reference"] = pha_fit_res
+            return
+
+        with open(self.ref_json_name, "r") as json_file:
+            ref_dict = json.load(json_file)
+
+        ref_phase_fit = ref_dict["phase_fit_reference"]
+        for key in ref_phase_fit.keys():
+            assert np.isclose(pha_fit_res[key]["value"], ref_phase_fit[key]["value"]), (
                 f"Phase fitting values differ from " f"reference for {key}"
             )
 
         image_mds = holog(
             holog_name=self.hlg_name,
-            image_name=self.def_img_name,
+            image_name=self.phase_fit_img_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
             phase_fit_engine="perturbations",
@@ -242,7 +250,7 @@ class TestHolog:
 
         image_mds = holog(
             holog_name=self.hlg_name,
-            image_name=self.def_img_name,
+            image_name=self.phase_fit_img_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
             phase_fit_engine="perturbations",
@@ -266,6 +274,8 @@ class TestHolog:
         ), "If cassegrain offset is not fitted x_cassegrain_offset error should be NaN"
 
     def test_no_phase_fit(self):
+        if produce_reference_data():
+            return
         image_mds = holog(
             holog_name=self.hlg_name,
             image_name=self.def_img_name,
@@ -284,11 +294,9 @@ class TestHolog:
     def test_zernike_phase_fitting(self):
         image_mds = holog(
             holog_name=self.hlg_name,
-            image_name=self.def_img_name,
+            image_name=self.zern_pha_fit_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
-            grid_size=[31, 31],
-            cell_size=[-0.0006386556122807017, 0.0006386556122807017],
             phase_fit_engine="zernike",
             zernike_n_order=4,
             overwrite=True,
@@ -298,103 +306,45 @@ class TestHolog:
         pha_fit_res = image_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"]
 
         assert pha_fit_res is None
+        positions = [[125, 125], [213, 430], [432, 195], [125, 309], [432, 203]]
 
-        ref_phase = [
-            [[125, 125], -0.17758619948993593],
-            [[213, 430], -0.1459607430199923],
-            [[432, 195], -0.034865251933011265],
-        ]
+        # ref_phase = [
+        #     [[125, 125], -0.17758619948993593],
+        #     [[213, 430], -0.1459607430199923],
+        #     [[432, 195], -0.034865251933011265],
+        # ]
         phase_img = image_mds[self.ant_key][self.ddi_key].CORRECTED_PHASE.values[
             0, 0, 0
         ]
+        if produce_reference_data():
+            corrected_phase_dict = {}
+            for i_key, position in enumerate(positions):
+                corrected_phase_dict[i_key] = phase_img[*position]
+            self.ref_json_dict["corrected_phase_ref"] = corrected_phase_dict
+            return
 
-        for idx, phase in ref_phase:
+        with open(self.ref_json_name, "r") as json_file:
+            ref_dict = json.load(json_file)
+
+        corrected_phase_dict = ref_dict["corrected_phase_ref"]
+        for i_key, phase in corrected_phase_dict.items():
+            position = positions[int(i_key)]
             assert np.isclose(
-                phase_img[*idx], phase
-            ), f"Phase is different from reference at {idx}"
+                phase_img[*position], phase
+            ), f"Phase is different from reference at {position}"
 
     #
     def test_holog_zernike_coeffs(self):
         image_mds = holog(
             holog_name=self.hlg_name,
-            image_name=self.def_img_name,
+            image_name=self.zern_coeff_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
-            grid_size=[31, 31],
-            cell_size=[-0.0006386556122807017, 0.0006386556122807017],
             phase_fit_engine="none",
             zernike_n_order=10,
             overwrite=True,
             parallel=False,
         )
-        ref_zernike_coeffs = [
-            3.63853142e-01 + 3.22356554e-02j,
-            4.23001476e00 + 4.11000920e01j,
-            -1.75638037e01 - 6.11203902e01j,
-            5.44624567e00 - 2.71889063e00j,
-            -2.07518837e-01 - 1.07029883e-02j,
-            -5.32112029e00 + 4.64863302e00j,
-            -4.44881637e00 - 4.13055928e01j,
-            4.26979653e00 + 3.99186278e01j,
-            -8.98318910e00 - 3.19533343e01j,
-            1.14296814e01 + 4.01677823e01j,
-            3.22839441e00 - 1.57685943e00j,
-            3.50888476e00 - 1.55562367e00j,
-            -3.57103888e-02 + 1.19658639e-02j,
-            -2.27098458e-02 + 2.00348932e-02j,
-            9.35219135e-03 - 1.41071395e-02j,
-            1.83504535e00 + 1.73453819e01j,
-            -1.95266260e00 - 1.77442134e01j,
-            1.85819383e00 + 1.71604139e01j,
-            -1.83994376e-01 - 7.02351715e-01j,
-            -1.17611308e00 - 4.27534468e00j,
-            1.07348587e00 + 3.73876032e00j,
-            2.45203816e00 - 1.12858846e00j,
-            3.60288701e-01 - 2.00945408e-01j,
-            7.99358267e-01 - 3.78177411e-01j,
-            6.87383554e-04 - 3.05145445e-02j,
-            -6.70306575e-02 + 2.45662583e-03j,
-            2.51829138e-02 + 2.42719024e-03j,
-            1.51297987e-03 - 2.09583627e-02j,
-            -2.18272416e-01 - 2.49254874e00j,
-            3.18745948e-01 + 2.90377897e00j,
-            -3.48360089e-01 - 2.98705808e00j,
-            2.82767637e-01 + 2.65015144e00j,
-            -6.45378731e-02 - 2.32601543e-01j,
-            -1.78847682e-01 - 6.28803632e-01j,
-            1.98984840e-01 + 6.45562396e-01j,
-            -5.75574487e-01 - 2.03482119e00j,
-            -1.79071119e-01 + 9.75425501e-02j,
-            1.33041282e-01 - 6.08107273e-02j,
-            -1.04930214e-01 + 1.98600004e-02j,
-            1.02529432e-01 - 4.56826111e-02j,
-            -9.10502057e-02 + 4.00437485e-02j,
-            -4.55895027e-02 + 3.88348143e-02j,
-            4.98863504e-03 - 2.49634561e-02j,
-            1.81918402e-02 + 1.18122844e-02j,
-            -1.60219775e-02 - 2.28458691e-02j,
-            1.47953573e-02 + 1.31553475e-01j,
-            7.77135087e-03 + 3.36702956e-02j,
-            2.47718592e-02 - 3.50457522e-02j,
-            -2.67166187e-02 + 1.18180934e-02j,
-            -1.46191264e-02 - 7.72276561e-02j,
-            -3.00941394e-02 - 9.87108070e-02j,
-            8.96918830e-03 - 2.84022568e-02j,
-            -1.65357311e-03 - 4.38318775e-02j,
-            1.50658709e-02 - 6.14483136e-02j,
-            4.87811290e-02 + 1.75694507e-01j,
-            -4.81118972e-03 + 3.73321157e-03j,
-            4.60629264e-02 - 3.62603959e-02j,
-            -1.21179544e-03 + 2.53104896e-02j,
-            1.75069126e-02 + 1.04703864e-02j,
-            8.61753013e-03 + 2.54347275e-03j,
-            5.40815261e-02 - 2.62438937e-02j,
-            4.45687952e-02 - 4.29741834e-02j,
-            4.25176984e-02 + 4.59819354e-02j,
-            -1.46957058e-02 - 3.46945617e-02j,
-            3.38637874e-02 - 1.08213929e-02j,
-            -2.06739538e-02 + 1.35215571e-03j,
-        ]
 
         zer_coeffs = image_mds[self.ant_key][self.ddi_key].ZERNIKE_COEFFICIENTS.values[
             0, 0, 0
@@ -403,6 +353,18 @@ class TestHolog:
         expected_n_coeff = 66
         assert zer_coeffs.shape[0] == expected_n_coeff
 
+        if produce_reference_data():
+            self.ref_json_dict["zernike_coeff_ref_real"] = zer_coeffs.real.tolist()
+            self.ref_json_dict["zernike_coeff_ref_imag"] = zer_coeffs.imag.tolist()
+            return
+
+        with open(self.ref_json_name, "r") as json_file:
+            ref_dict = json.load(json_file)
+        ref_zernike_coeffs_real = np.array(ref_dict["zernike_coeff_ref_real"])
+        ref_zernike_coeffs_imag = np.array(ref_dict["zernike_coeff_ref_imag"])
         assert np.allclose(
-            ref_zernike_coeffs, zer_coeffs
-        ), "Fitted Zernike coefficients do not match references"
+            ref_zernike_coeffs_real, zer_coeffs.real
+        ), "Fitted real part of Zernike coefficients do not match references"
+        assert np.allclose(
+            ref_zernike_coeffs_imag, zer_coeffs.imag
+        ), "Fitted imag part of Zernike coefficients do not match references"

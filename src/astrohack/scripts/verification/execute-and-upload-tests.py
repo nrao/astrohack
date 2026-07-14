@@ -93,6 +93,26 @@ def set_tests_to_update():
             },
             "cleanup_names": ["ext_holog_data"],
         },
+        "unit/user_facing_functions/test_holog.py": {
+            "n_items": 2,
+            "item_0": {
+                "creation": "holog_data/ea25_cal_small_before_reference.image.zarr/",
+                "destiny": "ea25_cal_before_reference.image.zarr/",
+                "description": "Reference Astrohack image file",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "item_1": {
+                "creation": "holog_data/holog-ref-values.json",
+                "destiny": "holog-ref-values.json",
+                "description": "json with reference values for holog execution",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["holog_data"],
+        },
     }
 
     return test_dict
@@ -111,7 +131,7 @@ def execute_and_upload(test_file, test_params):
         shutil.move(item_pars["creation"], item_pars["destiny"])
         subproc_exec_list.extend(
             [
-                item_pars["destiny"],
+                f'"{item_pars["destiny"]}"',
                 "-t",
                 item_pars["telescope"],
                 "-m",

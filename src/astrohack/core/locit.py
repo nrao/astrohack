@@ -10,6 +10,7 @@ from astrohack.io.position_mds import AstrohackPositionFile
 from astrohack.utils.text import (
     get_data_name,
     create_dataset_label,
+    param_to_list,
 )
 
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
@@ -143,7 +144,7 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
     source_dict = ant_xdt.parent.attrs["source_dict"]
     ant_key = locit_parms["this_ant"]
 
-    ddi_list = list(ant_xdt.keys())
+    ddi_list = param_to_list(locit_parms["ddi"], ant_xdt, "ddi")
     nddis = len(ddi_list)
 
     if nddis != 2:

@@ -60,7 +60,6 @@ def parse():
         help="Fringe fit source, default is 0319+415",
     )
     parser.add_argument(
-        "-s",
         "--scans_to_flag",
         default=None,
         type=str,
@@ -75,13 +74,13 @@ def parse():
         help="Intent for pointing observations.",
     )
 
-    # parser.add_argument(
-    #     "-s",
-    #     "--spectral-window",
-    #     type=str,
-    #     default="all",
-    #     help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
-    # )
+    parser.add_argument(
+        "-s",
+        "--spw",
+        type=str,
+        default="all",
+        help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
+    )
 
     parser.add_argument(
         "-a",
@@ -186,20 +185,16 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["exports_name"] = f"{base_name}.exports"
     param_dict["report_name"] = f"{base_name}-report.html"
 
-    param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
-    # param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
+    param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
+    param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
+    param_dict["delay_limits"] = parse_list_or_all(
+        param_dict, "delay_limits", list_type=float, max_size=2
+    )
 
     if param_dict["scans_to_flag"] is None:
         param_dict["scans_to_flag"] = []
     else:
         param_dict["scans_to_flag"] = param_dict["scans_to_flag"].split(",")
-
-    try:
-        param_dict["delay_limits"] = [
-            float(lim) for lim in param_dict["delay_limits"].split(",")
-        ]
-    except Exception as e:
-        raise RuntimeError(f"Error parsing delay_limits: {e}")
 
     # Ms data fetching and some consistency checks
     pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
@@ -382,7 +377,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "locit_name": param_dict["locit_name"],
         "position_name": param_dict["position_name"],
         "ant": param_dict["antenna"],
-        "ddi": "all",
+        "ddi": param_dict["spw"],
         "overwrite": param_dict["overwrite"],
         "fit_kterm": param_dict["fit_kterm"],
         "fit_delay_rate": True,

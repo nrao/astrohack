@@ -48,11 +48,11 @@ class TestExtractHolog:
         assert pathlib.Path(
             self.def_hlg_name
         ).is_dir(), f"A .holog.zarr file named {self.def_hlg_name} does not exist."
+        if produce_reference_data():
+            return
 
         ref_hlg_mds = open_holog(self.ref_hlg_name)
 
-        if produce_reference_data():
-            return
         assert new_hlg_mds.is_close_to(
             ref_hlg_mds
         ), "Reference and new mdses are different."

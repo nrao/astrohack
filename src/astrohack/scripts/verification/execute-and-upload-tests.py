@@ -96,8 +96,8 @@ def set_tests_to_update():
         "unit/user_facing_functions/test_holog.py": {
             "n_items": 2,
             "item_0": {
-                "creation": "holog_data/ea25_cal_small_before_reference.image.zarr/",
-                "destiny": "ea25_cal_before_reference.image.zarr/",
+                "creation": "holog_data/ea25_cal_small_before_reference.image.zarr",
+                "destiny": "ea25_cal_before_reference.image.zarr",
                 "description": "Reference Astrohack image file",
                 "type": "Holography",
                 "telescope": "VLA",
@@ -119,29 +119,28 @@ def set_tests_to_update():
 
 
 def execute_and_upload(test_file, test_params):
-    subproc_exec_list = [
-        "python",
-        get_astrohack_path() / "scripts" / "verification" / "file_uploader.py",
-    ]
+
     pytest.main([test_file])
     n_items = test_params["n_items"]
     for i_item in range(n_items):
         item_pars = test_params[f"item_{i_item}"]
+        subproc_exec_list = [
+            "python",
+            str(get_astrohack_path() / "scripts" / "verification" / "file_uploader.py"),
+            item_pars["destiny"],
+            "-t",
+            item_pars["telescope"],
+            "-m",
+            item_pars["type"],
+            "-d",
+            item_pars["description"],
+        ]
+
         shutil.rmtree(item_pars["destiny"], ignore_errors=True)
         shutil.move(item_pars["creation"], item_pars["destiny"])
-        subproc_exec_list.extend(
-            [
-                f'"{item_pars["destiny"]}"',
-                "-t",
-                item_pars["telescope"],
-                "-m",
-                item_pars["type"],
-                "-d",
-                item_pars["description"],
-            ]
-        )
         if item_pars["update_manifest"]:
             subproc_exec_list.append("-u")
+        print(" ".join(subproc_exec_list))
         subprocess.call(subproc_exec_list)
         shutil.rmtree(item_pars["destiny"], ignore_errors=True)
         if os.path.exists(item_pars["destiny"] + ".zip"):

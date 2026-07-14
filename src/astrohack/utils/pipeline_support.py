@@ -225,16 +225,23 @@ def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
 
     if param_dict["is_asdm"]:
         param_dict["msname"] = f"{base_name}.ms"
-        msger.one_liner("Input is an ASDM, importing it...")
-        run_casatask(
-            "importasdm",
-            {
-                "asdm": param_dict["filename"],
-                "vis": param_dict["msname"],
-                "overwrite": param_dict["overwrite"],
-            },
-            msger,
-        )
+        if pathlib.Path(param_dict["msname"]).is_dir():
+            execute_import = param_dict["reimport_asdm"]
+        else:
+            execute_import = True
+        if execute_import:
+            msger.one_liner("Input is an ASDM, importing it...")
+            run_casatask(
+                "importasdm",
+                {
+                    "asdm": param_dict["filename"],
+                    "vis": param_dict["msname"],
+                    "overwrite": param_dict["overwrite"],
+                },
+                msger,
+            )
+        else:
+            msger.one_liner("ASDM already imported, skipping import.")
     else:
         param_dict["msname"] = param_dict["filename"]
 

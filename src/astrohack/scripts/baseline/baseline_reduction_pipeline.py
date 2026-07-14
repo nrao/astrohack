@@ -159,6 +159,13 @@ def parse():
     )
 
     parser.add_argument(
+        "--reimport-asdm",
+        action="store_true",
+        default=False,
+        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
+    )
+
+    parser.add_argument(
         "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
     )
 

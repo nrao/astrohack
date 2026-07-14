@@ -155,6 +155,13 @@ def parse():
         help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
     )
 
+    parser.add_argument(
+        "--reimport-asdm",
+        action="store_true",
+        default=False,
+        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
+    )
+
     return vars(parser.parse_args())
 
 

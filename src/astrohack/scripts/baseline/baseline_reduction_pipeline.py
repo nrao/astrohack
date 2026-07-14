@@ -716,7 +716,7 @@ def main():
         processing_stage = "exports"
 
     if processing_stage == "exports":
-        # run_astrohack_exports(param_dict, msger)
+        run_astrohack_exports(param_dict, msger)
         run_post_locit_plots(param_dict, msger)
         processing_stage = "report"
 

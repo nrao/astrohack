@@ -1,5 +1,6 @@
 import argparse
 import glob
+import os
 import time
 import numpy as np
 
@@ -672,24 +673,28 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
         "Proposed parminator corrections",
     )
 
-    delay_plot_files = glob.glob(f"{exports_name}/position_delays_ant_*.png")
-    antenna_name_list = np.sort(
-        [dpf.split("/")[1].split("_")[3] for dpf in delay_plot_files]
-    )
+    pos_mds = open_position(param_dict["position_name"])
+    antenna_name_list = [key.split("_")[1] for key in pos_mds.keys()]
+    del pos_mds
 
     for ant_name in antenna_name_list:
         if ant_name != param_dict["refant"]:
             delay_plot_file = f"{exports_name}/position_delays_ant_{ant_name}_combined_{param_dict["combination"]}.png"
-            ant_html = create_single_html_image_with_header(
-                delay_plot_file,
-                f"Measured and fitted delays",
-                heading_level=3,
-            )
-            ant_html += create_single_html_image_with_header(
-                f"{exports_name}/phases-antpos-{ant_name}.png",
-                f"Phase before and after correction",
-                heading_level=3,
-            )
+            if os.path.exists(delay_plot_file):
+                ant_html = create_single_html_image_with_header(
+                    delay_plot_file,
+                    f"Measured and fitted delays",
+                    heading_level=3,
+                )
+                ant_html += create_single_html_image_with_header(
+                    f"{exports_name}/phases-antpos-{ant_name}.png",
+                    f"Phase before and after correction",
+                    heading_level=3,
+                )
+            else:
+                ant_html = add_heading_to_html(
+                    f"Fit has not succeeded for {ant_name}!", 1
+                )
             html_body += make_collapsible_block(
                 ant_html,
                 add_heading_to_html(f"Results for {ant_name}", 2),

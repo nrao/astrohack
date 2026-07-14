@@ -9,7 +9,6 @@ import numpy as np
 
 from astrohack import open_image
 from astrohack.holog import holog
-from astrohack.utils.text import print_dict_types
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
@@ -63,6 +62,7 @@ class TestHolog:
             holog_name=self.hlg_name,
             overwrite=True,
         )
+
         assert pathlib.Path(
             self.def_img_name
         ).is_dir(), f"A .image.zarr file named {self.def_img_name} does not exist."
@@ -308,11 +308,6 @@ class TestHolog:
         assert pha_fit_res is None
         positions = [[125, 125], [213, 430], [432, 195], [125, 309], [432, 203]]
 
-        # ref_phase = [
-        #     [[125, 125], -0.17758619948993593],
-        #     [[213, 430], -0.1459607430199923],
-        #     [[432, 195], -0.034865251933011265],
-        # ]
         phase_img = image_mds[self.ant_key][self.ddi_key].CORRECTED_PHASE.values[
             0, 0, 0
         ]

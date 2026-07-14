@@ -543,6 +543,7 @@ def get_proper_telescope(name: str, antenna_name: str = None):
         return NgvlaPrototype.from_name("ngvla_proto_2025")
     elif "vla" in name:
         print(name, antenna_name)
+        print("na" in antenna_name)
         if antenna_name is None or "ea" in antenna_name or antenna_name == "all":
             return RingedCassegrain.from_name("vla")
         elif "na" in antenna_name:

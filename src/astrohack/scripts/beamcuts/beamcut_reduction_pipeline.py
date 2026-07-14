@@ -230,8 +230,8 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
     param_dict = fetch_ms_metadata(param_dict)
 
-    param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
-    param_dict["spw"] = parse_list_or_all(param_dict["spw"], int_list=True)
+    param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
+    param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
 
     if param_dict["exclude_bad_antennas"] is not None:
         param_dict["exclude_bad_antennas"] = parse_list_or_all(

@@ -113,6 +113,28 @@ def set_tests_to_update():
             },
             "cleanup_names": ["holog_data"],
         },
+        "unit/user_facing_functions/test_panel.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "panel_data/ea25_cal_before_reference.panel.zarr",
+                "destiny": "ea25_before_reference.panel.zarr",
+                "description": "Reference Astrohack panel file",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+        },
+        "unit/user_facing_functions/test_combine.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "combine_data/ea25_cal_before_reference.combine.zarr",
+                "destiny": "ea25_before_reference.combine.zarr",
+                "description": "Reference Astrohack combine file",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+        },
     }
 
     return test_dict
@@ -159,7 +181,9 @@ def main():
 
     tests_to_execute = [
         # "unit/user_facing_functions/test_extract_holog.py",
-        "unit/user_facing_functions/test_holog.py",
+        # "unit/user_facing_functions/test_holog.py",
+        "unit/user_facing_functions/test_panel.py",
+        "unit/user_facing_functions/test_combine.py",
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

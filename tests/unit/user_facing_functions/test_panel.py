@@ -11,6 +11,7 @@ from astrohack import panel, open_panel
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 
@@ -52,6 +53,8 @@ class TestPanel:
             self.def_pnl_name
         ).is_dir(), f"A .panel.zarr file named {self.def_pnl_name} does not exist."
 
+        if produce_reference_data():
+            return
         ref_pnl_mds = open_panel(self.ref_pnl_name)
         assert new_pnl_mds.is_close_to(
             ref_pnl_mds
@@ -61,7 +64,8 @@ class TestPanel:
         """
         Specify a single antenna to process; check that only that antenna was processed.
         """
-
+        if produce_reference_data():
+            return
         pnl_mds = panel(
             image_name=self.img_name,
             clip_type="relative",
@@ -89,6 +93,8 @@ class TestPanel:
         """
         Specify the output file should be overwritten; check that it WAS.
         """
+        if produce_reference_data():
+            return
         initial_time = os.path.getctime(self.def_pnl_name)
 
         panel(
@@ -107,8 +113,8 @@ class TestPanel:
         """
         Specify panel computation mode and check that the data rms responded as expected.
         """
-        panel_list = ["3-4", "5-27", "5-37", "5-38"]
-
+        if produce_reference_data():
+            return
         panel_mds = panel(
             image_name=self.img_name,
             panel_name=self.def_pnl_name,
@@ -142,6 +148,8 @@ class TestPanel:
         """
         Set cutoff=0 and compare results to known truth value array.
         """
+        if produce_reference_data():
+            return
         panel_mds = panel(
             image_name=self.img_name,
             clip_type="absolute",
@@ -162,6 +170,8 @@ class TestPanel:
         ), "An absolute clip of level 0 should include all and only the pixels inside the aperture"
 
     def test_relative_clip(self):
+        if produce_reference_data():
+            return
         panel_mds = panel(
             image_name=self.img_name,
             clip_type="relative",
@@ -177,6 +187,8 @@ class TestPanel:
         ), "A relative clip of level 1 should include only the brightest pixel in the aperture"
 
     def test_sigma_clip(self):
+        if produce_reference_data():
+            return
         panel_sig2_mds = panel(
             image_name=self.img_name,
             clip_type="sigma",

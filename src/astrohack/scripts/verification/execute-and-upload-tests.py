@@ -177,14 +177,14 @@ def execute_and_upload(test_file, test_params):
 def main():
     import time
 
-    wait_time = 3600
+    wait_time = 60
     distro_path = get_astrohack_path()
     os.chdir(distro_path / "../../tests")
 
     tests_to_execute = [
         # "unit/user_facing_functions/test_extract_holog.py",
         # "unit/user_facing_functions/test_holog.py",
-        "unit/user_facing_functions/test_panel.py",
+        # "unit/user_facing_functions/test_panel.py",
         "unit/user_facing_functions/test_combine.py",
     ]
 

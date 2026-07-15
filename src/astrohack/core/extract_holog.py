@@ -671,7 +671,7 @@ def _create_holog_file(
             logger.debug(f"Writing {dataset_label} holog data to {holog_filename}")
             holog_mds.add_node(xds, [map_ant_key, ddi_key, map_key])
         else:
-            logger.warning(f"No holography data for {dataset_label}")
+            logger.warning(f"All data flagged for {dataset_label}")
 
 
 def _extract_pointing_chunk(

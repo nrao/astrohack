@@ -123,6 +123,7 @@ def set_tests_to_update():
                 "telescope": "VLA",
                 "update_manifest": False,
             },
+            "cleanup_names": ["panel_data"],
         },
         "unit/user_facing_functions/test_combine.py": {
             "n_items": 1,
@@ -134,6 +135,7 @@ def set_tests_to_update():
                 "telescope": "VLA",
                 "update_manifest": False,
             },
+            "cleanup_names": ["combine_data"],
         },
     }
 

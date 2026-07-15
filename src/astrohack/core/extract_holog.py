@@ -294,27 +294,7 @@ def process_extract_holog_chunk(
     map_ref_dict = _get_map_ref_dict(
         map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
-    # (
-    #     time_vis,
-    #     vis_map_dict,
-    #     weight_map_dict,
-    #     flagged_mapping_antennas,
-    #     used_samples_dict,
-    #     scan_time_ranges,
-    #     unq_scans,
-    # ) = _extract_holog_chunk_jit(
-    #     vis_data,
-    #     weight,
-    #     ant1,
-    #     ant2,
-    #     time_vis_row,
-    #     flag,
-    #     flag_row,
-    #     ref_ant_per_map_ant_tuple,
-    #     map_ant_tuple,
-    #     time_interval,
-    #     scan_list,
-    # )
+
     (
         time_vis,
         vis_map_dict,
@@ -536,7 +516,6 @@ def _match_visibilities_to_time_bins(
         if total_wei_sum == 0:
             flagged_mapping_antennas.append(ant_id)
             ant_vis_sum[:, :, :] = 0.0 + 0j
-
         else:
             for row in range(vis_shape[0]):
                 for chan in range(vis_shape[1]):
@@ -548,6 +527,7 @@ def _match_visibilities_to_time_bins(
         vis_map_dict[ant_id] = ant_vis_sum
         sum_weight_map_dict[ant_id] = ant_wei_sum
         used_samples_dict[ant_id] = ant_valid_data
+
     return (
         time_samples,
         vis_map_dict,

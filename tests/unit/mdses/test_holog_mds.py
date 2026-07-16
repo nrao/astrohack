@@ -60,13 +60,6 @@ class TestHologMDS:
             map_id=self.map_id,
             parallel=False,
         )
-        if not produce_reference_data():
-            assert are_txt_files_equal(
-                f"{self.ref_products_name}/{uvhol_like_file_name}",
-                f"{self.destination_folder}/{uvhol_like_file_name}",
-                ignored_key_words=["DATE-OBS"],
-            ), "AIPS like export is different from reference"
-
         obs_summ_file_name = "obs_summ.txt"
         hlg_mds.observation_summary(
             f"{self.destination_folder}/{obs_summ_file_name}",
@@ -76,11 +69,18 @@ class TestHologMDS:
             print_summary=False,
             parallel=False,
         )
-        if not produce_reference_data():
-            assert are_txt_files_equal(
-                f"{self.destination_folder}/{obs_summ_file_name}",
-                f"{self.ref_products_name}/{obs_summ_file_name}",
-            ), "Observation summary is different from reference"
+        if produce_reference_data():
+            return
+
+        assert are_txt_files_equal(
+            f"{self.ref_products_name}/{uvhol_like_file_name}",
+            f"{self.destination_folder}/{uvhol_like_file_name}",
+            ignored_key_words=["DATE-OBS"],
+        ), "AIPS like export is different from reference"
+        assert are_txt_files_equal(
+            f"{self.destination_folder}/{obs_summ_file_name}",
+            f"{self.ref_products_name}/{obs_summ_file_name}",
+        ), "Observation summary is different from reference"
 
     def test_plot_exports(self):
         hlg_mds = open_holog(self.hlg_name)
@@ -92,13 +92,6 @@ class TestHologMDS:
             map_id=self.map_id,
             parallel=False,
         )
-        if not produce_reference_data():
-            plot_name = "holog_diagnostics_ant_ea25_ddi_0_map_0.png"
-            assert are_png_files_close(
-                f"{self.destination_folder}/{plot_name}",
-                f"{self.ref_products_name}/{plot_name}",
-            ), "Calibration diagnostics plot is different from reference"
-
         hlg_mds.plot_lm_sky_coverage(
             self.destination_folder,
             ant=self.ant_id,
@@ -107,16 +100,23 @@ class TestHologMDS:
             plot_correlation="RR",
             parallel=False,
         )
+        if produce_reference_data():
+            return
 
-        if not produce_reference_data():
-            plot_name = "holog_directional_cosines_ant_ea25_ddi_0_map_0.png"
-            assert are_png_files_close(
-                f"{self.destination_folder}/{plot_name}",
-                f"{self.ref_products_name}/{plot_name}",
-            ), "Directional_cosines plot is different from reference"
+        plot_name = "holog_diagnostics_ant_ea25_ddi_0_map_0.png"
+        assert are_png_files_close(
+            f"{self.destination_folder}/{plot_name}",
+            f"{self.ref_products_name}/{plot_name}",
+        ), "Calibration diagnostics plot is different from reference"
 
-            plot_name = "holog_directional_cosines_RR_ant_ea25_ddi_0_map_0.png"
-            assert are_png_files_close(
-                f"{self.destination_folder}/{plot_name}",
-                f"{self.ref_products_name}/{plot_name}",
-            ), "Correlation vs Directional cosines plot is different from reference"
+        plot_name = "holog_directional_cosines_ant_ea25_ddi_0_map_0.png"
+        assert are_png_files_close(
+            f"{self.destination_folder}/{plot_name}",
+            f"{self.ref_products_name}/{plot_name}",
+        ), "Directional_cosines plot is different from reference"
+
+        plot_name = "holog_directional_cosines_RR_ant_ea25_ddi_0_map_0.png"
+        assert are_png_files_close(
+            f"{self.destination_folder}/{plot_name}",
+            f"{self.ref_products_name}/{plot_name}",
+        ), "Correlation vs Directional cosines plot is different from reference"

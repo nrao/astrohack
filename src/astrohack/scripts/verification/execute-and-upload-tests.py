@@ -137,6 +137,18 @@ def set_tests_to_update():
             },
             "cleanup_names": ["combine_data"],
         },
+        "unit/antenna_classes/test_class_antenna_surface.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "ant_class_data/ant_class_ref.json",
+                "destiny": "ant_class_ref.json",
+                "description": "Antenna class reference value json file",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": True,
+            },
+            "cleanup_names": ["ant_class_data"],
+        },
     }
 
     return test_dict
@@ -185,7 +197,8 @@ def main():
         # "unit/user_facing_functions/test_extract_holog.py",
         # "unit/user_facing_functions/test_holog.py",
         # "unit/user_facing_functions/test_panel.py",
-        "unit/user_facing_functions/test_combine.py",
+        # "unit/user_facing_functions/test_combine.py",
+        "unit/antenna_classes/test_class_antenna_surface.py"
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

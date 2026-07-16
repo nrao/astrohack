@@ -161,6 +161,18 @@ def set_tests_to_update():
             },
             "cleanup_names": ["ant_class_data"],
         },
+        "stakeholder/test_stakeholder_vla.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "stakeholder_test_data/vla_stakeholder_ref.json",
+                "destiny": "vla_stakeholder_ref.json",
+                "description": "Reference VLA Astrohack stakeholder json file",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["stakeholder_test_data"],
+        },
     }
 
     return test_dict
@@ -211,7 +223,10 @@ def main():
         # "unit/user_facing_functions/test_panel.py",
         # "unit/user_facing_functions/test_combine.py",
         # "unit/antenna_classes/test_class_antenna_surface.py"
-        "unit/mdses/test_holog_mds.py"
+        # "unit/mdses/test_holog_mds.py",
+        # "unit/mdses/test_image_mds.py"
+        # "unit/mdses/test_locit_mds.py"
+        "stakeholder/test_stakeholder_vla.py"
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

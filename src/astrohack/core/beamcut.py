@@ -18,8 +18,6 @@ from astrohack.utils.text import (
 )
 from astrohack.utils.constants import sig_2_fwhm
 
-quack_chans = 4
-
 
 ###########################################################
 ### Working Chunks

@@ -383,7 +383,7 @@ def _evaluate_time_sampling(
     time_bin_axis = time_bin_edge[:-1] + bin_sz / 2
     i_mid = int(np.argmin(np.abs(time_bin_axis - expected_interval)))
 
-    hist, edges = np.histogram(intervals, bins=time_bin_edge)
+    hist, _ = np.histogram(intervals, bins=time_bin_edge)
     n_total = np.nansum(hist)
     outlier_fraction = 1 - hist[i_mid] / n_total
 

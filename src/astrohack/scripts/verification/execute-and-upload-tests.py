@@ -21,6 +21,18 @@ def set_tests_to_update():
             },
             "cleanup_names": ["beamcut_data"],
         },
+        "unit/mdses/test_holog_mds.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "holog_exports",
+                "destiny": "ref_holog_products",
+                "description": "holog export products",
+                "type": "Holography",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["holog_data"],
+        },
         "unit/mdses/test_image_mds.py": {
             "n_items": 1,
             "item_0": {
@@ -198,7 +210,8 @@ def main():
         # "unit/user_facing_functions/test_holog.py",
         # "unit/user_facing_functions/test_panel.py",
         # "unit/user_facing_functions/test_combine.py",
-        "unit/antenna_classes/test_class_antenna_surface.py"
+        # "unit/antenna_classes/test_class_antenna_surface.py"
+        "unit/mdses/test_holog_mds.py"
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

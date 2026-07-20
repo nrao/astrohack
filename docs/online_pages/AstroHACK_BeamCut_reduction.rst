@@ -173,4 +173,4 @@ After the astrohack data files are created, the pipeline then proceeds to execut
 
 #. `AstrohackBeamcutFile.export_report <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/io/beamcut_mds/index.html>`_: Create an ASCII report of the fitted parameters of the multi gaussian fit.
 
-After the production of these export products the pipeline then creates a standalone HTML report with all of them that can then be stored or shared without the need to carry any extra data, an example of such a report can be seen `here <./X002-report.html>`_.
+After the production of these export products the pipeline then creates a standalone HTML report with all of them that can then be stored or shared without the need to carry any extra data, an example of such a report can be seen `here <../example-beamcut-u-band-report.html>`_.

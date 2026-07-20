@@ -126,7 +126,7 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
     Proceed? <(Y)es/(N)o>:
 
 
-The check before proceeding can be suppressed by adding the :code:`-y` option to the call, e.g.:
+The check before proceeding can be suppressed by adding the ``-y`` option to the call, e.g.:
 
 .. code-block::
 
@@ -134,30 +134,30 @@ The check before proceeding can be suppressed by adding the :code:`-y` option to
 
 The code will then proceed through the calibration steps:
 
-#. Delay calibration with `gaincal(gaintype="K")`.
+#. Delay calibration with ``gaincal(gaintype="K")``.
 
-#. Bandpass calibration with `bandpass`.
+#. Bandpass calibration with ``bandpass``.
 
-#. Amplitude and Phase calibration with `gaincal(calmode="AP")`.
+#. Amplitude and Phase calibration with ``gaincal(calmode="AP")``.
 
-#. Application of all the previously computed calibration tables with `applycal`.
+#. Application of all the previously computed calibration tables with ``applycal``.
 
 Beam cut processing
 ###################
 
 After the beam cut data has been calibrated the pipeline then proceeds to run Astrohack's functions:
 
-#. `extract_pointing <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/extract_pointing/index.html>`_: Extract pointing data from the MS onto a `.point.zarr` file that is arranged in a convenient way for further processing.
+#. `extract_pointing <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/extract_pointing/index.html>`_: Extract pointing data from the MS onto a ``.point.zarr`` file that is arranged in a convenient way for further processing.
 
 #. `extract_holog <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/extract_holog/index.html>`_: Identify moving antennas from the pointing data, then extract visibilities from the ms for these antennas and finally match the pointing data to the visibilities.
 
 #. `beamcut <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/beamcut/index.html>`_: Separate the visibility data onto the different beam cuts present in the data, determine the direction of the beam cuts, fit multiple gaussians to the beam cut to try to determine the beam parameters like Primary beam offset and FWHM & first side lobe ratio.
 
-By default the astrohack stages are run in parallel, (ncores =4), this can be changed by explicitly giving a number of cores e.g. `--ncores 5`. For a serial run, one should use `--ncores 0` or `--ncores 1`. In case of failures or there is a desire to re run the pipeline from a particular stage, the user can then use option `--starting-stage`.
+By default the astrohack stages are run in parallel, (ncores =4), this can be changed by explicitly giving a number of cores e.g. ``--ncores 5``. For a serial run, one should use ``--ncores 0`` or ``--ncores 1``. In case of failures or there is a desire to re run the pipeline from a particular stage, the user can then use option ``--starting-stage``.
 For more details on the beam cut processing stages there is the more detailed `beamcut tutorial <https://astrohack.readthedocs.io/en/stable/tutorials/beamcut_tutorial.html>`_.
 
-Exports and Report stage
-########################
+Exports and Report stages
+#########################
 
 After the astrohack data files are created, the pipeline then proceeds to execute the exporting functions from the associated Python classes:
 

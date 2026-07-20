@@ -1,9 +1,13 @@
+import shutil
+
 import numpy as np
 from astropy.coordinates import EarthLocation, SkyCoord, CIRS, AltAz
 from casacoretables import tables as ctables
 from astropy.time import Time
 import astropy.units as u
+import xarray as xr
 
+from astrohack import AstrohackPositionFile
 from astrohack.utils.algorithms import least_squares
 from astrohack.utils.constants import clight
 import toolviper.utils.logger as logger
@@ -70,7 +74,7 @@ def _extract_antenna_info(fringefit_caltable):
     return ant_dict
 
 
-def _extract_delay_info(fringefit_caltable):
+def extract_delay_info(fringefit_caltable):
     main_table = ctables.table(
         f"{fringefit_caltable}",
         readonly=True,
@@ -84,32 +88,34 @@ def _extract_delay_info(fringefit_caltable):
     fparam = main_table.getcol("FPARAM")
     field = main_table.getcol("FIELD_ID")
 
+    unq_refants = np.unique(ant2)
+    refant_id = unq_refants[0]
+    if unq_refants.size != 1:
+        logger.warning(
+            "More than one refant not supported dropping data with alternative reference antennas"
+        )
+    ant2_sel = ant2 == refant_id
+
     delay_dict = {
-        "time": times,
-        "ant1": ant1,
-        "ant2": ant2,
-        "delays": fparam[:, 0, 1::4] * 1e-9,  # convert to sec
-        "field": field,
+        "time": times[ant2_sel],
+        "ant1": ant1[ant2_sel],
+        "delays": fparam[ant2_sel, 0, 1::4] * 1e-9,  # convert to sec
+        "field": field[ant2_sel],
+        "refant_id": refant_id,
     }
-
-    # print(main_table.colnames())
-
     return delay_dict
 
 
 def _match_delays_to_ha_and_dec(field_dict, ant_dict, delay_dict, pol_sel):
     unq_ants = np.unique(delay_dict["ant1"])
-    unq_refants, refant_count = np.unique(delay_dict["ant2"], return_counts=True)
-    refant_id = unq_refants[0]
+    refant_id = delay_dict["refant_id"]
     init_time = field_dict["time_range"][0]
 
     matched_dict = {}
     for ant_id in unq_ants:
         ant_info = ant_dict[str(ant_id)]
         ant_name = ant_info["name"]
-        ant_sel = np.logical_and(
-            delay_dict["ant1"] == ant_id, delay_dict["ant2"] == refant_id
-        )
+        ant_sel = delay_dict["ant1"] == ant_id
         sel_delay = delay_dict["delays"][ant_sel]
         if np.sum(ant_sel) == 0 or np.sum(sel_delay) == 0:
             logger.warning(f"No delays for antenna {ant_name}")
@@ -359,7 +365,7 @@ def fringefit_locit(
     field_dict = _fetch_field_info(fringefit_caltable)
     ant_dict = _extract_antenna_info(fringefit_caltable)
 
-    delay_dict = _extract_delay_info(fringefit_caltable)
+    delay_dict = extract_delay_info(fringefit_caltable)
     matched_dict = _match_delays_to_ha_and_dec(
         field_dict, ant_dict, delay_dict, pol_sel
     )
@@ -371,3 +377,144 @@ def fringefit_locit(
     _post_process_all_ant(
         fringefit_caltable, result_dict, fit_delay_rate, fit_kterm, delay_lims
     )
+
+
+def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name):
+    main_table = ctables.table(
+        f"{fringefit_caltable}",
+        readonly=True,
+        lockoptions={"option": "usernoread"},
+        ack=False,
+    )
+    times = main_table.getcol("TIME")
+    ant1 = main_table.getcol("ANTENNA1")
+    ant2 = main_table.getcol("ANTENNA2")
+    fparam = main_table.getcol("FPARAM")
+    spw = main_table.getcol("SPECTRAL_WINDOW_ID")
+    field = main_table.getcol("FIELD_ID")
+
+    delays = fparam[:, 0, 1::4] * 1e-9
+
+    unq_refants = np.unique(ant2)
+    refant_id = unq_refants[0]
+    if unq_refants.size != 1:
+        logger.warning(
+            "More than one refant not supported dropping data with alternative reference antennas"
+        )
+    ant2_sel = ant2 == refant_id
+    refant_name = antenna_list[refant_id]
+    looping_dict = {}
+    unq_ants_in_data = np.unique(ant1)
+    for ant_id in unq_ants_in_data:
+        ant_name = antenna_list[ant_id]
+        ant_key = f"ant_{ant_name}"
+        ant_selection = np.logical_and(ant1 == ant_id, ant2_sel)
+
+        if np.sum(delays[ant_selection]) > 0:
+            this_ant_data = {
+                "time": times[ant_selection],
+                "delays": delays[ant_selection],  # convert to sec
+                "fields": field[ant_selection],
+                "spw": spw[ant_selection],
+            }
+            looping_dict[ant_key] = this_ant_data
+        else:
+            logger.warning(f"No valid delay data for {ant_name}")
+            shutil.rmtree(f"{position_name}/{ant_key}")
+    return looping_dict, refant_name
+
+
+def _match_delays_to_coordinates(
+    locit_parms, field_dict, ant_info, delay_dict, init_time
+):
+    user_pol_sel = locit_parms["polarization"]
+    el_limit = (
+        convert_unit("deg", "rad", "trigonometric") * locit_parms["elevation_limit"]
+    )
+
+    if user_pol_sel == "both":
+        pol_sel = [0, 1]
+    elif user_pol_sel == "R":
+        pol_sel = [0]
+    elif user_pol_sel == "L":
+        pol_sel = [1]
+    else:
+        raise ValueError(f"Polarization selection ({user_pol_sel}) not recognized")
+
+    ant_name = ant_info["name"]
+    logger.info(f"Matching sky coords to delays for {ant_name}")
+
+    geo_pos = ant_info["geocentric_position"]
+    ant_location = EarthLocation.from_geocentric(
+        geo_pos[0],
+        geo_pos[1],
+        geo_pos[2],
+        "meter",
+    )
+    ant_time = delay_dict["time"]
+    ant_fields = delay_dict["fields"]
+    ant_delays = delay_dict["delays"]
+    j2000_radec = np.zeros_like(ant_delays)
+    for row, atime in enumerate(ant_time):
+        j2000_radec[row, :] = field_dict[ant_fields[row]]["fk5"]
+    ant_times = Time(ant_time / 86400, format="mjd", scale="utc", location=ant_location)
+    skycoords = SkyCoord(
+        ra=j2000_radec[:, 0] * u.rad, dec=j2000_radec[:, 1] * u.rad, frame="icrs"
+    ).transform_to(CIRS(obstime=ant_times))
+    lst = ant_times.sidereal_time("apparent").to(u.rad) / u.rad
+    ra = skycoords.ra.rad
+    hour_angle = lst - ra
+    altaz_frame = AltAz(location=ant_location, obstime=ant_times)
+    altaz_coords = skycoords.transform_to(altaz_frame)
+    n_rows = ant_time.shape[0]
+    n_pol = len(pol_sel)
+    coordinate_array = np.zeros((4, n_pol * n_rows))
+    delay_array = np.zeros(n_pol * n_rows)
+    for i_pol in pol_sel:
+        f_row = i_pol * n_rows
+        l_row = (i_pol + 1) * n_rows
+        coordinate_array[0, f_row:l_row] = hour_angle.value
+        coordinate_array[1, f_row:l_row] = skycoords.dec.rad
+        coordinate_array[2, f_row:l_row] = altaz_coords.alt.rad
+        coordinate_array[3, f_row:l_row] = ant_time - init_time
+        delay_array[f_row:l_row] = ant_delays[:, i_pol]
+
+    el_selection = coordinate_array[2, :] >= el_limit
+    return coordinate_array[:, el_selection], delay_array[el_selection]
+
+
+def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
+    from astrohack.core.locit import (
+        _solve_linear_algebra,
+        _solve_scipy_optimize_curve_fit,
+        _compute_chi_squared,
+    )
+
+    ant_order = [locit_parms["this_ant"]]
+    current_xds = output_mds.open_subset(ant_order)
+    antenna_info = current_xds.attrs["antenna_info"]
+    src_dict = output_mds.root.attrs["source_dict"]
+    ant_name = antenna_info["name"]
+    ant_id = antenna_info["id"]
+    delay_dict = locit_parms["dic_data"]
+    init_time = output_mds.root.attrs["time_range"][0]
+
+    coordinates, delays = _match_delays_to_coordinates(
+        locit_parms, src_dict, antenna_info, delay_dict, init_time
+    )
+    fit_kterm = locit_parms["fit_kterm"]
+    fit_delay_rate = locit_parms["fit_delay_rate"]
+    if locit_parms["fit_engine"] == "linear algebra":
+        fit_func = _solve_linear_algebra
+    else:
+        fit_func = _solve_scipy_optimize_curve_fit
+
+    fit, variance = fit_func(coordinates, delays, fit_kterm, fit_delay_rate)
+    model, chi2 = _compute_chi_squared(
+        delays, fit, coordinates, fit_kterm, fit_delay_rate
+    )
+
+    current_xds["DELAY"] = xr.DataArray(np.array([1]), dims=["time"])
+
+    output_mds.add_node(current_xds, ant_order)
+    return

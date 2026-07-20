@@ -13,7 +13,7 @@ Astrohack provides an executable script for the data reduction of beam cuts, whi
 
 #. HTML report creation (by combining all plots and text products onto a single standalone HTMl to be shared or stored).
 
-These pipeline has been written under the assumption that the user will be running it in CASA or in an environment that provides the casatasks and casatools modules. The instructions below assume that the pipeline is to being run inside CASA.
+This pipeline has been written under the assumption that the user will be running it in CASA or in an environment that provides the casatasks and casatools modules. The instructions below assume that the pipeline is being run inside CASA.
 
 Pipeline interface
 ##################

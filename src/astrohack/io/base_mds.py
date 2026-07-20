@@ -346,6 +346,20 @@ class AstrohackBaseFile:
         zarr.convenience.consolidate_metadata(root_group.store)
         self.open()
 
+    def open_subset(self, key_order: list[str]):
+        """
+        Open a subset of the file structure on disk.
+
+        :param key_order: Order in which keys appear in file structure, ordered by depth.
+        :type key_order: list
+
+        Returns: Xarray subset object
+        :rtype: xr.Dataset | xr.DataTree
+
+        """
+        subset_path = f"{self.filename}/{"/".join(key_order)}"
+        return xr.open_zarr(subset_path)
+
 
 def _consolidate_a_level(key_path: str):
     """

@@ -31,6 +31,7 @@ from .panel import panel
 from .combine import combine
 from .locit import locit
 from .extract_locit import extract_locit
+from .fringefit_locit import fringefit_locit
 from .cassegrain_ray_tracing import (
     cassegrain_ray_tracing_pipeline,
     create_ray_tracing_telescope_parameter_dict,

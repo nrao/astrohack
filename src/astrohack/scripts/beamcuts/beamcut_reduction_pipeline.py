@@ -415,11 +415,11 @@ def prepare_html_report(param_dict, msger):
                 "Pointing over time:",
                 heading_level=3,
             )
-            ant_html += create_single_html_image_with_header(
-                f"{exports_name}/beamcut_lm_offsets_ant_{ant_name}_ddi_{ddi_list[0]}.png",
-                "Pointing over sky:",
-                heading_level=3,
-            )
+        ant_html += create_single_html_image_with_header(
+            f"{exports_name}/beamcut_lm_offsets_ant_{ant_name}_ddi_{ddi_list[0]}.png",
+            "Pointing over sky:",
+            heading_level=3,
+        )
         for ddi_name in ddi_list:
             spw_html = create_single_html_image_with_header(
                 f"{exports_name}/beamcut_db_ant_{ant_name}_ddi_{ddi_name}.png",

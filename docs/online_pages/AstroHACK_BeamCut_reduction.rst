@@ -20,7 +20,7 @@ Pipeline interface
 
 The pipeline has been written with a simple command line interface that expects two mandatory arguments from the user, the name of the dataset to be processed (be it an MS or an ASDM) and a reference antenna for the calibration stage, several execution customization options are also available a simple help can be accessed with the ``-h`` flag:
 
-.. code-block:: Ipython
+.. code-block:: sh
 
     CASA <1>: !beamcut-reduction-pipeline -h
 
@@ -78,7 +78,7 @@ Calibration stage
 With a reference antenna chosen it is now time to run the beamcut pipeline.
 The first step of the pipeline is to check whether the data is an ASDM or an MS and if it is an ASDM if it needs to be imported into an MS. With an MS in hands the pipeline proceeds to fetching some metadata from it and then prints a summary of what it has found and which parameters it will use for calibration and further data reduction, e.g.:
 
-.. code-block:: Ipython
+.. code-block:: sh
 
     CASA <4>: !beamcut-reduction-pipeline X002.ms ea05
 
@@ -128,7 +128,7 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
 The check before proceeding can be suppressed by adding the :code:`-y` option to the call, e.g.:
 
-.. code-block:: Ipython
+.. code-block:: sh
 
     CASA <4>: !beamcut-reduction-pipeline X002.ms ea05 -y
 

@@ -18,8 +18,6 @@ from astrohack.utils.text import (
 )
 from astrohack.utils.constants import sig_2_fwhm
 
-quack_chans = 4
-
 
 ###########################################################
 ### Working Chunks
@@ -40,11 +38,15 @@ def process_beamcut_chunk(beamcut_chunk_params: dict, output_mds: AstrohackBeamc
     ddi_key = beamcut_chunk_params["this_ddi"]
     ant_key = beamcut_chunk_params["this_ant"]
     xdt_data = beamcut_chunk_params["xdt_data"]
+    datalabel = create_dataset_label(ant_key, ddi_key)
 
     # This assumes that there will be no more than one mapping
-    input_xds = xdt_data["map_0"]
+    try:
+        input_xds = xdt_data["map_0"]
+    except KeyError:
+        logger.warning(f"No beamcut data for {datalabel}")
+        return
 
-    datalabel = create_dataset_label(ant_key, ddi_key)
     logger.info(f"processing {datalabel}")
 
     cut_xdtree = _extract_cuts_from_visibilities(input_xds, ant_key, ddi_key)
@@ -378,7 +380,7 @@ def _multi_gaussian(xdata, *args):
     """
     nargs = len(args)
     if nargs % 3 != 0:
-        raise ValueError("Number of arguments should be multiple of 3")
+        raise ValueError(f"Number of arguments should be multiple of 3, (got {nargs})")
     y_values = np.zeros_like(xdata)
     for iarg in range(0, nargs, 3):
         y_values += _fwhm_gaussian(xdata, args[iarg], args[iarg + 1], args[iarg + 2])
@@ -516,6 +518,38 @@ def _identify_pb_and_sidelobes_in_fit(
     return n_peaks, fit_pars, pb_center, pb_fwhm, first_side_lobe_ratio
 
 
+def estimate_pb_center_and_fwhm_from_data(x_data, y_data, datalabel):
+    """
+    Estimate primary beam parameters forcefully from data
+    :param x_data: Cut X data
+    :param y_data: Cut Y data
+    :param datalabel: Data label
+    :return: estimated primary beam center, fwhm and amplitude.
+    """
+    logger.info(
+        f"Estimating primary beam center and fwhm from maximum amplitude for {datalabel}"
+    )
+    i_max = np.argmax(y_data.values)
+    amp_max = y_data.values[i_max]
+    pb_center = x_data[i_max]
+    n_pnt = x_data.shape[0]
+
+    hw_plus = np.nan
+    for i_pnt in range(i_max, n_pnt):
+        if y_data[i_pnt] <= amp_max / 2:
+            hw_plus = x_data[i_pnt]
+            break
+    hw_minus = np.nan
+    for i_pnt in range(i_max, 0, -1):
+        if y_data[i_pnt] <= amp_max / 2:
+            hw_minus = x_data[i_pnt]
+            break
+    pb_fwhm = hw_plus - hw_minus
+    fslr = np.nan
+
+    return pb_center, pb_fwhm, fslr, amp_max
+
+
 def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
     """
     Execute multi gaussian fit to beam cut data.
@@ -573,8 +607,16 @@ def _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel):
                     )
                 )
             else:
-                pb_center, pb_fwhm, first_side_lobe_ratio = np.nan, np.nan, np.nan
-                fit = np.full_like(y_data, np.nan)
+                pb_center, pb_fwhm, first_side_lobe_ratio, amp_max = (
+                    estimate_pb_center_and_fwhm_from_data(
+                        x_data, y_data, this_corr_data_label
+                    )
+                )
+                fit = _multi_gaussian(x_data, pb_center, amp_max, pb_fwhm)
+                n_peaks = 1
+                fit_pars = [pb_center, amp_max, pb_fwhm]
+                if np.all(np.isfinite(fit_pars)):
+                    fit_succeeded = True
 
             cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"] = fit_pars
             cut_xds.attrs[f"{parallel_hand}_n_peaks"] = n_peaks

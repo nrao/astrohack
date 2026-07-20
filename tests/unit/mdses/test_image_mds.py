@@ -84,6 +84,8 @@ class TestimageMDS:
         img_mds.export_to_fits(
             self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
         )
+        if produce_reference_data():
+            return
         self.fits_list_assertions()
         return
 

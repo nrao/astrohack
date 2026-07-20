@@ -468,7 +468,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
 
         combined = self.root.attrs["combined"]
         telescope = get_proper_telescope(
-            self.root.attrs["telescope_name"], param_dict["ant"]
+            self.root.attrs["telescope_name"],
         )
         ref_ant = self.root.attrs["reference_antenna"]
 

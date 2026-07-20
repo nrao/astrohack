@@ -139,11 +139,9 @@ class AntennaSurface:
             .values
         )
 
-        self.npoint = np.sqrt(inputxds.sizes["l"] ** 2 + inputxds.sizes["m"] ** 2)
         self.amp_unit = "V"
         self.u_axis = inputxds.u_prime.values
         self.v_axis = inputxds.v_prime.values
-        self.computephase = False
 
     def _read_panel_xds(self, inputxds):
         self.wavelength = inputxds.attrs["wavelength"]
@@ -270,23 +268,6 @@ class AntennaSurface:
         self.phase = np.where(self.base_mask, self.phase, np.nan)
         self.amplitude = np.where(self.base_mask, self.amplitude, np.nan)
         self.deviation = np.where(self.base_mask, self.deviation, np.nan)
-
-    def _fetch_panel_ringed(self, ring, panel):
-        """
-        Fetch a panel object from the panel list using its ring and panel numbers,
-        specific for circular antennas with panels arranged in rings
-        Args:
-            ring: Ring number
-            panel: Panel number
-
-        Returns:
-        Panel object
-        """
-        if ring == 1:
-            ipanel = panel - 1
-        else:
-            ipanel = np.sum(self.telescope.n_panel_per_ring[: ring - 1]) + panel - 1
-        return self.panels[ipanel]
 
     def gains(self):
         """

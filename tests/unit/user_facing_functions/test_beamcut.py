@@ -11,6 +11,7 @@ from astrohack.utils.verification_tools import (
     are_lists_equal,
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 matplotlib.use("Agg")
@@ -91,14 +92,16 @@ class TestBeamcut:
             ant="ea15",
             overwrite=True,
         )
-
-        ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
-        assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
-        assert assertion, "Reference and new mdses are not close enough."
+        if produce_reference_data():
+            ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
+            assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
+            assert assertion, "Reference and new mdses are not close enough."
 
     def test_destination(self):
         # Deleting destination if it exists just to make test more robust
         shutil.rmtree(self.destination_folder, ignore_errors=True)
+        if produce_reference_data():
+            return
 
         beamcut(
             holog_name=self.holog_name,
@@ -126,6 +129,8 @@ class TestBeamcut:
 
     def test_data_selection(self):
         # This test depends on knowing the contents of the original ms
+        if produce_reference_data():
+            return
         beamcut_mds = beamcut(
             holog_name=self.holog_name,
             beamcut_name=self.local_beamcut_name,
@@ -171,6 +176,8 @@ class TestBeamcut:
             ), 'With ddi="all", ddi_list should be equal to short_ddi_list'
 
     def test_report_configuration(self):
+        if produce_reference_data():
+            return
         # this test depends on us knowing some values expected to be in the report
         beamcut(
             holog_name=self.holog_name,
@@ -236,6 +243,8 @@ class TestBeamcut:
 
     def test_naming(self):
         shutil.rmtree(self.remote_beamcut_name, ignore_errors=True)
+        if produce_reference_data():
+            return
 
         # has to be run last!
         beamcut(

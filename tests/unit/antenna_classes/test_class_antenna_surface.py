@@ -1,14 +1,18 @@
+import json
+
 from astrohack.antenna.antenna_surface import AntennaSurface
-from astrohack.antenna.telescope import get_proper_telescope
-from astrohack import extract_holog, extract_pointing, holog, open_panel, open_image
+from astrohack import open_image
 from astrohack.utils.conversion import convert_unit
 
 import numpy as np
 import toolviper
 import shutil
-import xarray as xr
 
-from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
+from astrohack.utils.verification_tools import (
+    add_data_folder_to_names_in_class,
+    produce_reference_data,
+    execute_cleanup,
+)
 
 datafolder = "paneldata/"
 
@@ -27,9 +31,13 @@ class TestClassAntennaSurface:
     rand = sigma * np.random.randn(*datashape)
     zero = np.zeros(datashape)
 
+    json_file_name = "ant_class_ref.json"
+    ref_json_dict = {}
+
     @classmethod
     def setup_class(cls):
         toolviper.utils.data.download(cls.img_name, cls.data_dir)
+        toolviper.utils.data.download(cls.json_file_name, cls.data_dir)
 
         add_data_folder_to_names_in_class(cls)
 
@@ -45,7 +53,11 @@ class TestClassAntennaSurface:
     def teardown_class(cls):
         """teardown any state that was previously setup with a call to setup_class
         such as deleting test data"""
-        shutil.rmtree(cls.data_dir)
+        if produce_reference_data():
+            with open(cls.json_file_name, "w") as json_file:
+                json.dump(cls.ref_json_dict, json_file)
+        if execute_cleanup():
+            shutil.rmtree(cls.data_dir)
 
     def test_init(self):
         """
@@ -87,21 +99,36 @@ class TestClassAntennaSurface:
         Tests that fitting results for two panels match the reference
         """
         expected_len = 3
-        solved_pars = [
-            [0, [-0.00050669, 0.00029443, -0.00094982]],
-            [30, [-0.00031, -0.00024618, -0.00012443]],
-        ]
         self.tant.fit_surface()
+        panel_fit_res = []
+        for panel in self.tant.panels:
+            panel_fit_res.append(panel.model.parameters.tolist())
 
         assert len(self.tant.panels[0].model.parameters) == expected_len, (
             "Fitted results have a different length" " from reference"
         )
-        for idx, solved_par_list in solved_pars:
-            assert np.allclose(
-                self.tant.panels[idx].model.parameters,
-                solved_par_list,
-                atol=self.tolerance,
-            ), f"Fitting results for Panel {idx} do not match reference within tolerance"
+        if produce_reference_data():
+            self.ref_json_dict["solved_parameters"] = panel_fit_res
+            return
+
+        with open(self.json_file_name) as json_file:
+            ref_json_dict = json.load(json_file)
+
+        ref_solved_pars = ref_json_dict["solved_parameters"]
+
+        assert len(ref_solved_pars) == len(
+            self.tant.panels
+        ), "Number of solved panels does not match with the number of panels in reference"
+
+        n_failed_panels = 0
+        for i_panel, panel in enumerate(self.tant.panels):
+            if not np.allclose(
+                ref_solved_pars[i_panel], panel.model.parameters, atol=self.tolerance
+            ):
+                n_failed_panels += 1
+        assert (
+            n_failed_panels == 0
+        ), f"Fitting results differ for {n_failed_panels} panels."
 
     def test_correct_surface(self):
         """

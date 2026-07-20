@@ -255,10 +255,6 @@ def add_data_folder_to_names_in_class(class_ref):
                 setattr(class_ref, varname, f"{class_ref.data_dir}/{varvalue}")
 
 
-def relative_difference(result, expected):
-    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
-
-
 def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):
     """analyse summary file"""
     summ_str = capture_prints_from_function(mds_obj.summary)

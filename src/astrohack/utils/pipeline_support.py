@@ -141,11 +141,23 @@ def run_casatask(
     return True
 
 
-def parse_list_or_all(parameter_value: str):
+def parse_list_or_all(
+    parameter_dict: dict,
+    param_key: str,
+    list_type=str,
+    max_size: int = None,
+) -> list:
+    parameter_value = parameter_dict[param_key]
     if parameter_value == "all":
         return "all"
     else:
-        return parameter_value.split(",")
+        wrd_list = parameter_value.split(",")
+        if list_type != str:
+            wrd_list = [list_type(wrd) for wrd in wrd_list]
+        if max_size is not None:
+            if len(wrd_list) > max_size:
+                raise ValueError(f"List {param_key} must be at most of size {max_size}")
+        return wrd_list
 
 
 def make_dict_str_simple(the_dict, ident=4):
@@ -222,16 +234,23 @@ def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
 
     if param_dict["is_asdm"]:
         param_dict["msname"] = f"{base_name}.ms"
-        msger.one_liner("Input is an ASDM, importing it...")
-        run_casatask(
-            "importasdm",
-            {
-                "asdm": param_dict["filename"],
-                "vis": param_dict["msname"],
-                "overwrite": param_dict["overwrite"],
-            },
-            msger,
-        )
+        if pathlib.Path(param_dict["msname"]).is_dir():
+            execute_import = param_dict["reimport_asdm"]
+        else:
+            execute_import = True
+        if execute_import:
+            msger.one_liner("Input is an ASDM, importing it...")
+            run_casatask(
+                "importasdm",
+                {
+                    "asdm": param_dict["filename"],
+                    "vis": param_dict["msname"],
+                    "overwrite": param_dict["overwrite"],
+                },
+                msger,
+            )
+        else:
+            msger.one_liner("ASDM already imported, skipping import.")
     else:
         param_dict["msname"] = param_dict["filename"]
 

@@ -154,7 +154,7 @@ With the phase gain table obtained in the previous stage the pipeline now goes t
 #. `locit <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/locit/index.html>`_: Process phases from all spectral windows either combined or through their differences to produce antenna position solutions.
 
 In case of failures or there is a desire to re run the pipeline from a particular stage, the user can then use option ``--starting-stage``.
-For more details on the beam cut processing stages there is the more detailed `locit tutorial <https://astrohack.readthedocs.io/en/stable/tutorials/locit_tutorial.html>`_.
+For more details on the antenna position corrections processing stages there is the more detailed `locit tutorial <https://astrohack.readthedocs.io/en/stable/tutorials/locit_tutorial.html>`_.
 
 Export & report stages
 ======================
@@ -172,6 +172,14 @@ After the astrohack data files are created, the pipeline then proceeds to execut
 #. `AstrohackPositionFile.plot_position_corrections <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/io/position_mds/index.html>`_: Produce a single plot with arbitrarily scaled antenna position corrections over the plot of the array configuration to have a graphical representation of antenna corrections.
 
 #. `AstrohackPositionFile.plot_delays <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/io/position_mds/index.html>`_: Produce a plot per antenna showing the measured delays, the modeled delays and the residual delays.
+
+After creating the astrohack plots the pipeline then proceeds to an extra stage:
+
+#. Produce an antenna position correction calibration table using CASA's ``gencal``.
+
+#. Apply antenna position corrections to the channel averaged MS using ``applycal``.
+
+#. Produce plots of the over time for the raw and baseline corrected data.
 
 After the production of these export products the pipeline then creates a standalone HTML report with all of them that can then be stored or shared without the need to carry any extra data, an example of such a report can be seen `here <../example-baseline-short_x-report.html>`_.
 

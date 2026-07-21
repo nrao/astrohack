@@ -56,12 +56,12 @@ def parse():
 
     parser.add_argument(
         "-f",
-        "--fringefit_source",
+        "--fringefit-source",
         default="0319+415",
         help="Fringe fit source, default is 0319+415",
     )
     parser.add_argument(
-        "--scans_to_flag",
+        "--scans-to-flag",
         default=None,
         type=str,
         help="Comma separated list of scans to flag, default is None",
@@ -120,7 +120,7 @@ def parse():
 
     parser.add_argument(
         "-k",
-        "--fit_kterm",
+        "--fit-kterm",
         action="store_true",
         default=False,
         help="Fit antennas K term (i.e. Offset between azimuth and elevation axes)",
@@ -128,10 +128,10 @@ def parse():
 
     parser.add_argument(
         "-l",
-        "--delay_limits",
-        type=str,
-        default="-0.1,0.1",
-        help='Delay limits for delay plots, values must be given between quotes("), default is "%(default)s"',
+        "--delay-limits",
+        type=float,
+        default=0.1,
+        help="Symmetrical limit for delay plots, default is %(default)s which results in the limits being [-%(default)s, %(default)s]",
     )
 
     parser.add_argument(
@@ -188,9 +188,10 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
-    param_dict["delay_limits"] = parse_list_or_all(
-        param_dict, "delay_limits", list_type=float, max_size=2
-    )
+    param_dict["delay_limits"] = [
+        -param_dict["delay_limits"],
+        param_dict["delay_limits"],
+    ]
 
     if param_dict["scans_to_flag"] is None:
         param_dict["scans_to_flag"] = []
@@ -646,10 +647,11 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     msger.one_liner("Preparing report...")
     start = time.time()
     exports_name = param_dict["exports_name"]
+    combination_word = param_dict["combination"]
     images_to_include = {
         "locit_source_table_fk5.png": "Source positions over the sky",
         "locit_array_configuration.png": "VLA configuration during observation",
-        "position_corrections_combined_simple.png": "Graphical representation of antenna position corrections",
+        f"position_corrections_combined_{combination_word}.png": "Graphical representation of antenna position corrections",
     }
 
     report_title = f"Baseline Report for {param_dict['filename']}"
@@ -664,7 +666,7 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
         )
 
     html_body += add_preformatted_text_file_to_html(
-        f"{exports_name}/position_combined_simple_fit_results.txt",
+        f"{exports_name}/position_combined_{combination_word}_fit_results.txt",
         "Measured antenna position corrections",
     )
 

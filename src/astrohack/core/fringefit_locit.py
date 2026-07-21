@@ -426,7 +426,7 @@ def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name
 
 
 def _match_delays_to_coordinates(
-    locit_parms, field_dict, ant_info, delay_dict, init_time
+    locit_parms, field_dict, ant_info, delay_dict, init_time, ddi_dict
 ):
     user_pol_sel = locit_parms["polarization"]
     el_limit = (
@@ -442,6 +442,19 @@ def _match_delays_to_coordinates(
     else:
         raise ValueError(f"Polarization selection ({user_pol_sel}) not recognized")
 
+    spw = delay_dict["spw"]
+    ddi_sel = np.full_like(spw, False)
+    used_ddis = []
+    for ddi in ddi_dict.keys():
+        this_ddi_sel = spw == ddi
+        if np.sum(this_ddi_sel) > 0:
+            used_ddis.append(ddi)
+        ddi_sel = np.logical_or(this_ddi_sel, ddi_sel)
+
+    ant_time = delay_dict["time"][ddi_sel]
+    ant_fields = delay_dict["fields"][ddi_sel]
+    ant_delays = delay_dict["delays"][ddi_sel]
+
     geo_pos = ant_info["geocentric_position"]
     ant_location = EarthLocation.from_geocentric(
         geo_pos[0],
@@ -449,9 +462,6 @@ def _match_delays_to_coordinates(
         geo_pos[2],
         "meter",
     )
-    ant_time = delay_dict["time"]
-    ant_fields = delay_dict["fields"]
-    ant_delays = delay_dict["delays"]
     j2000_radec = np.zeros_like(ant_delays)
     for row, atime in enumerate(ant_time):
         j2000_radec[row, :] = field_dict[ant_fields[row]]["fk5"]
@@ -485,15 +495,17 @@ def _match_delays_to_coordinates(
         delay_array[el_selection],
         lst_array,
         el_limit,
+        used_ddis,
     )
 
 
-def _get_average_freq(ddi_dict):
+def _get_average_freq(ddi_dict, used_ddis):
     freqs = []
     bws = []
     for key, value in ddi_dict.items():
-        freqs.append(value["frequency"])
-        bws.append(value["bandwidth"][0])
+        if key in used_ddis:
+            freqs.append(value["frequency"])
+            bws.append(value["bandwidth"][0])
     average_freq = np.average(freqs, weights=bws)
     return average_freq
 
@@ -516,10 +528,15 @@ def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
 
     delay_dict = locit_parms["dic_data"]
     init_time = output_mds.root.attrs["time_range"][0]
-    average_freq = _get_average_freq(ddi_dict)
-    coordinates, delays, lst, el_limit = _match_delays_to_coordinates(
-        locit_parms, src_dict, antenna_info, delay_dict, init_time
+    coordinates, delays, lst, el_limit, used_ddis = _match_delays_to_coordinates(
+        locit_parms, src_dict, antenna_info, delay_dict, init_time, ddi_dict
     )
+    if coordinates.size == 0:
+        logger.warning(f"Data selection excludes all data for {ant_name}")
+        shutil.rmtree(f"{output_mds.filename}/{locit_parms['this_ant']}")
+        return
+
+    average_freq = _get_average_freq(ddi_dict, used_ddis)
     fit_kterm = locit_parms["fit_kterm"]
     fit_delay_rate = locit_parms["fit_delay_rate"]
     if locit_parms["fit_engine"] == "linear algebra":

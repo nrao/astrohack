@@ -186,6 +186,7 @@ def locit(
             "combined": combined,
             "telescope_name": locit_mds.root.attrs["telescope_name"],
             "reference_antenna": locit_mds.root.attrs["reference_antenna"],
+            "combine_specifier": combine_ddis,
         }
     )
 

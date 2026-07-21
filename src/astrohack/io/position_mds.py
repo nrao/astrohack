@@ -117,7 +117,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 f"Y offset [{position_unit}]",
                 f"Z offset [{position_unit}]",
             ]
-            specifier = f"combined_{input_pars['combine_ddis']}"
+            specifier = f"combined_{self.root.attrs['combine_specifier']}"
 
         else:
             field_names = [
@@ -399,7 +399,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         param_dict = locals()
 
         param_dict["combined"] = self.root.attrs["combined"]
-        param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
+        param_dict["comb_type"] = self.root.attrs["combine_specifier"]
         if self.root.attrs["combined"]:
             key_order = ["ant"]
         else:
@@ -476,7 +476,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         if combined:
             filename = (
                 f"{destination}/position_corrections_combined_"
-                + f'{self.root.attrs["input_parameters"]["combine_ddis"]}.png'
+                + f'{self.root.attrs["combine_specifier"]}.png'
             )
             attribute_list = []
             for ant in ant_list:

@@ -1,3 +1,5 @@
+import pathlib
+
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -64,7 +66,22 @@ def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
                     elevation_limit,
                     antenna_info,
                 )
-                output_mds.add_node(out_xds, [ant_key, ddi_key])
+                # This is a workaround to add antenna info for locit_mds methods
+                if not pathlib.Path(
+                    f"{output_mds.filename}/{ant_key}/.zattrs"
+                ).exists():
+                    ant_xdt = xr.DataTree(name=f"{ant_key}")
+                    ant_xdt.attrs["antenna_info"] = antenna_info
+                    ant_xdt = ant_xdt.assign(
+                        {
+                            f"{ant_key}-{ddi_key}": xr.DataTree(
+                                dataset=out_xds, name=f"{ddi_key}"
+                            )
+                        }
+                    )
+                    output_mds.add_node(ant_xdt, [ant_key])
+                else:
+                    output_mds.add_node(out_xds, [ant_key, ddi_key])
 
 
 def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):

@@ -7,7 +7,6 @@ from astrohack.core.extract_locit import (
 )
 from astrohack.core.fringefit_locit import (
     fringefit_locit_chunk,
-    extract_delay_info,
     fringefit_locit_looping_dict,
 )
 from astrohack.utils.file import overwrite_file

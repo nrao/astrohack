@@ -18,7 +18,7 @@ from astrohack.utils.text import (
 from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
 from astrohack.utils.conversion import convert_unit
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.constants import (
     clight,
     notavail,
@@ -40,7 +40,7 @@ from astrohack.visualization.array_cfg_plot import (
 )
 
 
-class AstrohackPositionFile(AstrohackBaseFile):
+class AstrohackPositionFile(AstrohackLocitFile):
     """Data class for position data.
 
     Data within an object of this class can be selected for further inspection, plotted or produce a report

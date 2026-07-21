@@ -17,10 +17,6 @@ from astrohack.utils.verification_tools import (
 )
 
 
-def relative_difference(result, expected):
-    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
-
-
 class TestLocit:
     data_dir = "locit_data"
 

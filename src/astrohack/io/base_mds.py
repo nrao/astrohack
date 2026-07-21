@@ -357,7 +357,7 @@ class AstrohackBaseFile:
         :rtype: xr.Dataset | xr.DataTree
 
         """
-        subset_path = f"{self.filename}/{"/".join(key_order)}"
+        subset_path = f"{self.filename}/{'/'.join(key_order)}"
         return xr.open_zarr(subset_path)
 
 

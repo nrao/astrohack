@@ -13,6 +13,7 @@ from astrohack.utils.verification_tools import (
     are_lists_equal,
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 
@@ -61,6 +62,9 @@ class TestLocit:
             self.def_pos_name
         ).is_dir(), f"A .position.zarr file named {self.def_pos_name} does not exist."
 
+        if produce_reference_data():
+            return
+
         ref_pos_mds = open_position(self.ref_pos_name)
         assert new_pos_mds.is_close_to(
             ref_pos_mds
@@ -71,7 +75,8 @@ class TestLocit:
             Run locit with an antenna id and create a file on disk containing delays and position solutions only \
             from that antenna id.
         """
-
+        if produce_reference_data():
+            return
         new_pos_mds = locit(
             locit_name=self.lct_name,
             position_name=self.def_pos_name,
@@ -98,7 +103,8 @@ class TestLocit:
         """
         Run locit with fit_kterm=True and expect a file to be created on disk containing a solution for the kterm.
         """
-
+        if produce_reference_data():
+            return
         position_mds = locit(
             locit_name=self.lct_name,
             position_name=self.def_pos_name,
@@ -122,7 +128,8 @@ class TestLocit:
             Run locit with fit_rate=False and check that the file created on disk contains no solution for the \
             delay rate.
         """
-
+        if produce_reference_data():
+            return
         position_mds = locit(
             locit_name=self.lct_name,
             position_name=self.def_pos_name,
@@ -146,7 +153,8 @@ class TestLocit:
         """
         Run locit with elevation_limit=90 and expect locit to fail because there is no available data.
         """
-
+        if produce_reference_data():
+            return
         new_pos_mds = locit(
             locit_name=self.lct_name,
             position_name=self.def_pos_name,
@@ -163,6 +171,8 @@ class TestLocit:
         """
         Run locit with polarization='R' and check that the file created on disk contains only delays for R.
         """
+        if produce_reference_data():
+            return
         pol_sel = "R"
         position_mds = locit(
             locit_name=self.lct_name,
@@ -180,7 +190,8 @@ class TestLocit:
           Run locit with combine_ddis=False and check that the file created on disk contains delays and position \
           solutions for all DDIs.
         """
-
+        if produce_reference_data():
+            return
         position_mds = locit(
             locit_name=self.lct_name,
             position_name=self.def_pos_name,
@@ -204,6 +215,8 @@ class TestLocit:
         """
         Specify the output file should be overwritten; check that it WAS.
         """
+        if produce_reference_data():
+            return
         # To check this properly we need to not only know an exception was not thrown but that the file is ACTUALLY
         # overwritten. We do this by checking the modification time.
         initial_time = os.path.getctime(self.def_pos_name)

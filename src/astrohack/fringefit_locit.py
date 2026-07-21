@@ -1,3 +1,5 @@
+import toolviper.utils.parameter
+
 from typing import Union, List
 
 from astrohack.core.extract_locit import (
@@ -15,6 +17,7 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.io.position_mds import AstrohackPositionFile
 
 
+@toolviper.utils.parameter.validate()
 def fringefit_locit(
     fringefit_caltable: str,
     position_name: str | None = None,

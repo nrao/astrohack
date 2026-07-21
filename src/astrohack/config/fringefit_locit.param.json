@@ -1,0 +1,51 @@
+{
+    "fringefit_locit":{
+        "fringefit_caltable":{
+            "type":["str"],
+            "required": true
+        },
+        "position_name":{
+            "type":["str"],
+            "required": false,
+            "nullable": true
+        },
+        "elevation_limit":{
+            "type":["float"],
+            "required": false
+        },
+        "polarization": {
+            "type": ["str"],
+            "nullable": false,
+            "allowed": ["R", "L", "X", "Y", "both", "RL", "LR", "XY", "YX"]
+        },
+        "fit_engine": {
+            "type": ["str"],
+            "nullable": false,
+            "allowed": ["linear algebra", "scipy"]
+        },
+        "fit_kterm":{
+            "type":["boolean"],
+            "nullable": false
+        },
+        "fit_delay_rate":{
+            "type":["boolean"],
+            "nullable": false
+        },
+        "ant":{
+            "type":["list", "str"],
+            "struct type": ["str"],
+            "nullable": false
+        },
+        "ddi":{
+            "type":["ndarray", "int", "list", "str"],
+            "struct type": ["int", "str"],
+            "nullable": false
+        },
+        "parallel":{
+            "type":["boolean"]
+        },
+        "overwrite":{
+            "type":["boolean"]
+        }
+    }
+}

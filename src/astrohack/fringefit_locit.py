@@ -48,7 +48,7 @@ def fringefit_locit(
 
     ddi_dict = extract_spectral_info(locit_params)
     looping_dict, refant_name = fringefit_locit_looping_dict(
-        fringefit_caltable, position_mds.root.attrs["full_antenna_list"], position_name
+        locit_params, position_mds.root.attrs["full_antenna_list"]
     )
     locit_params["ddi_dict"] = ddi_dict
 

@@ -380,7 +380,8 @@ def fringefit_locit(
     )
 
 
-def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name):
+def fringefit_locit_looping_dict(locit_parms, full_antenna_list):
+    fringefit_caltable = locit_parms["fringefit_caltable"]
     main_table = ctables.table(
         f"{fringefit_caltable}",
         readonly=True,
@@ -395,6 +396,17 @@ def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name
     field = main_table.getcol("FIELD_ID")
 
     delays = fparam[:, 0, 1::4] * 1e-9
+    if locit_parms["ant"] == "all":
+        looping_ant_list = full_antenna_list
+    else:
+        if isinstance(locit_parms["ant"], str):
+            user_ant_list = [locit_parms["ant"]]
+        else:
+            user_ant_list = locit_parms["ant"]
+        looping_ant_list = []
+        for ant_name in user_ant_list:
+            if ant_name in full_antenna_list:
+                looping_ant_list.append(ant_name)
 
     unq_refants = np.unique(ant2)
     refant_id = unq_refants[0]
@@ -403,11 +415,13 @@ def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name
             "More than one refant not supported dropping data with alternative reference antennas"
         )
     ant2_sel = ant2 == refant_id
-    refant_name = antenna_list[refant_id]
+    refant_name = full_antenna_list[refant_id]
     looping_dict = {}
     unq_ants_in_data = np.unique(ant1)
     for ant_id in unq_ants_in_data:
-        ant_name = antenna_list[ant_id]
+        ant_name = full_antenna_list[ant_id]
+        if ant_name not in looping_ant_list:
+            continue
         ant_key = f"ant_{ant_name}"
         ant_selection = np.logical_and(ant1 == ant_id, ant2_sel)
 
@@ -421,7 +435,7 @@ def fringefit_locit_looping_dict(fringefit_caltable, antenna_list, position_name
             looping_dict[ant_key] = this_ant_data
         else:
             logger.warning(f"No valid delay data for {ant_name}")
-            shutil.rmtree(f"{position_name}/{ant_key}")
+            shutil.rmtree(f"{locit_parms['position_name']}/{ant_key}")
     return looping_dict, refant_name
 
 

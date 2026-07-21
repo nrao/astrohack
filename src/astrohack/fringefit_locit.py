@@ -28,6 +28,83 @@ def fringefit_locit(
     parallel: bool = True,
     overwrite: bool = False,
 ):
+    """
+    Extract delays from a fringefit cal table and fit them with a delay model to obtain rough antenna position corrections
+
+    :param fringefit_caltable: fringefit cal table containing delays for all or most sources in a pointing observation.
+    :type fringefit_caltable: str
+
+    :param position_name: Name of *<position_name>.position.zarr* file to create. Defaults to fringefit cal table name \
+    with *position.zarr* extension.
+    :type position_name: str, optional
+
+    :param elevation_limit: Lower elevation limit for excluding sources in degrees.
+    :type elevation_limit: float, optional
+
+    :param polarization: Which polarization to use R, L or both for circular systems, X, Y, or both for linear systems.
+    :type polarization: str, optional
+
+    :param fit_kterm: Fit antenna elevation axis offset term, defaults to False
+    :type fit_kterm: bool, optional
+
+    :param fit_delay_rate: Fit delay rate with time, defaults to False
+    :type fit_delay_rate: bool, optional
+
+    :param fit_engine: What engine to use on fitting, default is scipy
+    :type fit_engine: str, optional
+
+    :param ant: List of antennas/antenna to be processed, defaults to "all" when None, ex. ea25
+    :type ant: list or str, optional
+
+    :param ddi: List of ddis/ddi to be processed, defaults to "all" when None, ex. 0
+    :type ddi: list or int, optional
+
+    :param parallel: Run in parallel. Defaults to False.
+    :type parallel: bool, optional
+
+    :param overwrite: Boolean for whether to overwrite current position.zarr file, defaults to False.
+    :type overwrite: bool, optional
+
+    :return: Antenna position object.
+    :rtype: AstrohackPositionFile
+
+    .. _Description:
+
+    **AstrohackPositionFile**
+    Position object allows the user to access position data via compound dictionary keys with values, in order of depth,
+    `ant`. The position object also provides a `summary()` helper function to list available keys for each file.
+    An outline of the position object structure is show below:
+
+    .. parsed-literal::
+        position_mds =
+        {
+            ant_0: position_ds,
+            ⋮
+            ant_n: position_ds
+        }
+
+
+    **Additional Information**
+
+    .. rubric:: Available fitting engines:
+
+    For fringefit_locit two fitting engines have been implemented, one the classic method used in AIPS is called here
+    'linear algebra' and a newer more pythonic engine using scipy curve fitting capabilities, which we call
+    scipy, more details below.
+
+    * linear algebra: This fitting engine is based on the least square methods for solving linear systems, \
+                      this engine is fast, about one order of magnitude faster than scipy,  but may fail to \
+                      converge, also its uncertainties may be underestimated.
+
+    * scipy: This fitting engine uses the well established scipy.optimize.curve_fit routine. This engine is \
+             slower than the linear algebra engine, but it is more robust with better estimated uncertainties.
+
+    .. rubric:: Choosing a polarization
+
+    The position fit may be done on either polarization (R or L for the VLA, X or Y for ALMA) or for both polarizations
+    at once. When choosing both polarizations we increase the robustness of the solution by doubling the amount of data
+    fitted.
+    """
     position_name = get_default_file_name(
         fringefit_caltable, ".position.zarr", position_name
     )

@@ -239,6 +239,7 @@ def main():
         # "unit/mdses/test_image_mds.py",
         # "unit/mdses/test_locit_mds.py",
         # "stakeholder/test_stakeholder_vla.py",
+        "unit/user_facing_functions/test_locit.py",
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

@@ -50,8 +50,15 @@ def fringefit_locit(
     looping_dict, refant_name = fringefit_locit_looping_dict(
         fringefit_caltable, position_mds.root.attrs["full_antenna_list"], position_name
     )
+    locit_params["ddi_dict"] = ddi_dict
 
-    position_mds.root.attrs.update({"combined": True, "reference_antenna": refant_name})
+    position_mds.root.attrs.update(
+        {
+            "combined": True,
+            "reference_antenna": refant_name,
+            "combine_specifier": "fringefit",
+        }
+    )
 
     executed_graph = create_and_execute_graph_from_dict(
         looping_dict=looping_dict,

@@ -13,6 +13,7 @@ from astrohack.utils.constants import clight
 import toolviper.utils.logger as logger
 
 from astrohack.utils.conversion import convert_unit
+from astrohack.utils.pipeline_support import make_dict_str_simple
 from astrohack.utils.text import fixed_format_error, create_pretty_table
 
 
@@ -441,9 +442,6 @@ def _match_delays_to_coordinates(
     else:
         raise ValueError(f"Polarization selection ({user_pol_sel}) not recognized")
 
-    ant_name = ant_info["name"]
-    logger.info(f"Matching sky coords to delays for {ant_name}")
-
     geo_pos = ant_info["geocentric_position"]
     ant_location = EarthLocation.from_geocentric(
         geo_pos[0],
@@ -470,6 +468,7 @@ def _match_delays_to_coordinates(
     n_pol = len(pol_sel)
     coordinate_array = np.zeros((4, n_pol * n_rows))
     delay_array = np.zeros(n_pol * n_rows)
+    lst_array = np.zeros(n_pol * n_rows)
     for i_pol in pol_sel:
         f_row = i_pol * n_rows
         l_row = (i_pol + 1) * n_rows
@@ -478,9 +477,25 @@ def _match_delays_to_coordinates(
         coordinate_array[2, f_row:l_row] = altaz_coords.alt.rad
         coordinate_array[3, f_row:l_row] = ant_time - init_time
         delay_array[f_row:l_row] = ant_delays[:, i_pol]
+        lst_array[f_row:l_row] = lst
 
     el_selection = coordinate_array[2, :] >= el_limit
-    return coordinate_array[:, el_selection], delay_array[el_selection]
+    return (
+        coordinate_array[:, el_selection],
+        delay_array[el_selection],
+        lst_array,
+        el_limit,
+    )
+
+
+def _get_average_freq(ddi_dict):
+    freqs = []
+    bws = []
+    for key, value in ddi_dict.items():
+        freqs.append(value["frequency"])
+        bws.append(value["bandwidth"][0])
+    average_freq = np.average(freqs, weights=bws)
+    return average_freq
 
 
 def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
@@ -488,18 +503,21 @@ def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
         _solve_linear_algebra,
         _solve_scipy_optimize_curve_fit,
         _compute_chi_squared,
+        _create_output_xds,
     )
 
+    ddi_dict = locit_parms["ddi_dict"]
     ant_order = [locit_parms["this_ant"]]
     current_xds = output_mds.open_subset(ant_order)
     antenna_info = current_xds.attrs["antenna_info"]
     src_dict = output_mds.root.attrs["source_dict"]
     ant_name = antenna_info["name"]
-    ant_id = antenna_info["id"]
+    logger.info(f"Processing {ant_name}")
+
     delay_dict = locit_parms["dic_data"]
     init_time = output_mds.root.attrs["time_range"][0]
-
-    coordinates, delays = _match_delays_to_coordinates(
+    average_freq = _get_average_freq(ddi_dict)
+    coordinates, delays, lst, el_limit = _match_delays_to_coordinates(
         locit_parms, src_dict, antenna_info, delay_dict, init_time
     )
     fit_kterm = locit_parms["fit_kterm"]
@@ -514,7 +532,18 @@ def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
         delays, fit, coordinates, fit_kterm, fit_delay_rate
     )
 
-    current_xds["DELAY"] = xr.DataArray(np.array([1]), dims=["time"])
-
+    current_xds = _create_output_xds(
+        coordinates,
+        lst,
+        delays,
+        fit,
+        variance,
+        chi2,
+        model,
+        locit_parms,
+        average_freq,
+        el_limit,
+        antenna_info,
+    )
     output_mds.add_node(current_xds, ant_order)
     return

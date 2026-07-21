@@ -15,6 +15,15 @@ from astrohack.utils.conversion import convert_unit
 def fringefit_locit_looping_dict(
     locit_parms: dict, full_antenna_list: list
 ) -> tuple[dict, str]:
+    """
+    Create looping dictionary for fringefit locit
+    Args:
+        locit_parms: Input parameters to fringefit locit
+        full_antenna_list: Full list of antenna names
+
+    Returns:
+        tuple containing: the looping dictionary and the reference antenna name
+    """
     fringefit_caltable = locit_parms["fringefit_caltable"]
     main_table = ctables.table(
         f"{fringefit_caltable}",
@@ -81,6 +90,20 @@ def _match_delays_to_coordinates(
     init_time: float,
     ddi_dict: dict,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, list]:
+    """
+    Match delays to coordinates
+    Args:
+        locit_parms: Input parameters for fringefit locit.
+        field_dict: Dictionary containing the sources in the fringefit cal table.
+        ant_info: Dictionary containing the information about the antenna being processed.
+        delay_dict: Dictionary containing the delay information for the antenna being processed.
+        init_time: Initial time of the observations.
+        ddi_dict: Dictionary containing the spectral window information.
+
+    Returns:
+        a tuple containing: the [n,4] coordinates array, [n] delay array, [n] LST array, Elevation limit in \
+        rad, list of used spws.
+    """
     user_pol_sel = locit_parms["polarization"]
     el_limit = (
         convert_unit("deg", "rad", "trigonometric") * locit_parms["elevation_limit"]
@@ -153,6 +176,15 @@ def _match_delays_to_coordinates(
 
 
 def _get_average_freq(ddi_dict: dict, used_ddis: list) -> float:
+    """
+    Compute the average frequency among the used ddis weighted by bandwidth.
+    Args:
+        ddi_dict: Dictionary containing spw information
+        used_ddis: List of effectively used ddis
+
+    Returns:
+        average_freq: float
+    """
     freqs = []
     bws = []
     for key, value in ddi_dict.items():
@@ -164,6 +196,15 @@ def _get_average_freq(ddi_dict: dict, used_ddis: list) -> float:
 
 
 def fringefit_locit_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
+    """
+    Chunk function for fringefit locit
+    Args:
+        locit_parms: input parameters for fringefit locit
+        output_mds: The output AstrohackPositionFile onto which to add this antenna's xds.
+
+    Returns:
+        Antenna xds saved to disk.
+    """
     from astrohack.core.locit import (
         _solve_linear_algebra,
         _solve_scipy_optimize_curve_fit,

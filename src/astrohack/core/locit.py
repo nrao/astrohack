@@ -73,11 +73,7 @@ def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
                     ant_xdt = xr.DataTree(name=f"{ant_key}")
                     ant_xdt.attrs["antenna_info"] = antenna_info
                     ant_xdt = ant_xdt.assign(
-                        {
-                            f"{ant_key}-{ddi_key}": xr.DataTree(
-                                dataset=out_xds, name=f"{ddi_key}"
-                            )
-                        }
+                        {f"{ddi_key}": xr.DataTree(dataset=out_xds, name=f"{ddi_key}")}
                     )
                     output_mds.add_node(ant_xdt, [ant_key])
                 else:

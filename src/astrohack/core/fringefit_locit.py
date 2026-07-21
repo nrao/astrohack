@@ -12,7 +12,9 @@ import toolviper.utils.logger as logger
 from astrohack.utils.conversion import convert_unit
 
 
-def fringefit_locit_looping_dict(locit_parms, full_antenna_list):
+def fringefit_locit_looping_dict(
+    locit_parms: dict, full_antenna_list: list
+) -> tuple[dict, str]:
     fringefit_caltable = locit_parms["fringefit_caltable"]
     main_table = ctables.table(
         f"{fringefit_caltable}",
@@ -72,8 +74,13 @@ def fringefit_locit_looping_dict(locit_parms, full_antenna_list):
 
 
 def _match_delays_to_coordinates(
-    locit_parms, field_dict, ant_info, delay_dict, init_time, ddi_dict
-):
+    locit_parms: dict,
+    field_dict: dict,
+    ant_info: dict,
+    delay_dict: dict,
+    init_time: float,
+    ddi_dict: dict,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, list]:
     user_pol_sel = locit_parms["polarization"]
     el_limit = (
         convert_unit("deg", "rad", "trigonometric") * locit_parms["elevation_limit"]
@@ -145,18 +152,18 @@ def _match_delays_to_coordinates(
     )
 
 
-def _get_average_freq(ddi_dict, used_ddis):
+def _get_average_freq(ddi_dict: dict, used_ddis: list) -> float:
     freqs = []
     bws = []
     for key, value in ddi_dict.items():
         if key in used_ddis:
             freqs.append(value["frequency"])
             bws.append(value["bandwidth"][0])
-    average_freq = np.average(freqs, weights=bws)
+    average_freq = float(np.average(freqs, weights=bws))
     return average_freq
 
 
-def fringefit_locit_chunk(locit_parms, output_mds: AstrohackPositionFile):
+def fringefit_locit_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     from astrohack.core.locit import (
         _solve_linear_algebra,
         _solve_scipy_optimize_curve_fit,

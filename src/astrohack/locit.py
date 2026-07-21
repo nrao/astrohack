@@ -30,16 +30,16 @@ def locit(
     overwrite: bool = False,
 ):
     """
-    Extract Antenna position determination data from an MS and stores it in a locit output file.
+    Process phases from a locit file to obtain antenna position corrections which are stores in a position file.
 
     :param locit_name: Name of input *.locit.zarr file.
     :type locit_name: str
 
-    :param position_name: Name of *<position_name>.position.zarr* file to create. Defaults to measurement set name \
+    :param position_name: Name of *<position_name>.position.zarr* file to create. Defaults to locit name \
     with *position.zarr* extension.
     :type position_name: str, optional
 
-    :param elevation_limit: Lower elevation limit for excluding sources in degrees
+    :param elevation_limit: Lower elevation limit for excluding sources in degrees.
     :type elevation_limit: float, optional
 
     :param polarization: Which polarization to use R, L or both for circular systems, X, Y, or both for linear systems.
@@ -97,6 +97,7 @@ def locit(
         position_mds =
         {
             ant_0: position_ds
+            ⋮
             ant_n: position_ds
         }
 

@@ -1,4 +1,5 @@
 import xarray as xr
+import numpy as np
 
 from matplotlib import patches
 
@@ -9,7 +10,7 @@ from astrohack.utils.algorithms import (
     data_statistics,
     phase_wrapping,
 )
-from astrohack.utils.constants import *
+from astrohack.utils.constants import clight, fourpi
 from astrohack.utils.conversion import to_db
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.text import (
@@ -242,7 +243,7 @@ class AntennaSurface:
         while fraction_in < threshold:
             clip *= multiplier
             data_in = np.where(in_disk_amp > clip, 1.0, 0.0)
-            fraction_in = np.sum(data_in) / n_in_disk
+            fraction_in = float(np.sum(data_in)) / n_in_disk
             multiplier *= step_multiplier
 
         return clip
@@ -499,8 +500,8 @@ class AntennaSurface:
             raise ValueError("Map list and label list must be of the same size")
         nplots = len(maps)
         if parm_dict["z_lim"] is None or parm_dict["z_lim"] == "None":
-            vmax = np.nanmax(
-                np.abs(factor * maps[0])
+            vmax = float(
+                np.nanmax(np.abs(factor * maps[0]))
             )  # Gotten from the original map (displays the biggest variation)
             parm_dict["z_lim"] = [-vmax, vmax]
         for iplot in range(nplots):
@@ -587,7 +588,7 @@ class AntennaSurface:
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
 
         fac = convert_unit("m", unit, "length")
-        vmax = np.nanmax(np.abs(fac * self.screw_adjustments))
+        vmax = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
         vmin = -vmax
         if threshold is None or threshold == "None":
             threshold = 0.1 * vmax

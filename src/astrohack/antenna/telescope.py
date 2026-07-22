@@ -1,14 +1,14 @@
 from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.strtree import STRtree
-
+import numpy as np
 import pathlib
 
 import xarray as xr
 import toolviper.utils.logger as logger
 
 from astrohack.antenna.polygon_panel import PolygonPanel
-from astrohack.utils.constants import *
+from astrohack.utils.constants import twopi, fourpi
 from astrohack.antenna.ring_panel import RingPanel
 from astrohack.utils.algorithms import create_coordinate_images, arm_shadow_masking
 from astrohack.utils.ray_tracing_general import GlobalQPS

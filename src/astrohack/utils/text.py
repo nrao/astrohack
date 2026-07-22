@@ -112,6 +112,7 @@ def get_default_file_name(
         known_data_types = [
             ".ms",
             ".cal",
+            ".sbd",
             ".point.zarr",
             ".holog.zarr",
             ".image.zarr",

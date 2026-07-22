@@ -23,7 +23,7 @@ matplotlib.use("Agg")
 class TestpanelMDS:
     data_dir = "panel_data"
     destination_folder = "panel_exports"
-    ref_products_name = f"ref_panel_products"
+    ref_products_name = "ref_panel_products"
 
     pnl_name = "ea25_before_reference.panel.zarr"
 

@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 class TestHologMDS:
     data_dir = "holog_data"
     destination_folder = "holog_exports"
-    ref_products_name = f"ref_holog_products"
+    ref_products_name = "ref_holog_products"
 
     hlg_name = "ea25_cal_small_before_reference.holog.zarr"
 

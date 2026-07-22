@@ -1,6 +1,5 @@
 import shutil
 import matplotlib
-import sys
 
 from toolviper.utils import data
 import pytest
@@ -25,7 +24,7 @@ matplotlib.use("Agg")
 class TestPositionMDS:
     data_dir = "position_data"
     destination_folder = "position_exports"
-    ref_products_name = f"ref_position_products"
+    ref_products_name = "ref_position_products"
 
     phase_cal_table_name = "locit-input-pha.cal"
     locit_name = "ant-pos.locit.zarr"

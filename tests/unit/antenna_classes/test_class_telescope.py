@@ -26,6 +26,7 @@ class TestClassTelescope:
 
         with pytest.raises(Exception):
             vla_ns = get_proper_telescope("vla", self.silly_name)
+            del vla_ns
 
         ngvla = get_proper_telescope("VLA", "na")
         assert (
@@ -46,6 +47,7 @@ class TestClassTelescope:
 
         with pytest.raises(Exception):
             alma_ns = get_proper_telescope("ALMA", self.silly_name)
+            del alma_ns
 
         new_tel = get_proper_telescope(self.silly_name)
         assert new_tel is None, "Nonsense telescope name does not return None"

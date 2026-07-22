@@ -28,7 +28,7 @@ from astrohack.utils.constants import (
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.tools import get_telescope_lat_lon_rad
-from astrohack.visualization import (
+from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
     close_figure,

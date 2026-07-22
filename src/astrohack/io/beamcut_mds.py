@@ -13,8 +13,12 @@ from astrohack.utils.text import (
     create_informative_label_from_summary,
 )
 from astrohack.utils.conversion import to_db, convert_unit
-from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
-from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
+from astrohack.visualization.plot_tools import (
+    set_y_axis_lims_from_default,
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
+)
 
 from astrohack.visualization.observation_summary import (
     generate_observation_summary,

@@ -462,6 +462,8 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         position_mds.export_locit_fit_results,
         position_mds.export_results_to_parminator,
     ]
+    position_mds.print_source_table(save_to=f"{param_dict['exports_name']}/source_table.txt")
+    position_mds.print_array_configuration(save_to=f"{param_dict['exports_name']}/array_configuration.txt")
     for plot_method in plotting_methods:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, plot_method, msger
@@ -696,9 +698,9 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     del pos_mds
 
     images_to_include = {
-        "locit_source_table_fk5.png": "Source positions over the sky",
-        "locit_array_configuration.png": "VLA configuration during observation",
-        f"position_corrections_combined_{combination_word}.png": "Graphical representation of antenna position corrections",
+        "locit_source_table_fk5.png": ["Source positions over the sky", f"{param_dict['exports_name']}/source_table.txt"],
+        "locit_array_configuration.png": ["VLA configuration during observation", f"{param_dict['exports_name']}/array_configuration.txt"],
+        f"position_corrections_combined_{combination_word}.png": ["Graphical representation of antenna position corrections", None]
     }
 
     report_title = f"Baseline Report for {param_dict['filename']}"
@@ -706,11 +708,16 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
 
     html_body += add_basic_info_and_parameters_to_report(param_dict)
 
-    for image_file, image_desc in images_to_include.items():
+    for image_file, image_contents in images_to_include.items():
+        image_desc = image_contents[0]
+        accompanying_table = image_contents[1]
         image_path = f"{exports_name}/{image_file}"
         html_body += (
             f"{create_single_html_image_with_header(image_path, image_desc)}{lnbr}"
         )
+        if accompanying_table is not None:
+            html_body += add_preformatted_text_file_to_html(accompanying_table, "",)
+
 
     html_body += add_preformatted_text_file_to_html(
         f"{exports_name}/position_combined_{combination_word}_fit_results.txt",

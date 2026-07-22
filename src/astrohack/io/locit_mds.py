@@ -45,9 +45,14 @@ class AstrohackLocitFile(AstrohackBaseFile):
         """
         super().__init__(file=file)
 
-    def print_source_table(self) -> None:
-        """Prints a table with the sources observed for antenna location determination"""
-        print(f"{lnbr}Sources:")
+    @toolviper.utils.parameter.validate()
+    def print_source_table(self, save_to:str|None = None) -> None:
+        """Prints a table with the sources observed for antenna location determination
+
+        :param save_to: File to save the table to
+        :type save_to: str, optional
+        """
+
         field_names = [
             "Id",
             "Name",
@@ -70,14 +75,21 @@ class AstrohackLocitFile(AstrohackBaseFile):
                     rad_to_deg_str(source["precessed"][1]),
                 ]
             )
-        print(table)
+        out_str = f"{lnbr}Sources:{lnbr}"
+        out_str += table.get_string()
+        print(out_str)
+        if save_to is not None:
+            with open(save_to, "w") as out_file:
+                out_file.write(out_str)
 
     @toolviper.utils.parameter.validate()
-    def print_array_configuration(self, relative: bool = True) -> None:
+    def print_array_configuration(self, relative: bool = True, save_to: str | None = None) -> None:
         """Prints a table containing the array configuration
 
         :param relative: Print antenna coordinates relative to array center or in geocentric coordinates, default is True
         :type relative: bool, optional
+        :param save_to: File to save the table to
+        :type save_to: str, optional
 
         .. _Description:
 
@@ -90,9 +102,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         telescope_name = self.root.attrs["telescope_name"]
         telescope = get_proper_telescope(telescope_name)
 
-        print(
-            f"{lnbr}{telescope_name} antennas, # of antennas {len(self.root.keys())}:"
-        )
+        out_str = f"{lnbr}{telescope_name} antennas, # of antennas {len(self.root.keys())}:{lnbr}"
         if relative:
             nfields = 5
             field_names = [
@@ -141,8 +151,11 @@ class AstrohackLocitFile(AstrohackBaseFile):
                     row.append(notavail)
 
             table.add_row(row)
-
-        print(table)
+        out_str += table.get_string()
+        print(out_str)
+        if save_to is not None:
+            with open(save_to, "w") as out_file:
+                out_file.write(out_str)
         return
 
     @toolviper.utils.parameter.validate()

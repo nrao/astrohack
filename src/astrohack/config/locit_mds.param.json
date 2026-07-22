@@ -1,9 +1,21 @@
 {
+    "AstrohackLocitFile.print_source_table": {
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        }
+    },
     "AstrohackLocitFile.print_array_configuration":{
         "relative":{
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
         }
     },
     "AstrohackLocitFile.plot_source_positions":{
@@ -92,11 +104,23 @@
             "max": 1200
         }
     },
+    "AstrohackPositionFile.print_source_table": {
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        }
+    },
     "AstrohackPositionFile.print_array_configuration":{
         "relative":{
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
         }
     },
     "AstrohackPositionFile.plot_source_positions":{

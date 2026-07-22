@@ -683,7 +683,10 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     msger.one_liner("Preparing report...")
     start = time.time()
     exports_name = param_dict["exports_name"]
-    combination_word = param_dict["combination"]
+    pos_mds = open_position(param_dict["position_name"])
+    combination_word = pos_mds.root.attrs["combine_specifier"]
+    del pos_mds
+
     images_to_include = {
         "locit_source_table_fk5.png": "Source positions over the sky",
         "locit_array_configuration.png": "VLA configuration during observation",

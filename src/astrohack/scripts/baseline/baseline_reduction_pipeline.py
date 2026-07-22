@@ -125,6 +125,14 @@ def parse():
     )
 
     parser.add_argument(
+        "-dr",
+        "--fit-delay-rate",
+        action="store_true",
+        default=False,
+        help="Fit delay rate"
+    )
+
+    parser.add_argument(
         "-l",
         "--delay-limits",
         type=float,
@@ -416,7 +424,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "ddi": param_dict["spw"],
         "overwrite": param_dict["overwrite"],
         "fit_kterm": param_dict["fit_kterm"],
-        "fit_delay_rate": True,
+        "fit_delay_rate": param_dict["fit_delay_rate"],
         "elevation_limit": param_dict["elevation_limit"],
         "polarization": param_dict["polarization"],
         "combine_ddis": param_dict["combination"],

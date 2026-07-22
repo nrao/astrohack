@@ -155,14 +155,14 @@ def _match_delays_to_coordinates(
     coordinate_array = np.zeros((4, n_pol * n_rows))
     delay_array = np.zeros(n_pol * n_rows)
     lst_array = np.zeros(n_pol * n_rows)
-    for i_pol in pol_sel:
+    for i_pol, pol_id in enumerate(pol_sel):
         f_row = i_pol * n_rows
         l_row = (i_pol + 1) * n_rows
         coordinate_array[0, f_row:l_row] = hour_angle.value
         coordinate_array[1, f_row:l_row] = skycoords.dec.rad
         coordinate_array[2, f_row:l_row] = altaz_coords.alt.rad
         coordinate_array[3, f_row:l_row] = ant_time - init_time
-        delay_array[f_row:l_row] = ant_delays[:, i_pol]
+        delay_array[f_row:l_row] = ant_delays[:, pol_id]
         lst_array[f_row:l_row] = lst
 
     el_selection = coordinate_array[2, :] >= el_limit

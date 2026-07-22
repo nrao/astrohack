@@ -5,7 +5,6 @@ import toolviper
 import pytest
 import pathlib
 
-import numpy as np
 
 from astrohack import open_position
 from astrohack.locit import locit

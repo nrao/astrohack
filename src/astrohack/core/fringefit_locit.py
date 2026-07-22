@@ -127,7 +127,7 @@ def _match_delays_to_coordinates(
             used_ddis.append(ddi)
         ddi_sel = np.logical_or(this_ddi_sel, ddi_sel)
 
-    ant_time = delay_dict["time"][ddi_sel]
+    ant_time = delay_dict["time"][ddi_sel] / 86400
     ant_fields = delay_dict["fields"][ddi_sel]
     ant_delays = delay_dict["delays"][ddi_sel]
 
@@ -141,14 +141,14 @@ def _match_delays_to_coordinates(
     j2000_radec = np.zeros_like(ant_delays)
     for row, atime in enumerate(ant_time):
         j2000_radec[row, :] = field_dict[ant_fields[row]]["fk5"]
-    ant_times = Time(ant_time / 86400, format="mjd", scale="utc", location=ant_location)
+    astropy_times = Time(ant_time, format="mjd", scale="utc", location=ant_location)
     skycoords = SkyCoord(
         ra=j2000_radec[:, 0] * u.rad, dec=j2000_radec[:, 1] * u.rad, frame="icrs"
-    ).transform_to(CIRS(obstime=ant_times))
-    lst = ant_times.sidereal_time("apparent").to(u.rad) / u.rad
+    ).transform_to(CIRS(obstime=astropy_times))
+    lst = astropy_times.sidereal_time("apparent").to(u.rad) / u.rad
     ra = skycoords.ra.rad
     hour_angle = lst - ra
-    altaz_frame = AltAz(location=ant_location, obstime=ant_times)
+    altaz_frame = AltAz(location=ant_location, obstime=astropy_times)
     altaz_coords = skycoords.transform_to(altaz_frame)
     n_rows = ant_time.shape[0]
     n_pol = len(pol_sel)

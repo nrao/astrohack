@@ -287,7 +287,6 @@ def plot_boxes_limits_and_labels(
     outerax.set_ylabel(ylabel)
     outerax.plot(0, 0, marker=marker, color=marker_color)
 
-
     box = Rectangle(
         (-half_box, -half_box),
         box_size,

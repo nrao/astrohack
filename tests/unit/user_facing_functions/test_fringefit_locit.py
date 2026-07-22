@@ -15,7 +15,6 @@ from astrohack.utils.verification_tools import (
 )
 
 
-
 class TestFringeFitLocit:
     data_dir = "fringefit_locit_data"
 
@@ -52,7 +51,9 @@ class TestFringeFitLocit:
         Run locit with a specified locit_name and expect a file to be created on disk.
         """
 
-        new_pos_mds = fringefit_locit(fringefit_caltable=self.fringefit_name, overwrite=True)
+        new_pos_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name, overwrite=True
+        )
         assert pathlib.Path(
             self.def_pos_name
         ).is_dir(), f"A .position.zarr file named {self.def_pos_name} does not exist."

@@ -46,7 +46,7 @@ class AstrohackLocitFile(AstrohackBaseFile):
         super().__init__(file=file)
 
     @toolviper.utils.parameter.validate()
-    def print_source_table(self, save_to:str|None = None) -> None:
+    def print_source_table(self, save_to: str | None = None) -> None:
         """Prints a table with the sources observed for antenna location determination
 
         :param save_to: File to save the table to
@@ -83,7 +83,9 @@ class AstrohackLocitFile(AstrohackBaseFile):
                 out_file.write(out_str)
 
     @toolviper.utils.parameter.validate()
-    def print_array_configuration(self, relative: bool = True, save_to: str | None = None) -> None:
+    def print_array_configuration(
+        self, relative: bool = True, save_to: str | None = None
+    ) -> None:
         """Prints a table containing the array configuration
 
         :param relative: Print antenna coordinates relative to array center or in geocentric coordinates, default is True

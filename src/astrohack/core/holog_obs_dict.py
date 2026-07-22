@@ -13,6 +13,7 @@ from astrohack.utils.text import get_data_name
 def _add_prefix_to_keys(prefix, key_list):
     def add_prefix_lambda(list_item):
         return f"{prefix}_{list_item}"
+
     return list(map(add_prefix_lambda, key_list))
 
 

@@ -30,7 +30,11 @@ from astrohack.utils.text import (
     add_heading_to_html,
     make_collapsible_block,
 )
-from astrohack.visualization.plot_tools import filter_duplicates_in_legend,create_figure_and_axes, close_figure
+from astrohack.visualization.plot_tools import (
+    filter_duplicates_in_legend,
+    create_figure_and_axes,
+    close_figure,
+)
 
 
 def parse():
@@ -129,7 +133,7 @@ def parse():
         "--fit-delay-rate",
         action="store_true",
         default=False,
-        help="Fit delay rate"
+        help="Fit delay rate",
     )
 
     parser.add_argument(
@@ -179,7 +183,7 @@ def parse():
         "--use-fringefit-locit",
         action="store_true",
         default=False,
-        help="Use fringefit_locit to determine very large errors (> 3 meters) in antenna positions (EXPERIMENTAL)"
+        help="Use fringefit_locit to determine very large errors (> 3 meters) in antenna positions (EXPERIMENTAL)",
     )
 
     return vars(parser.parse_args())
@@ -239,7 +243,10 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
     initialization_check(param_dict, "Baseline determination parameters")
     if param_dict["use_fringefit_locit"] and param_dict["antenna"] == "all":
-        proceed_check(param_dict, "Fringefit using all antennas and all fields may take a LONG time, proceed?")
+        proceed_check(
+            param_dict,
+            "Fringefit using all antennas and all fields may take a LONG time, proceed?",
+        )
 
     return param_dict
 
@@ -462,8 +469,12 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         position_mds.export_locit_fit_results,
         position_mds.export_results_to_parminator,
     ]
-    position_mds.print_source_table(save_to=f"{param_dict['exports_name']}/source_table.txt")
-    position_mds.print_array_configuration(save_to=f"{param_dict['exports_name']}/array_configuration.txt")
+    position_mds.print_source_table(
+        save_to=f"{param_dict['exports_name']}/source_table.txt"
+    )
+    position_mds.print_array_configuration(
+        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
+    )
     for plot_method in plotting_methods:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, plot_method, msger
@@ -698,9 +709,18 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     del pos_mds
 
     images_to_include = {
-        "locit_source_table_fk5.png": ["Source positions over the sky", f"{param_dict['exports_name']}/source_table.txt"],
-        "locit_array_configuration.png": ["VLA configuration during observation", f"{param_dict['exports_name']}/array_configuration.txt"],
-        f"position_corrections_combined_{combination_word}.png": ["Graphical representation of antenna position corrections", None]
+        "locit_source_table_fk5.png": [
+            "Source positions over the sky",
+            f"{param_dict['exports_name']}/source_table.txt",
+        ],
+        "locit_array_configuration.png": [
+            "VLA configuration during observation",
+            f"{param_dict['exports_name']}/array_configuration.txt",
+        ],
+        f"position_corrections_combined_{combination_word}.png": [
+            "Graphical representation of antenna position corrections",
+            None,
+        ],
     }
 
     report_title = f"Baseline Report for {param_dict['filename']}"
@@ -716,8 +736,10 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
             f"{create_single_html_image_with_header(image_path, image_desc)}{lnbr}"
         )
         if accompanying_table is not None:
-            html_body += add_preformatted_text_file_to_html(accompanying_table, "",)
-
+            html_body += add_preformatted_text_file_to_html(
+                accompanying_table,
+                "",
+            )
 
     html_body += add_preformatted_text_file_to_html(
         f"{exports_name}/position_combined_{combination_word}_fit_results.txt",

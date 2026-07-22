@@ -15,20 +15,19 @@ from astrohack.utils.verification_tools import (
 )
 
 
-@pytest.mark.skip(reason="This entire class is temporarily disabled")
+
 class TestFringeFitLocit:
     data_dir = "fringefit_locit_data"
 
-    fringefit_name = ""
+    fringefit_name = "fft_locit_input.sbd"
 
-    def_pos_name = ""
-    alt_pos_name = ""
-    ref_pos_name = ""
+    def_pos_name = "fft_locit_input.position.zarr"
+    alt_pos_name = "fft_locit_alt.position.zarr"
+    ref_pos_name = "fft_locit_reference.position.zarr"
 
-    ant_id = "ea17"
+    ant_id = "ea21"
     ant_key = f"ant_{ant_id}"
-    ddi_id = 0
-    ddi_key = f"ddi_{ddi_id}"
+    ddi_id = 1
 
     @classmethod
     def setup_class(cls):
@@ -53,7 +52,7 @@ class TestFringeFitLocit:
         Run locit with a specified locit_name and expect a file to be created on disk.
         """
 
-        new_pos_mds = fringefit_locit(locit_name=self.fringefit_name, overwrite=True)
+        new_pos_mds = fringefit_locit(fringefit_caltable=self.fringefit_name, overwrite=True)
         assert pathlib.Path(
             self.def_pos_name
         ).is_dir(), f"A .position.zarr file named {self.def_pos_name} does not exist."
@@ -74,7 +73,7 @@ class TestFringeFitLocit:
         if produce_reference_data():
             return
         new_pos_mds = fringefit_locit(
-            locit_name=self.fringefit_name,
+            fringefit_caltable=self.fringefit_name,
             position_name=self.alt_pos_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
@@ -109,7 +108,7 @@ class TestFringeFitLocit:
         if produce_reference_data():
             return
         position_mds = fringefit_locit(
-            locit_name=self.fringefit_name,
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             fit_kterm=True,
             parallel=False,
@@ -130,7 +129,7 @@ class TestFringeFitLocit:
         if produce_reference_data():
             return
         position_mds = fringefit_locit(
-            locit_name=self.fringefit_name,
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             fit_delay_rate=True,
             parallel=False,
@@ -151,7 +150,7 @@ class TestFringeFitLocit:
         if produce_reference_data():
             return
         new_pos_mds = fringefit_locit(
-            locit_name=self.fringefit_name,
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             elevation_limit=90.0,
             parallel=False,
@@ -168,17 +167,17 @@ class TestFringeFitLocit:
         """
         if produce_reference_data():
             return
-        pol_sel = "R"
-        position_mds = fringefit_locit(
-            locit_name=self.fringefit_name,
-            position_name=self.def_pos_name,
-            polarization=pol_sel,
-            parallel=False,
-            overwrite=True,
-        )
+        for pol in ["R", "L"]:
+            position_mds = fringefit_locit(
+                fringefit_caltable=self.fringefit_name,
+                position_name=self.def_pos_name,
+                polarization=pol,
+                parallel=False,
+                overwrite=True,
+            )
 
-        for ant in position_mds.keys():
-            assert position_mds[ant].polarization == pol_sel
+            for ant in position_mds.keys():
+                assert position_mds[ant].polarization == pol
 
     def test_overwrite(self):
         """
@@ -191,7 +190,7 @@ class TestFringeFitLocit:
         initial_time = os.path.getctime(self.def_pos_name)
 
         fringefit_locit(
-            locit_name=self.fringefit_name,
+            fringefit_caltable=self.fringefit_name,
             overwrite=True,
         )
         modified_time = os.path.getctime(self.def_pos_name)
@@ -201,6 +200,6 @@ class TestFringeFitLocit:
 
         with pytest.raises(FileExistsError):
             fringefit_locit(
-                locit_name=self.fringefit_name,
+                fringefit_caltable=self.fringefit_name,
                 overwrite=False,
             )

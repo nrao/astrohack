@@ -1,4 +1,3 @@
-import toolviper.utils.logger as logger
 import toolviper.utils.parameter
 
 from astrohack.utils.file import overwrite_file

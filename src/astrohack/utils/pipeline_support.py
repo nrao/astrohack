@@ -1,4 +1,3 @@
-import glob
 import inspect
 import pathlib
 import shutil
@@ -152,7 +151,7 @@ def parse_list_or_all(
         return "all"
     else:
         wrd_list = parameter_value.split(",")
-        if list_type != str:
+        if list_type is not str:
             wrd_list = [list_type(wrd) for wrd in wrd_list]
         if max_size is not None:
             if len(wrd_list) > max_size:

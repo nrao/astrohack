@@ -379,12 +379,12 @@ def grid_1d_data(
                 "interpolation."
             )
             if gaussian_fallback:
-                logger.warning(f"Falling back to Gaussian convolution.")
+                logger.warning("Falling back to Gaussian convolution.")
                 new_y_data, weights = _gaussian_convolution_1d_jit(
                     dest_ax, orig_ax, dest_delta, y_data
                 )
             else:
-                logger.warning(f"Fallback to gaussian convolution is off.")
+                logger.warning("Fallback to gaussian convolution is off.")
         else:
             logger.warning(
                 f"{orig_label} have produced NaNs when resampled onto {dest_label} using gaussian "

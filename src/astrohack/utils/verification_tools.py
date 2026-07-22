@@ -43,7 +43,7 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
 
             # Check if dimensions are the same
             if img1.size != img2.size:
-                return False, f"PNG sizes differ"
+                return False, "PNG sizes differ"
 
             # Calculate the difference between the images
             # This results in a new image where differing pixels are non-zero
@@ -56,7 +56,7 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
 
     except IOError as e:
         print(f"Error opening images: {e}")
-        return False, f"Failed opening images"
+        return False, "Failed opening images"
 
 
 def capture_prints_from_function(function, args=None):

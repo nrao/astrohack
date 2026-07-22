@@ -98,7 +98,7 @@ def extract_antenna_data(
 
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
-        msg = f"Unsupported antenna characteristics"
+        msg = "Unsupported antenna characteristics"
         logger.error(msg)
         raise RuntimeError(msg)
     return
@@ -151,7 +151,7 @@ def extract_spectral_info(extract_locit_parms):
             }
 
     if error:
-        msg = f"Unsupported DDI characteristics"
+        msg = "Unsupported DDI characteristics"
         logger.error(msg)
         raise RuntimeError(msg)
     return ddi_dict

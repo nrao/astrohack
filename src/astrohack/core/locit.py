@@ -1,5 +1,5 @@
 import pathlib
-
+import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -17,7 +17,7 @@ from astrohack.utils.text import (
 
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
-from astrohack.utils.constants import *
+from astrohack.utils.constants import twopi
 
 
 def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -231,7 +231,7 @@ def _delays_from_phase_differences(ddi_0, ddi_1):
         freq *= -1
         fields = ddi_1[0]
     else:
-        msg = f"The two DDIs must have different frequencies"
+        msg = "The two DDIs must have different frequencies"
         logger.error(msg)
         raise ValueError(msg)
 
@@ -398,10 +398,10 @@ def _get_data_from_locit_xds(
         raise ValueError(msg)
     elif pol_selection == "both":
         phases = [
-            xds_data[f"P0_PHASE_GAINS"].values,
-            xds_data[f"P1_PHASE_GAINS"].values,
+            xds_data["P0_PHASE_GAINS"].values,
+            xds_data["P1_PHASE_GAINS"].values,
         ]
-        field_id = [xds_data[f"P0_FIELD_ID"].values, xds_data[f"P1_FIELD_ID"].values]
+        field_id = [xds_data["P0_FIELD_ID"].values, xds_data["P1_FIELD_ID"].values]
         time = [xds_data.p0_time.values, xds_data.p1_time.values]
         if not split_pols:
             phases = np.concatenate(phases)

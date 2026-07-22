@@ -1,6 +1,5 @@
 from copy import deepcopy
 
-import numpy
 import toolviper.utils.logger as logger
 import numpy as np
 from scipy.optimize import curve_fit

@@ -19,7 +19,6 @@ from astrohack.utils.validation import (
 )
 from astrohack.utils.text import (
     format_label,
-    format_frequency,
     create_pretty_table,
     string_to_ascii_file,
     create_dataset_label,
@@ -710,7 +709,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
     """
 
     fig, axes = create_figure_and_axes(parm_dict["figure_size"], [1, 2])
-    norm_z_label = f"Z Scale [Normalized]"
+    norm_z_label = "Z Scale [Normalized]"
     x_label = f'L axis [{parm_dict["angle_unit"]}]'
     y_label = f'M axis [{parm_dict["angle_unit"]}]'
 

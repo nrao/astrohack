@@ -1,6 +1,8 @@
+import numpy as np
+
 import toolviper.utils.logger as logger
 
-from astrohack.utils.constants import *
+from astrohack.utils.constants import unit_dict, fact_dict
 from astrohack.utils.tools import get_str_idx_in_list
 
 

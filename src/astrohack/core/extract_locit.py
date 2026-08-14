@@ -8,19 +8,32 @@ from casacoretables import tables as ctables
 from astropy.coordinates import SkyCoord, CIRS
 from astropy.time import Time
 
+from astrohack.io.position_mds import AstrohackPositionFile
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
 from astrohack.utils.constants import twopi
 
 
-def extract_antenna_data(extract_locit_parms: dict, locit_mds: AstrohackLocitFile):
+def _get_caltable_name(extract_locit_parms):
+    if "cal_table" in extract_locit_parms:
+        cal_table = extract_locit_parms["cal_table"]
+    elif "fringefit_caltable" in extract_locit_parms:
+        cal_table = extract_locit_parms["fringefit_caltable"]
+    else:
+        raise KeyError("No caltable name found in paramter dictionary")
+    return cal_table
+
+
+def extract_antenna_data(
+    extract_locit_parms: dict, locit_mds: AstrohackLocitFile | AstrohackPositionFile
+):
     """
     Extract antenna information from the ANTENNA sub table of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
         locit_mds: Locit data file object
     """
-    cal_table = extract_locit_parms["cal_table"]
+    cal_table = _get_caltable_name(extract_locit_parms)
     ant_table = ctables.table(
         cal_table + "::ANTENNA",
         readonly=True,
@@ -85,7 +98,7 @@ def extract_antenna_data(extract_locit_parms: dict, locit_mds: AstrohackLocitFil
 
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
-        msg = f"Unsupported antenna characteristics"
+        msg = "Unsupported antenna characteristics"
         logger.error(msg)
         raise RuntimeError(msg)
     return
@@ -101,7 +114,7 @@ def extract_spectral_info(extract_locit_parms):
     DDI dictionary
     """
 
-    cal_table = extract_locit_parms["cal_table"]
+    cal_table = _get_caltable_name(extract_locit_parms)
     spw_table = ctables.table(
         cal_table + "::SPECTRAL_WINDOW",
         readonly=True,
@@ -111,6 +124,7 @@ def extract_spectral_info(extract_locit_parms):
     ref_freq = spw_table.getcol("REF_FREQUENCY")
     n_chan = spw_table.getcol("NUM_CHAN")
     bandwidth = spw_table.getcol("CHAN_WIDTH")
+    spw_names = spw_table.getcol("NAME")
     spw_table.close()
     n_ddi = len(ref_freq)
     error = False
@@ -133,23 +147,26 @@ def extract_spectral_info(extract_locit_parms):
                 "id": i_ddi,
                 "frequency": ref_freq[i_ddi],
                 "bandwidth": bandwidth[i_ddi],
+                "name": spw_names[i_ddi],
             }
 
     if error:
-        msg = f"Unsupported DDI characteristics"
+        msg = "Unsupported DDI characteristics"
         logger.error(msg)
         raise RuntimeError(msg)
     return ddi_dict
 
 
-def extract_source_and_telescope(extract_locit_parms, locit_mds):
+def extract_source_and_telescope(
+    extract_locit_parms, locit_mds: AstrohackLocitFile | AstrohackPositionFile
+):
     """
     Extract source and telescope  information from the FIELD and OBSERVATION sub tables of the cal table
     Args:
         extract_locit_parms: input_parameters to extract_locit
         locit_mds: Locit data file object
     """
-    cal_table = extract_locit_parms["cal_table"]
+    cal_table = _get_caltable_name(extract_locit_parms)
     src_table = ctables.table(
         cal_table + "::FIELD",
         readonly=True,
@@ -213,7 +230,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
         locit_mds: Locit data file object
     """
 
-    cal_table = extract_locit_parms["cal_table"]
+    cal_table = _get_caltable_name(extract_locit_parms)
 
     telescope_name = locit_mds.root.attrs["telescope_name"]
 

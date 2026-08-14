@@ -241,7 +241,7 @@ def put_axis_in_fits_header(header: dict, axis, iaxis, axistype, unit, iswcs=Tru
 
     if iswcs:
         wcsaxes += 1
-    outheader[f"WCSAXES"] = wcsaxes
+    outheader["WCSAXES"] = wcsaxes
     outheader[f"NAXIS{iaxis}"] = naxis
     outheader[f"CRVAL{iaxis}"] = val - inc
     outheader[f"CDELT{iaxis}"] = inc
@@ -268,7 +268,7 @@ def put_stokes_axis_in_fits_header(header, iaxis):
     except KeyError:
         wcsaxes = 0
     wcsaxes += 1
-    outheader[f"WCSAXES"] = wcsaxes
+    outheader["WCSAXES"] = wcsaxes
     outheader[f"NAXIS{iaxis}"] = 4
     outheader[f"CRVAL{iaxis}"] = 1.0
     outheader[f"CDELT{iaxis}"] = 1.0

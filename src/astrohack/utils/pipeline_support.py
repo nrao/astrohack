@@ -1,4 +1,3 @@
-import glob
 import inspect
 import pathlib
 import shutil
@@ -152,7 +151,7 @@ def parse_list_or_all(
         return "all"
     else:
         wrd_list = parameter_value.split(",")
-        if list_type != str:
+        if list_type is not str:
             wrd_list = [list_type(wrd) for wrd in wrd_list]
         if max_size is not None:
             if len(wrd_list) > max_size:
@@ -163,11 +162,15 @@ def parse_list_or_all(
 def make_dict_str_simple(the_dict, ident=4):
     key_len = 0
     for key in the_dict.keys():
+        if not isinstance(key, str):
+            key = str(key)
         if len(key) > key_len:
             key_len = len(key)
 
     outstr = ""
     for key, value in the_dict.items():
+        if not isinstance(key, str):
+            key = str(key)
         outstr += f"{ident*' '}{key:{key_len}s} => {value}{lnbr}"
     return outstr
 

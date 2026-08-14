@@ -24,12 +24,12 @@ def extract_locit(
     overwrite: bool = False,
 ):
     """
-    Extract Antenna position determination data from an MS and stores it in a locit output file.
+    Extract phases from a gaincal cal table and stores it in a locit output file.
 
     :param cal_table: Name of input measurement file name.
     :type cal_table: str
 
-    :param locit_name: Name of *<locit_name>.locit.zarr* file to create. Defaults to measurement set name \
+    :param locit_name: Name of *<locit_name>.locit.zarr* file to create. Defaults to cal table name \
     with *locit.zarr* extension.
     :type locit_name: str, optional
 

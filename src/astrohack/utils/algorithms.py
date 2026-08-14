@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 import scipy.signal as scisig
 import scipy.constants
@@ -369,7 +368,7 @@ def calculate_optimal_grid_parameters(
 
     except ZeroDivisionError:
         logger.error(
-            f"Zero division error, there was likely a problem calculating the data range.",
+            "Zero division error, there was likely a problem calculating the data range.",
             verbose=True,
         )
         raise ZeroDivisionError

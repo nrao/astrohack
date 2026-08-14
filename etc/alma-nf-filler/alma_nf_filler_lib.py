@@ -1,4 +1,4 @@
-from asdm import *
+from asdm import ASDM, ASDMParseOptions
 import numpy as np
 import xarray as xr
 import scipy
@@ -155,8 +155,8 @@ def _get_holography_info(asdm_object):
     """
     try:
         holo_info = asdm_object.holographyTable().get()[0]
-    except:
-        raise ValueError("ASDM is not a ALMA holography")
+    except Exception as e:
+        raise ValueError(f"ASDM is not for ALMA holography {e}")
 
     corr_axis = []
     for item in holo_info.type():

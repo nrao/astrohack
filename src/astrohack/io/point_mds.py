@@ -135,7 +135,7 @@ class AstrohackPointFile(AstrohackBaseFile):
                 logger.warning(f"Antenna {ant_name} not found in dataset")
 
         if n_use_ants <= 0:
-            logger.warning(f"No valid antennas selected, no plot produced.")
+            logger.warning("No valid antennas selected, no plot produced.")
         return
 
     def _plot_pointing_in_time_together(self, input_params):
@@ -172,7 +172,7 @@ class AstrohackPointFile(AstrohackBaseFile):
                 fig,
             )
         else:
-            logger.warning(f"No valid antennas selected, no plot produced.")
+            logger.warning("No valid antennas selected, no plot produced.")
         return
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)

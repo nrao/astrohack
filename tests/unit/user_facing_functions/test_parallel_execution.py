@@ -5,7 +5,19 @@ import pathlib
 from astrohack.utils.verification_tools import add_data_folder_to_names_in_class
 from toolviper.dask.client import local_client
 
-from astrohack import *
+from astrohack import (
+    extract_holog,
+    extract_pointing,
+    open_pointing,
+    open_holog,
+    holog,
+    open_image,
+    panel,
+    open_panel,
+    locit,
+    open_position,
+    beamcut,
+)
 
 
 class TestAstrohackInParallel:

@@ -310,7 +310,7 @@ def run_casa_calibration(param_dict, msger):
             "applycal",
             {
                 "vis": param_dict["msname"],
-                "field": f"{param_dict["beamcut_field"]}",
+                "field": f"{param_dict['beamcut_field']}",
                 "spw": param_dict["quacked_spw_selection"],
                 "applymode": "calonly",
                 "gaintable": gaintable,

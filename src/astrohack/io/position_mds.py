@@ -18,7 +18,7 @@ from astrohack.utils.text import (
 from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
 from astrohack.utils.conversion import convert_unit
 from astrohack.antenna.telescope import get_proper_telescope
-from astrohack.io.base_mds import AstrohackBaseFile
+from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.utils.constants import (
     clight,
     notavail,
@@ -28,7 +28,7 @@ from astrohack.utils.constants import (
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.validation import custom_unit_checker
 from astrohack.utils.tools import get_telescope_lat_lon_rad
-from astrohack.visualization import (
+from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     scatter_plot,
     close_figure,
@@ -40,7 +40,7 @@ from astrohack.visualization.array_cfg_plot import (
 )
 
 
-class AstrohackPositionFile(AstrohackBaseFile):
+class AstrohackPositionFile(AstrohackLocitFile):
     """Data class for position data.
 
     Data within an object of this class can be selected for further inspection, plotted or produce a report
@@ -117,7 +117,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
                 f"Y offset [{position_unit}]",
                 f"Z offset [{position_unit}]",
             ]
-            specifier = f"combined_{input_pars['combine_ddis']}"
+            specifier = f"combined_{self.root.attrs['combine_specifier']}"
 
         else:
             field_names = [
@@ -399,7 +399,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         param_dict = locals()
 
         param_dict["combined"] = self.root.attrs["combined"]
-        param_dict["comb_type"] = self.root.attrs["input_parameters"]["combine_ddis"]
+        param_dict["comb_type"] = self.root.attrs["combine_specifier"]
         if self.root.attrs["combined"]:
             key_order = ["ant"]
         else:
@@ -476,7 +476,7 @@ class AstrohackPositionFile(AstrohackBaseFile):
         if combined:
             filename = (
                 f"{destination}/position_corrections_combined_"
-                + f'{self.root.attrs["input_parameters"]["combine_ddis"]}.png'
+                + f'{self.root.attrs["combine_specifier"]}.png'
             )
             attribute_list = []
             for ant in ant_list:

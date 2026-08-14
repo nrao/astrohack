@@ -13,8 +13,12 @@ from astrohack.utils.text import (
     create_informative_label_from_summary,
 )
 from astrohack.utils.conversion import to_db, convert_unit
-from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
-from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
+from astrohack.visualization.plot_tools import (
+    set_y_axis_lims_from_default,
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
+)
 
 from astrohack.visualization.observation_summary import (
     generate_observation_summary,
@@ -914,7 +918,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     pb_fwhm = 0.0
     fsl_ratio = 0.0
     xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
-    ylabel = f"Beam Power [dB]"
+    ylabel = "Beam Power [dB]"
 
     # Loop over correlations
     n_data = 0

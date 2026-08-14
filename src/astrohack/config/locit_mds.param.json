@@ -1,9 +1,21 @@
 {
+    "AstrohackLocitFile.print_source_table": {
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        }
+    },
     "AstrohackLocitFile.print_array_configuration":{
         "relative":{
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
         }
     },
     "AstrohackLocitFile.plot_source_positions":{
@@ -44,6 +56,111 @@
         }
         },
     "AstrohackLocitFile.plot_array_configuration":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "stations":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "zoff":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "unit":{
+            "nullable": false,
+            "required": false,
+            "type": ["string"],
+            "check allowed with": "units.length"
+        },
+        "box_size":{
+            "nullable": true,
+            "required": false,
+            "type": ["int", "float"],
+            "min": 0
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "figure_size":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["list", "tuple", "ndarray"]
+        },
+        "dpi": {
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        }
+    },
+    "AstrohackPositionFile.print_source_table": {
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        }
+    },
+    "AstrohackPositionFile.print_array_configuration":{
+        "relative":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "save_to": {
+            "nullable": true,
+            "required": false,
+            "type": ["string"]
+        }
+    },
+    "AstrohackPositionFile.plot_source_positions":{
+        "destination":{
+            "nullable": false,
+            "required": true,
+            "type": ["string"]
+        },
+        "labels":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "precessed":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "display":{
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "figure_size":{
+            "nullable": true,
+            "required": false,
+            "struct_type": ["float"],
+            "minlength": 2,
+            "maxlength": 2,
+            "type": ["list", "tuple", "ndarray"]
+        },
+        "dpi":{
+            "nullable": false,
+            "required": false,
+            "type": ["int"],
+            "min": 1,
+            "max": 1200
+        }
+        },
+    "AstrohackPositionFile.plot_array_configuration":{
         "destination":{
             "nullable": false,
             "required": true,

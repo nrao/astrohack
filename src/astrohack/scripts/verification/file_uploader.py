@@ -8,7 +8,7 @@ import pathlib
 import subprocess
 
 parser = argparse.ArgumentParser(
-    description=f"Upload test files to R2 cloudfare (Tokens are fetched from user Env)",
+    description="Upload test files to R2 cloudfare (Tokens are fetched from user Env)",
     formatter_class=argparse.RawTextHelpFormatter,
 )
 

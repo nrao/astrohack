@@ -1,12 +1,11 @@
 import argparse
-import glob
 import os
 import time
 import numpy as np
 
 import casatools
 
-from astrohack import extract_locit, locit, open_locit, open_position
+from astrohack import extract_locit, locit, open_position, fringefit_locit
 from astrohack.utils.algorithms import rotate_to_gmt, data_statistics
 from astrohack.utils.constants import clight, pol_str
 from astrohack.utils.conversion import convert_unit
@@ -31,8 +30,11 @@ from astrohack.utils.text import (
     add_heading_to_html,
     make_collapsible_block,
 )
-from astrohack.visualization import create_figure_and_axes, close_figure
-from astrohack.visualization.plot_tools import filter_duplicates_in_legend
+from astrohack.visualization.plot_tools import (
+    filter_duplicates_in_legend,
+    create_figure_and_axes,
+    close_figure,
+)
 
 
 def parse():
@@ -127,6 +129,14 @@ def parse():
     )
 
     parser.add_argument(
+        "-dr",
+        "--fit-delay-rate",
+        action="store_true",
+        default=False,
+        help="Fit delay rate",
+    )
+
+    parser.add_argument(
         "-l",
         "--delay-limits",
         type=float,
@@ -167,6 +177,13 @@ def parse():
 
     parser.add_argument(
         "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
+    )
+
+    parser.add_argument(
+        "--use-fringefit-locit",
+        action="store_true",
+        default=False,
+        help="Use fringefit_locit to determine very large errors (> 3 meters) in antenna positions (EXPERIMENTAL)",
     )
 
     return vars(parser.parse_args())
@@ -225,6 +242,12 @@ def param_init(param_dict: dict, msger: MessageBoard):
         raise RuntimeError("\n".join(error_msgs))
 
     initialization_check(param_dict, "Baseline determination parameters")
+    if param_dict["use_fringefit_locit"] and param_dict["antenna"] == "all":
+        proceed_check(
+            param_dict,
+            "Fringefit using all antennas and all fields may take a LONG time, proceed?",
+        )
+
     return param_dict
 
 
@@ -265,116 +288,142 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
             msger,
         )
 
-    fringefit_was_run = run_casatask(
-        "fringefit",
-        {
-            "vis": param_dict["pointing_only_ms"],
-            "caltable": param_dict["fringefit_caltable"],
-            "field": param_dict["fringefit_source"],
-            "solint": "inf",
-            "refant": param_dict["refant"],
-            "minsnr": 3.0,
-            "zerorates": True,
-            "globalsolve": True,
-            "niter": 100,
-        },
-        msger,
-        intended_output=param_dict["fringefit_caltable"],
-        overwrite=param_dict["overwrite"],
-    )
-    if fringefit_was_run:
+    if param_dict["use_fringefit_locit"]:
+        if param_dict["antenna"] == "all":
+            antenna_str = ""
+        else:
+            antenna_str = ",".join(param_dict["antenna"])
+
         run_casatask(
-            "applycal",
+            "fringefit",
             {
                 "vis": param_dict["pointing_only_ms"],
-                "gaintable": [param_dict["fringefit_caltable"]],
-                "interp": ["nearest"],
-                "parang": False,
+                "caltable": param_dict["fringefit_caltable"],
+                "solint": "inf",
+                "refant": param_dict["refant"],
+                "antenna": antenna_str,
+                "minsnr": 3.0,
+                "zerorates": True,
+                "globalsolve": True,
+                "niter": 100,
             },
             msger,
+            intended_output=param_dict["fringefit_caltable"],
+            overwrite=param_dict["overwrite"],
         )
 
-    # Now we create a new dataset that is colapsed on the channel axis
-    # within each spw, also create a flagversion to store current flag
-    # state on the averaged MS
-    freq_average_was_run = run_casatask(
-        "split",
-        {
-            "vis": param_dict["pointing_only_ms"],
-            "outputvis": param_dict["freq_averaged_ms"],
-            "datacolumn": "corrected",
-            "keepflags": False,  #
-            "width": param_dict["n_chan"],
-        },
-        msger,
-        intended_output=param_dict["freq_averaged_ms"],
-        overwrite=param_dict["overwrite"],
-    )
-    if freq_average_was_run:
-        run_casatask(
-            "flagmanager",
+    else:
+        fringefit_was_run = run_casatask(
+            "fringefit",
             {
-                "vis": param_dict["freq_averaged_ms"],
-                "mode": "save",
-                "versionname": "original",
+                "vis": param_dict["pointing_only_ms"],
+                "caltable": param_dict["fringefit_caltable"],
+                "field": param_dict["fringefit_source"],
+                "solint": "inf",
+                "refant": param_dict["refant"],
+                "minsnr": 3.0,
+                "zerorates": True,
+                "globalsolve": True,
+                "niter": 100,
             },
             msger,
+            intended_output=param_dict["fringefit_caltable"],
+            overwrite=param_dict["overwrite"],
         )
+        if fringefit_was_run:
+            run_casatask(
+                "applycal",
+                {
+                    "vis": param_dict["pointing_only_ms"],
+                    "gaintable": [param_dict["fringefit_caltable"]],
+                    "interp": ["nearest"],
+                    "parang": False,
+                },
+                msger,
+            )
 
-    gaincal_was_run = run_casatask(
-        "gaincal",
-        {
-            "vis": param_dict["freq_averaged_ms"],
-            "caltable": param_dict["phase_caltable"],
-            "solint": "10min",
-            "refant": param_dict["refant"],
-            "refantmode": "flex",  # Maybe we should use strict for this application?
-            "minblperant": 3,
-            "minsnr": 3.0,
-            "gaintype": "G",  # G is for gain
-            "calmode": "p",  # p is for phase
-            "solmode": "L1",  # -> least squares
-        },
-        msger,
-        intended_output=param_dict["phase_caltable"],
-        overwrite=param_dict["overwrite"],
-    )
-    if gaincal_was_run:
-        run_casatask(
-            "applycal",
+        # Now we create a new dataset that is colapsed on the channel axis
+        # within each spw, also create a flagversion to store current flag
+        # state on the averaged MS
+        freq_average_was_run = run_casatask(
+            "split",
             {
-                "vis": param_dict["freq_averaged_ms"],
-                "gaintable": [param_dict["phase_caltable"]],
-                "interp": ["nearest"],
-                "parang": False,
+                "vis": param_dict["pointing_only_ms"],
+                "outputvis": param_dict["freq_averaged_ms"],
+                "datacolumn": "corrected",
+                "keepflags": False,  #
+                "width": param_dict["n_chan"],
             },
             msger,
+            intended_output=param_dict["freq_averaged_ms"],
+            overwrite=param_dict["overwrite"],
         )
+        if freq_average_was_run:
+            run_casatask(
+                "flagmanager",
+                {
+                    "vis": param_dict["freq_averaged_ms"],
+                    "mode": "save",
+                    "versionname": "original",
+                },
+                msger,
+            )
 
-    if not param_dict["assume_yes"]:
-        run_casatask(
-            "plotms",
+        gaincal_was_run = run_casatask(
+            "gaincal",
             {
                 "vis": param_dict["freq_averaged_ms"],
-                "xaxis": "time",
-                "yaxis": "phase",
-                "ydatacolumn": "corrected",
-                "field": "*",
-                "avgtime": "10",
-                "correlation": "RR,LL",
-                "coloraxis": "spw",
-                "antenna": param_dict["refant"],
-                "iteraxis": "baseline",
+                "caltable": param_dict["phase_caltable"],
+                "solint": "10min",
+                "refant": param_dict["refant"],
+                "refantmode": "strict",  # Maybe we should use strict for this application?
+                "minblperant": 3,
+                "minsnr": 3.0,
+                "gaintype": "G",  # G is for gain
+                "calmode": "p",  # p is for phase
+                "solmode": "L1",  # -> least squares
             },
             msger,
+            intended_output=param_dict["phase_caltable"],
+            overwrite=param_dict["overwrite"],
         )
-        proceed_check(param_dict, "Are phases clustered around 0 in plotMS?")
+        if gaincal_was_run:
+            run_casatask(
+                "applycal",
+                {
+                    "vis": param_dict["freq_averaged_ms"],
+                    "gaintable": [param_dict["phase_caltable"]],
+                    "interp": ["nearest"],
+                    "parang": False,
+                },
+                msger,
+            )
+
+        if not param_dict["assume_yes"]:
+            run_casatask(
+                "plotms",
+                {
+                    "vis": param_dict["freq_averaged_ms"],
+                    "xaxis": "time",
+                    "yaxis": "phase",
+                    "ydatacolumn": "corrected",
+                    "field": "*",
+                    "avgtime": "10",
+                    "correlation": "RR,LL",
+                    "coloraxis": "spw",
+                    "antenna": param_dict["refant"],
+                    "iteraxis": "baseline",
+                },
+                msger,
+            )
+            proceed_check(param_dict, "Are phase solutions reasonable?")
 
     return
 
 
 def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
     astrohack_param_dict = {
+        "fringefit_caltable": param_dict["fringefit_caltable"],
         "cal_table": param_dict["phase_caltable"],
         "locit_name": param_dict["locit_name"],
         "position_name": param_dict["position_name"],
@@ -382,13 +431,16 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "ddi": param_dict["spw"],
         "overwrite": param_dict["overwrite"],
         "fit_kterm": param_dict["fit_kterm"],
-        "fit_delay_rate": True,
+        "fit_delay_rate": param_dict["fit_delay_rate"],
         "elevation_limit": param_dict["elevation_limit"],
         "polarization": param_dict["polarization"],
         "combine_ddis": param_dict["combination"],
         "parallel": False,
     }
-    locit_functions = [extract_locit, locit]
+    if param_dict["use_fringefit_locit"]:
+        locit_functions = [fringefit_locit]
+    else:
+        locit_functions = [extract_locit, locit]
     for function in locit_functions:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, function, msger
@@ -408,16 +460,21 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         "dpi": param_dict["dpi"],
         "delay_limits": param_dict["delay_limits"],
     }
-    locit_mds = open_locit(param_dict["locit_name"])
     position_mds = open_position(param_dict["position_name"])
     plotting_methods = [
-        locit_mds.plot_source_positions,
-        locit_mds.plot_array_configuration,
+        position_mds.plot_source_positions,
+        position_mds.plot_array_configuration,
         position_mds.plot_delays,
         position_mds.plot_position_corrections,
         position_mds.export_locit_fit_results,
         position_mds.export_results_to_parminator,
     ]
+    position_mds.print_source_table(
+        save_to=f"{param_dict['exports_name']}/source_table.txt"
+    )
+    position_mds.print_array_configuration(
+        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
+    )
     for plot_method in plotting_methods:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, plot_method, msger
@@ -647,11 +704,23 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     msger.one_liner("Preparing report...")
     start = time.time()
     exports_name = param_dict["exports_name"]
-    combination_word = param_dict["combination"]
+    pos_mds = open_position(param_dict["position_name"])
+    combination_word = pos_mds.root.attrs["combine_specifier"]
+    del pos_mds
+
     images_to_include = {
-        "locit_source_table_fk5.png": "Source positions over the sky",
-        "locit_array_configuration.png": "VLA configuration during observation",
-        f"position_corrections_combined_{combination_word}.png": "Graphical representation of antenna position corrections",
+        "locit_source_table_fk5.png": [
+            "Source positions over the sky",
+            f"{param_dict['exports_name']}/source_table.txt",
+        ],
+        "locit_array_configuration.png": [
+            "VLA configuration during observation",
+            f"{param_dict['exports_name']}/array_configuration.txt",
+        ],
+        f"position_corrections_combined_{combination_word}.png": [
+            "Graphical representation of antenna position corrections",
+            None,
+        ],
     }
 
     report_title = f"Baseline Report for {param_dict['filename']}"
@@ -659,11 +728,18 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
 
     html_body += add_basic_info_and_parameters_to_report(param_dict)
 
-    for image_file, image_desc in images_to_include.items():
+    for image_file, image_contents in images_to_include.items():
+        image_desc = image_contents[0]
+        accompanying_table = image_contents[1]
         image_path = f"{exports_name}/{image_file}"
         html_body += (
             f"{create_single_html_image_with_header(image_path, image_desc)}{lnbr}"
         )
+        if accompanying_table is not None:
+            html_body += add_preformatted_text_file_to_html(
+                accompanying_table,
+                "",
+            )
 
     html_body += add_preformatted_text_file_to_html(
         f"{exports_name}/position_combined_{combination_word}_fit_results.txt",
@@ -678,21 +754,21 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     pos_mds = open_position(param_dict["position_name"])
     antenna_name_list = [key.split("_")[1] for key in pos_mds.keys()]
     del pos_mds
-
     for ant_name in antenna_name_list:
         if ant_name != param_dict["refant"]:
-            delay_plot_file = f"{exports_name}/position_delays_ant_{ant_name}_combined_{param_dict["combination"]}.png"
+            delay_plot_file = f"{exports_name}/position_delays_ant_{ant_name}_combined_{combination_word}.png"
             if os.path.exists(delay_plot_file):
                 ant_html = create_single_html_image_with_header(
                     delay_plot_file,
-                    f"Measured and fitted delays",
+                    "Measured and fitted delays",
                     heading_level=3,
                 )
-                ant_html += create_single_html_image_with_header(
-                    f"{exports_name}/phases-antpos-{ant_name}.png",
-                    f"Phase before and after correction",
-                    heading_level=3,
-                )
+                if not param_dict["use_fringefit_locit"]:
+                    ant_html += create_single_html_image_with_header(
+                        f"{exports_name}/phases-antpos-{ant_name}.png",
+                        "Phase before and after correction",
+                        heading_level=3,
+                    )
             else:
                 ant_html = add_heading_to_html(
                     f"Fit has not succeeded for {ant_name}!", 1
@@ -726,7 +802,8 @@ def main():
 
     if processing_stage == "exports":
         run_astrohack_exports(param_dict, msger)
-        run_post_locit_plots(param_dict, msger)
+        if not param_dict["use_fringefit_locit"]:
+            run_post_locit_plots(param_dict, msger)
         processing_stage = "report"
 
     if processing_stage == "report":

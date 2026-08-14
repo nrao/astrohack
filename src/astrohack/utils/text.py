@@ -112,6 +112,7 @@ def get_default_file_name(
         known_data_types = [
             ".ms",
             ".cal",
+            ".sbd",
             ".point.zarr",
             ".holog.zarr",
             ".image.zarr",
@@ -913,7 +914,7 @@ for (let i = 0; i < coll.length; i++) {
   });
 }
 </script>"""
-    out_file_str += f"""</body>
+    out_file_str += """</body>
 </html>"""
     with open(html_file, "w") as f:
         f.write(out_file_str)

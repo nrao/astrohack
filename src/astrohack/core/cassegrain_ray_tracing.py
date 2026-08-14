@@ -637,7 +637,7 @@ def compare_ray_tracing_to_phase_fit_results(
         ax[1],
         fig,
         fac * correction,
-        f"Fitted correction",
+        "Fitted correction",
         extent,
         f"Phase [{phase_unit}]",
         colormap,

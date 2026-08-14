@@ -67,13 +67,13 @@ def process_combine_chunk(combine_chunk_params: dict, output_mds: AstrohackImage
         out_xds = deepcopy(ant_xdt[ddi_ref_key].dataset)
         shape = list(out_xds["CORRECTED_PHASE"].values.shape)
         if out_xds.sizes["chan"] != 1:
-            msg = f"Only single channel holographies supported"
+            msg = "Only single channel holographies supported"
             logger.error(msg)
             raise RuntimeError(msg)
 
         nmap = shape[0]
         if nmap != 1:
-            msg = f"Only single mapping holographies supported"
+            msg = "Only single mapping holographies supported"
             logger.error(msg)
             raise RuntimeError(msg)
 

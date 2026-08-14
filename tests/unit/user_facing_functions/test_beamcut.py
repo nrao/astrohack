@@ -3,7 +3,6 @@ import numpy as np
 import shutil
 import glob
 import matplotlib
-import pytest
 from toolviper.utils import data
 
 from astrohack import beamcut, extract_holog, extract_pointing, open_beamcut

@@ -22,7 +22,7 @@ matplotlib.use("Agg")
 class TestimageMDS:
     data_dir = "image_data"
     destination_folder = "image_exports"
-    ref_products_name = f"ref_image_products"
+    ref_products_name = "ref_image_products"
 
     img_name = "ea25_cal_before_reference.image.zarr"
 

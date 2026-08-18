@@ -15,6 +15,7 @@ classes created by astrohack's user facing functions.
    ../_api/autoapi/astrohack/beamcut/index
    ../_api/autoapi/astrohack/extract_locit/index
    ../_api/autoapi/astrohack/locit/index
+   ../_api/autoapi/astrohack/fringefit_locit/index
    ../_api/autoapi/astrohack/cassegrain_ray_tracing/index
    ../_api/autoapi/astrohack/image_comparison_tool/index
    ../_api/autoapi/astrohack/io/dio/index

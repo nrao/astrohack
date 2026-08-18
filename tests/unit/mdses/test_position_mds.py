@@ -1,10 +1,15 @@
 import shutil
 import matplotlib
-import sys
 
 from toolviper.utils import data
 import pytest
-from astrohack import AstrohackPositionFile, extract_locit, locit, open_position
+from astrohack import (
+    AstrohackPositionFile,
+    extract_locit,
+    locit,
+    open_position,
+    AstrohackLocitFile,
+)
 from astrohack.utils.verification_tools import (
     are_png_files_close,
     are_txt_files_equal,
@@ -19,7 +24,7 @@ matplotlib.use("Agg")
 class TestPositionMDS:
     data_dir = "position_data"
     destination_folder = "position_exports"
-    ref_products_name = f"ref_position_products"
+    ref_products_name = "ref_position_products"
 
     phase_cal_table_name = "locit-input-pha.cal"
     locit_name = "ant-pos.locit.zarr"
@@ -64,6 +69,7 @@ class TestPositionMDS:
     def test_position_mds_init(self):
         position_mds = AstrohackPositionFile(self.position_no_comb_name)
         assert isinstance(position_mds, AstrohackPositionFile)
+        assert isinstance(position_mds, AstrohackLocitFile)
 
     def test_position_mds_text_exports(self):
         pos_res_name_dict = {

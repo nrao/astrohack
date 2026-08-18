@@ -388,7 +388,7 @@ class FITSImage:
         if plot_original:
             self._plot_map(
                 self.mask_original(),
-                f"Unresampled data",
+                "Unresampled data",
                 f"Data [{self.unit}]",
                 f"{base_name}original.png",
                 cmap,
@@ -405,7 +405,7 @@ class FITSImage:
             self._plot_map(
                 self.mask_array(self.residuals_percent),
                 f"Residuals in %, {self.reference_name} - {self.filename}",
-                f"Residuals [%]",
+                "Residuals [%]",
                 f"{base_name}residuals_percent.png",
                 cmap,
                 extent,
@@ -422,7 +422,7 @@ class FITSImage:
                 self._plot_map(
                     self.mask_array(self.divided_image),
                     f"Divided image, {self.reference_name} / {self.filename}, scaling={self.factor:.4f}",
-                    f"Division [ ]",
+                    "Division [ ]",
                     f"{base_name}divided.png",
                     cmap,
                     extent,

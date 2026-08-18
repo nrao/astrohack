@@ -2,7 +2,6 @@ import shutil
 import matplotlib
 import pytest
 import os
-import sys
 
 from toolviper.utils import data
 
@@ -23,7 +22,7 @@ matplotlib.use("Agg")
 class TestLocitMDS:
     data_dir = "locit_data"
     destination_folder = "locit_exports"
-    ref_products_name = f"ref_locit_products"
+    ref_products_name = "ref_locit_products"
 
     locit_name = "locit-input-pha-reference.locit.zarr"
 

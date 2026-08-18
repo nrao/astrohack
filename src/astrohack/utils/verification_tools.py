@@ -43,7 +43,7 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
 
             # Check if dimensions are the same
             if img1.size != img2.size:
-                return False, f"PNG sizes differ"
+                return False, "PNG sizes differ"
 
             # Calculate the difference between the images
             # This results in a new image where differing pixels are non-zero
@@ -56,7 +56,7 @@ def are_png_files_close(img_path1, img_path2, tol=1e-5):
 
     except IOError as e:
         print(f"Error opening images: {e}")
-        return False, f"Failed opening images"
+        return False, "Failed opening images"
 
 
 def capture_prints_from_function(function, args=None):
@@ -253,10 +253,6 @@ def add_data_folder_to_names_in_class(class_ref):
         if isinstance(varvalue, str):
             if varname.split(undscr)[-1] == "name":
                 setattr(class_ref, varname, f"{class_ref.data_dir}/{varvalue}")
-
-
-def relative_difference(result, expected):
-    return 2 * np.abs(result - expected) / (abs(result) + abs(expected))
 
 
 def analyse_summary(mds_obj, exp_file_name, exp_input_pars, exp_ant_keys_list):

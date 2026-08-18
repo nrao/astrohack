@@ -1,6 +1,5 @@
 import numpy as np
 import toolviper
-import pytest
 import shutil
 
 from astrohack.utils.constants import clight

@@ -1,6 +1,5 @@
 import shutil
 import os
-import sys
 
 import matplotlib
 from toolviper.utils import data
@@ -21,7 +20,7 @@ matplotlib.use("Agg")
 class TestBeamcutMDS:
     data_dir = "beamcut_data"
     destination_folder = "beamcut_exports"
-    ref_products_name = f"ref_beamcut_products"
+    ref_products_name = "ref_beamcut_products"
 
     silly_name = "Anything"
     remote_beamcut_name = "kband_beamcut_small.beamcut.zarr"

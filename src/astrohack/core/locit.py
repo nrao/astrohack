@@ -1,3 +1,5 @@
+import pathlib
+import numpy as np
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 from scipy import optimize as opt
@@ -10,11 +12,12 @@ from astrohack.io.position_mds import AstrohackPositionFile
 from astrohack.utils.text import (
     get_data_name,
     create_dataset_label,
+    param_to_list,
 )
 
 from astrohack.utils.conversion import convert_unit, hadec_to_elevation
 from astrohack.utils.algorithms import least_squares, phase_wrapping
-from astrohack.utils.constants import *
+from astrohack.utils.constants import twopi
 
 
 def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -63,7 +66,18 @@ def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
                     elevation_limit,
                     antenna_info,
                 )
-                output_mds.add_node(out_xds, [ant_key, ddi_key])
+                # This is a workaround to add antenna info for locit_mds methods
+                if not pathlib.Path(
+                    f"{output_mds.filename}/{ant_key}/.zattrs"
+                ).exists():
+                    ant_xdt = xr.DataTree(name=f"{ant_key}")
+                    ant_xdt.attrs["antenna_info"] = antenna_info
+                    ant_xdt = ant_xdt.assign(
+                        {f"{ddi_key}": xr.DataTree(dataset=out_xds, name=f"{ddi_key}")}
+                    )
+                    output_mds.add_node(ant_xdt, [ant_key])
+                else:
+                    output_mds.add_node(out_xds, [ant_key, ddi_key])
 
 
 def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -143,7 +157,7 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
     source_dict = ant_xdt.parent.attrs["source_dict"]
     ant_key = locit_parms["this_ant"]
 
-    ddi_list = list(ant_xdt.keys())
+    ddi_list = param_to_list(locit_parms["ddi"], ant_xdt, "ddi")
     nddis = len(ddi_list)
 
     if nddis != 2:
@@ -217,7 +231,7 @@ def _delays_from_phase_differences(ddi_0, ddi_1):
         freq *= -1
         fields = ddi_1[0]
     else:
-        msg = f"The two DDIs must have different frequencies"
+        msg = "The two DDIs must have different frequencies"
         logger.error(msg)
         raise ValueError(msg)
 
@@ -384,10 +398,10 @@ def _get_data_from_locit_xds(
         raise ValueError(msg)
     elif pol_selection == "both":
         phases = [
-            xds_data[f"P0_PHASE_GAINS"].values,
-            xds_data[f"P1_PHASE_GAINS"].values,
+            xds_data["P0_PHASE_GAINS"].values,
+            xds_data["P1_PHASE_GAINS"].values,
         ]
-        field_id = [xds_data[f"P0_FIELD_ID"].values, xds_data[f"P1_FIELD_ID"].values]
+        field_id = [xds_data["P0_FIELD_ID"].values, xds_data["P1_FIELD_ID"].values]
         time = [xds_data.p0_time.values, xds_data.p1_time.values]
         if not split_pols:
             phases = np.concatenate(phases)

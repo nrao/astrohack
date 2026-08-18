@@ -1,3 +1,262 @@
+# v1.1.0
+
+## General:
+
+- Plotting improvements
+
+  - matplotlib.pyplot is no longer used which allows for the creation
+    of concurrent plots without race conditions.
+
+  - Added mechanism for the creation of plots in parallel with
+    parallelization occuring one leve higher to minimize
+    parallelization overheads.
+	
+  - Improved title card that appears on holography and beamcut plots
+    to now include observation frequency.
+	 
+  - Added tool to filter out duplicated names in legend in
+    plot_tools.py.
+	
+  - Array configuration plot inner box is now dynamically determined.
+
+
+- Replacement of casacore
+
+  - casacore dependency has been replaced with new python package
+    called [casacoretables](https://github.com/nrao/casacoretables),
+    this allows astrohack to be run inside CASA without symbol
+    conflicts with regular casacore.
+	
+- Decibel convertion is now protected against invalid values.
+
+
+- Updated documentation building in readthedocs.
+
+  - Up to this point documentation was built using python 3.7, now the
+    building process uses python 3.13.
+	
+  - Updated documentation dependence list.
+  
+
+- Miscellanious
+
+  - Fixed circular imports present in code.
+  
+  - Removed several unused and obsolete example scripts and notebooks.
+  
+  - Removed some unused and obsolete code from active files.'
+  
+  - Used ruff to fix some code problems such as nested quotes in f
+    strings.
+  
+  
+- Testing:
+
+  - Implemented factorized tool to determine if test is to cleanup
+    after itself (useful for debugging).
+	
+  - Implemented factorized tool to tell tests to create new reference
+    data to be uploaded.
+	
+  - Most png comparison tests are now skipped as tests are flaky and
+    may fail even when pngs are indistinguishable by a human.
+	
+	
+## Holography:
+
+- `extract_pointing`
+
+  - Made detection of erratic sampling less strict to avoid warnings
+    on perfectly valid data.
+	
+  - Removed exclude parameter as it was broken and the same
+    functionality already exists downstream in `extract_holog` and
+    works well there.
+	
+  - Added post processing warning that identifies antennas with
+    pointing data that has a significantly different pointing table
+    when compared to other antennas.
+	
+- `extract_holog`
+
+  - Now raises RuntimeError for the cases of no reference antennas or
+    no mapping antennas.
+	
+  - Re-wrote matching of visibilities to time bins, previously several
+    valid visibilities were being ignored
+	
+## Beam cuts:
+
+- Changed the names of `beamcut_mds` methods:
+
+  - `plot_beamcut_in_attenuation` -> `plot_in_db`.
+  
+  - `plot_beamcut_in_amplitude` -> `plot_in_amplitude`.
+  
+  - `plot_beamcut_in_phase` -> `plot_in_phase`.
+  
+  - `plot_beam_cuts_over_sky` -> `plot_lm_offsets`.
+  
+  - `create_beam_fit_report` -> `export_report`.
+
+
+- Beam cut fitting
+
+  - When beamcut data is bad, peak identification fails, which leaded
+    to the identification of hundreds of peaks which took a long time
+    to fit and produced no relevant data. This has been fixed by
+    limiting the amount of found peaks to 10.
+	
+  - Aded further protections for the cases where there is no valid
+    data on that beamcut.
+	
+  - If fitting fails but data seems reasonable `beamcut` now falls
+    back to a heuristic single gaussian fit.
+
+
+- Beam cut pipeline
+
+  - Introduced a python script that is installed as an executable in
+    the current python envrinoment that executes all the steps of
+    processing beam cut data delivering a report at the end.
+	
+  - This script is intended to be run inside CASA or in an environment
+    that provides casatools and casatasks.
+	
+  - The pipeline has a command line interface implemtented using
+    argparse.
+	
+  - Pipeline instructions can be found
+    [here](https://astrohack.readthedocs.io/en/stable/online_pages/AstroHACK_BeamCut_reduction.html).
+	
+  - The processing steps are:
+	
+	0. If input file is a SDM import it with `importasdm`.
+	
+	1. Calibration.
+	   a. Delay calibration using `gaincal`.
+	   b. Bandpass calibration using `bandpass`.
+	   c. Amplitude and phase calibration using `gaincal`.
+	   
+	2. "Holographic extraction", i.e. Running `extract_pointing` and
+       `extract_holog` to extract beamcut data from ms.
+	   
+	3. Run `beamcut`.
+	
+	4. Produce plots and export products from astrohack data files.
+	
+	5. Create a standalone HTML report with all the plots and reports.
+	
+
+## Antenna position corrections:
+
+- `locit`
+
+  - Difference method now works even when data has more than 2 ddis,
+    as long as the user provides the 2 ddis to use.
+
+
+- Changes to `position_mds` files.
+
+  - The `AstrohackPositionFile` class now enherits from
+    `AstrohackLocitFile` meaning that all methods from that class are
+    now available for `position_mds` files.
+	
+  - This also means that `position_mds` files now carry all the
+    metadata that was only present in `locit_mds` files.
+
+- `fringefit_locit`
+
+  - Introduced new antenna position correction determination function
+    that uses fringefit results.
+	
+  - This task is intended to be used in the case where the antenna
+    position is very poorly known and therefore there are very large
+    delays that correspond to antenna position shifts much larger one
+    wavelength, which renders the precise antenna position
+    determination useless.
+	
+  - The product of this new function is a regular `position_mds` file
+    that works exactly the same way as the ones produced by regular
+    `locit`.
+	
+- Antenna position correction pipeline
+
+  - Introduced a python script that is installed as an executable in
+    the current python envrinoment that executes all the steps of
+    processing antenna position correction (often called baseline)
+    data delivering a report at the end.
+	
+  - This script is intended to be run inside CASA or in an environment
+    that provides casatools and casatasks.
+	
+  - The pipeline has a command line interface implemtented using
+    argparse.
+	
+  - Pipeline instructions can be found
+    [here](https://astrohack.readthedocs.io/en/stable/online_pages/AstroHACK_antenna_position_corrections.html).
+	
+  - There are two processing paths for this pipeline, one for huge
+    antenna position errors using `fringefit_locit`, the other for
+    regular antenna position errors using `locit`.
+	
+  - The processing steps using `fringefit_locit` are:
+	
+	0. If input file is a SDM import it with `importasdm`.
+	
+	1. Separate pointing data from the remainder of the ms using
+       `split`.
+	
+	2. Flag user provided bad scans using `flagdata` (optional).
+	
+	3. Run `fringefit` in all sources present in the pointing ms to
+       obtain delays towards all of them.
+	   
+	4. Run `fringefit_locit` on the caltable produced in the previous
+       step.
+	   
+	5. Produce plots and export products from the `position_mds` file.
+	
+	6. Create a standalone HTML report with all the plots and reports.
+	   
+  - The processing steps using regular `locit` are:
+  
+    0. If input file is a SDM import it with `importasdm`.
+	
+	1. Separate pointing data from the remainder of the ms using
+       `split`.
+	
+	2. Flag user provided bad scans using `flagdata` (optional).
+	
+	3. Run `fringefit` in a strong source to estimate the overall
+       dominant delay and allow for channel average inside a spectral
+       window.
+	   
+	4. Apply the `fringefit` caltable to the pointing ms.
+	   
+	5. Average channels in each spectral window using `split`.
+	
+	6. Compute phase corrections for each antenna based on the channel
+       averaged ms using gaincal.
+	   
+	7. Apply the phase corrections to the channel averaged ms to check
+       if they are successfull.
+	   
+	8. Plot phase corrections with plotms for user inspection (optional).
+	
+	9. Run astrohack functions `extract_locit` and `locit`.
+	
+	10. Produce plots and export products from the `position_mds` file.
+	
+	11. Generate antenna position corrections caltable with `gencal`
+        and apply it to the channel averaged ms.
+
+    12. Generate phase over time plots for the channel averaged plots
+        showing original and position corrected data for the
+        improvement evaluation.
+	
+	13. Create a standalone HTML report with all the plots and reports.
+
 # v1.0.2
 
 ## Beam cuts:

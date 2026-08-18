@@ -112,7 +112,7 @@ def create_and_execute_graph_from_dict(
     )
 
     if len(delayed_list) == 0:
-        logger.warning(f"List of delayed processing jobs is empty: No data to process")
+        logger.warning("List of delayed processing jobs is empty: No data to process")
         return _factorized_graph_execution_return(False, [], fetch_returns)
 
     if parallel:

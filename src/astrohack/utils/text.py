@@ -112,6 +112,7 @@ def get_default_file_name(
         known_data_types = [
             ".ms",
             ".cal",
+            ".sbd",
             ".point.zarr",
             ".holog.zarr",
             ".image.zarr",
@@ -861,27 +862,37 @@ def create_html_file_from_body(
   background-color: #777;
   color: white;
   cursor: pointer;
-  padding: 2px;
+  padding: 15px;
   width: 35%;
   border: 2px;
   margin: 10px;
   text-align: left;
   outline: none;
-  font-size: 15px;
+  font-size: 20px;
+  font-weight: 600;
+  display: block;
+  text-decoration: none;
 }
-
+.content .collapsible {
+  font-size: 16px;
+}
 /* Add a background color to the button if it is clicked on */
 .active, .collapsible:hover {
   background-color: #000;
 }
-
 /* Hide the collapsible content by default */
 .content {
   padding: 0 18px;
   display: none;
   overflow: hidden;
   background-color: #ffffff;
-}"""
+}
+.row {
+display:flex;
+flex-direction:row;
+gap:4rem;
+}
+"""
     out_file_str += """
 </style>
 </head>
@@ -903,7 +914,7 @@ for (let i = 0; i < coll.length; i++) {
   });
 }
 </script>"""
-    out_file_str += f"""</body>
+    out_file_str += """</body>
 </html>"""
     with open(html_file, "w") as f:
         f.write(out_file_str)
@@ -936,9 +947,11 @@ def create_single_html_image_with_header(
     )
 
 
-def make_collapsible_block(html_content: str, summary: str):
+def make_collapsible_block(html_content: str, summary: str, html_id: str):
     class_name = "collapsible"
-    collapsible_block = f'<button class="{class_name}">{summary}</button>{lnbr}'
+    collapsible_block = (
+        f'<a class="{class_name}" id="{html_id}" href="#{html_id}">{summary}</a>{lnbr}'
+    )
     collapsible_block += f'<div class="content">{lnbr}'
     collapsible_block += html_content + lnbr
     collapsible_block += f"</div>{lnbr}"

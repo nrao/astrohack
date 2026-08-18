@@ -29,6 +29,7 @@ from astrohack.utils.text import (
     create_single_html_image_with_header,
     make_collapsible_block,
     add_preformatted_text_file_to_html,
+    lnbr,
 )
 
 
@@ -68,7 +69,7 @@ def parse():
 
     parser.add_argument(
         "-s",
-        "--spectral-window",
+        "--spw",
         type=str,
         default="all",
         help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
@@ -154,6 +155,13 @@ def parse():
         help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
     )
 
+    parser.add_argument(
+        "--reimport-asdm",
+        action="store_true",
+        default=False,
+        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
+    )
+
     return vars(parser.parse_args())
 
 
@@ -222,8 +230,8 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
     param_dict = fetch_ms_metadata(param_dict)
 
-    param_dict["antenna"] = parse_list_or_all(param_dict["antenna"])
-    param_dict["spectral_window"] = parse_list_or_all(param_dict["spectral_window"])
+    param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
+    param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
 
     if param_dict["exclude_bad_antennas"] is not None:
         param_dict["exclude_bad_antennas"] = parse_list_or_all(
@@ -302,7 +310,7 @@ def run_casa_calibration(param_dict, msger):
             "applycal",
             {
                 "vis": param_dict["msname"],
-                "field": f"{param_dict["beamcut_field"]}",
+                "field": f"{param_dict['beamcut_field']}",
                 "spw": param_dict["quacked_spw_selection"],
                 "applymode": "calonly",
                 "gaintable": gaintable,
@@ -316,7 +324,7 @@ def run_casa_calibration(param_dict, msger):
 def run_astrohack_reduction(param_dict, msger):
     # Astrohack convenience changes
     param_dict["ant"] = param_dict["antenna"]
-    param_dict["ddi"] = param_dict["spectral_window"]
+    param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
 
     param_dict["ms_name"] = param_dict["msname"]
@@ -329,7 +337,7 @@ def run_astrohack_reduction(param_dict, msger):
         ["exports", beamcut],
     ]
     for next_stage, function in exec_list:
-        if status:
+        if status and param_dict["processing_stage"] == function.__name__:
             status, exec_exception = run_astrohack_function(
                 param_dict,
                 function,
@@ -390,6 +398,7 @@ def prepare_html_report(param_dict, msger):
         "Array configuration during observation",
         heading_level=2,
     )
+    html_body += f"{lnbr}<br>{lnbr}"
 
     bmc_mds = open_beamcut(param_dict["beamcut_name"])
     if bmc_mds is None:
@@ -398,7 +407,6 @@ def prepare_html_report(param_dict, msger):
     ddi_list = [
         ddi_key.split("_")[-1] for ddi_key in bmc_mds[f"ant_{antenna_list[0]}"].keys()
     ]
-
     for ant_name in antenna_list:
         ant_html = ""
         if param_dict["plot_pointing"]:
@@ -407,11 +415,11 @@ def prepare_html_report(param_dict, msger):
                 "Pointing over time:",
                 heading_level=3,
             )
-            ant_html += create_single_html_image_with_header(
-                f"{exports_name}/beamcut_lm_offsets_ant_{ant_name}_ddi_{ddi_list[0]}.png",
-                "Pointing over sky:",
-                heading_level=3,
-            )
+        ant_html += create_single_html_image_with_header(
+            f"{exports_name}/beamcut_lm_offsets_ant_{ant_name}_ddi_{ddi_list[0]}.png",
+            "Pointing over sky:",
+            heading_level=3,
+        )
         for ddi_name in ddi_list:
             spw_html = create_single_html_image_with_header(
                 f"{exports_name}/beamcut_db_ant_{ant_name}_ddi_{ddi_name}.png",
@@ -436,10 +444,13 @@ def prepare_html_report(param_dict, msger):
             ant_html += make_collapsible_block(
                 spw_html,
                 add_heading_to_html(f"\t{ant_name} spectral window {ddi_name}:", 3),
+                f"ant_{ant_name}_spw_{ddi_name}",
             )
         # collapsible wrapping here
         html_body += make_collapsible_block(
-            ant_html, add_heading_to_html(f"Beam cut data for {ant_name}:", 2)
+            ant_html,
+            add_heading_to_html(f"Beam cut data for {ant_name}:", 2),
+            f"ant_{ant_name}",
         )
 
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
@@ -460,6 +471,7 @@ def main():
 
     if main_param_dict["processing_stage"] == "calibration":
         run_casa_calibration(main_param_dict, msger)
+        main_param_dict["processing_stage"] = "extract_pointing"
 
     if (
         main_param_dict["parallel"]

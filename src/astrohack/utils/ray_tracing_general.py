@@ -1,5 +1,6 @@
 import xarray as xr
 import pickle
+import numpy as np
 
 from scipy.spatial import distance_matrix
 from numba import njit
@@ -11,7 +12,11 @@ from astrohack.utils.algorithms import (
     create_coordinate_images,
     regrid_data_onto_2d_grid,
 )
-from astrohack.visualization.plot_tools import *
+from astrohack.visualization.plot_tools import (
+    create_figure_and_axes,
+    simple_imshow_map_plot,
+    close_figure,
+)
 from astrohack.utils.constants import njit_caching
 
 nanvec3d = np.array([np.nan, np.nan, np.nan])

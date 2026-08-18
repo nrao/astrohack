@@ -33,16 +33,16 @@ holography and antenna position corrections.
 
 Currently AstroHACK supports:
 
-- `Astronomical holographies from the VLA <https://astrohack.readthedocs.io/en/stable/tutorial_vla.html>`_.
+- `Astronomical holographies from the VLA <https://astrohack.readthedocs.io/en/stable/tutorials/vla_holography_tutorial.html>`_.
 - Astronomical holographies from ALMA.
-- `Antenna position corrections for the VLA <https://astrohack.readthedocs.io/en/stable/locit_tutorial>`_.
-- `Near-field ALMA holographies <./https://astrohack.readthedocs.io/en/stable/AstroHACK-for-NF-ALMA.html>`_ have
+- `Antenna position corrections for the VLA <https://astrohack.readthedocs.io/en/stable/tutorials/locit_tutorial.html>`_.
+- `Near-field ALMA holographies <https://astrohack.readthedocs.io/en/stable/online_pages/AstroHACK-for-NF-ALMA.html>`_ have
   basic support, such as the creation of Aperture images, but the
   correction of near-field effects is not yet supported.
 
 In the near term we are working to support the `ngVLA antenna
 prototype <https://public.nrao.edu/ngvla/>`_ comissioning activities.
-The prototype antenna is currently (March 2025) under construction at
+The prototype antenna is currently (August 2026) under imital testing at
 the VLA site.
 
 The holography tasks in AstroHACK port much of the functionality of

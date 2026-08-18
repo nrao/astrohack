@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 class TestPointMDS:
     data_dir = "point_data"
     destination_folder = "point_exports"
-    ref_products_name = f"ref_point_products"
+    ref_products_name = "ref_point_products"
 
     pnt_name = "ea25_cal_small_before_reference.point.zarr"
 

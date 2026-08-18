@@ -12,6 +12,7 @@ from astrohack.extract_holog import generate_holog_obs_dict
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 
@@ -47,8 +48,11 @@ class TestExtractHolog:
         assert pathlib.Path(
             self.def_hlg_name
         ).is_dir(), f"A .holog.zarr file named {self.def_hlg_name} does not exist."
+        if produce_reference_data():
+            return
 
         ref_hlg_mds = open_holog(self.ref_hlg_name)
+
         assert new_hlg_mds.is_close_to(
             ref_hlg_mds
         ), "Reference and new mdses are different."
@@ -57,6 +61,8 @@ class TestExtractHolog:
         """
         Specify a holography observations dictionary and check that the proper dictionary is created.
         """
+        if produce_reference_data():
+            return
         # Generate a holog observations dictionary with a subset of data described by ddi=1
         loc_hlg_obs_dict = generate_holog_obs_dict(
             point_name=self.pnt_name,
@@ -92,6 +98,8 @@ class TestExtractHolog:
         ant_name = "ea25"
         ant_key = f"ant_{ant_name}"
 
+        if produce_reference_data():
+            return
         # Extract holography data using holog_obd_dict
         holog_mds = extract_holog(
             ms_name=self.ms_name,
@@ -118,6 +126,8 @@ class TestExtractHolog:
         """
         initial_time = os.path.getctime(self.def_hlg_name)
 
+        if produce_reference_data():
+            return
         extract_holog(
             ms_name=self.ms_name,
             point_name=self.pnt_name,
@@ -148,6 +158,8 @@ class TestExtractHolog:
         average distance are returned.
         """
         # Extract holography data
+        if produce_reference_data():
+            return
         holog_mds = extract_holog(
             ms_name=self.ms_name,
             point_name=self.pnt_name,
@@ -174,6 +186,9 @@ class TestExtractHolog:
             )
 
     def test_append(self):
+        if produce_reference_data():
+            return
+
         f_ant_id = "ea25"
         s_ant_id = "ea06"
         f_ant_key = f"ant_{f_ant_id}"

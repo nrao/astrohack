@@ -238,7 +238,9 @@ def open_position(file: str) -> Union[AstrohackPositionFile, None]:
             }
 
     """
-    check_if_file_can_be_opened(file, "locit", minimum_xdtree_version)
+    check_if_file_can_be_opened(
+        file, ["locit", "fringefit_locit"], minimum_xdtree_version
+    )
     _data_file = AstrohackPositionFile(file=file)
 
     if _data_file.open():

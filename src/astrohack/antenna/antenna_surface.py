@@ -1,4 +1,5 @@
 import xarray as xr
+import numpy as np
 
 from matplotlib import patches
 
@@ -9,7 +10,7 @@ from astrohack.utils.algorithms import (
     data_statistics,
     phase_wrapping,
 )
-from astrohack.utils.constants import *
+from astrohack.utils.constants import clight, fourpi
 from astrohack.utils.conversion import to_db
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.text import (
@@ -139,11 +140,9 @@ class AntennaSurface:
             .values
         )
 
-        self.npoint = np.sqrt(inputxds.sizes["l"] ** 2 + inputxds.sizes["m"] ** 2)
         self.amp_unit = "V"
         self.u_axis = inputxds.u_prime.values
         self.v_axis = inputxds.v_prime.values
-        self.computephase = False
 
     def _read_panel_xds(self, inputxds):
         self.wavelength = inputxds.attrs["wavelength"]
@@ -244,7 +243,7 @@ class AntennaSurface:
         while fraction_in < threshold:
             clip *= multiplier
             data_in = np.where(in_disk_amp > clip, 1.0, 0.0)
-            fraction_in = np.sum(data_in) / n_in_disk
+            fraction_in = float(np.sum(data_in)) / n_in_disk
             multiplier *= step_multiplier
 
         return clip
@@ -270,23 +269,6 @@ class AntennaSurface:
         self.phase = np.where(self.base_mask, self.phase, np.nan)
         self.amplitude = np.where(self.base_mask, self.amplitude, np.nan)
         self.deviation = np.where(self.base_mask, self.deviation, np.nan)
-
-    def _fetch_panel_ringed(self, ring, panel):
-        """
-        Fetch a panel object from the panel list using its ring and panel numbers,
-        specific for circular antennas with panels arranged in rings
-        Args:
-            ring: Ring number
-            panel: Panel number
-
-        Returns:
-        Panel object
-        """
-        if ring == 1:
-            ipanel = panel - 1
-        else:
-            ipanel = np.sum(self.telescope.n_panel_per_ring[: ring - 1]) + panel - 1
-        return self.panels[ipanel]
 
     def gains(self):
         """
@@ -518,8 +500,8 @@ class AntennaSurface:
             raise ValueError("Map list and label list must be of the same size")
         nplots = len(maps)
         if parm_dict["z_lim"] is None or parm_dict["z_lim"] == "None":
-            vmax = np.nanmax(
-                np.abs(factor * maps[0])
+            vmax = float(
+                np.nanmax(np.abs(factor * maps[0]))
             )  # Gotten from the original map (displays the biggest variation)
             parm_dict["z_lim"] = [-vmax, vmax]
         for iplot in range(nplots):
@@ -606,7 +588,7 @@ class AntennaSurface:
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
 
         fac = convert_unit("m", unit, "length")
-        vmax = np.nanmax(np.abs(fac * self.screw_adjustments))
+        vmax = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
         vmin = -vmax
         if threshold is None or threshold == "None":
             threshold = 0.1 * vmax

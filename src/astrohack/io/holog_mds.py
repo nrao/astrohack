@@ -405,7 +405,7 @@ def _plot_diagnostics_chunk(param_dict):
         f'{destination}/holog_diagnostics_{param_dict["this_ant"]}_'
         f'{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
     )
-    title = f"Cal. check for: " + create_informative_label_from_summary(
+    title = "Cal. check for: " + create_informative_label_from_summary(
         xds_data.attrs["summary"], "deg", add_date=False
     )
     close_figure(fig, title, plotfile, dpi, display, tight_layout=False)
@@ -535,7 +535,7 @@ def _plot_lm_coverage_sub(time, real_lm, ideal_lm, param_dict, summary):
         f'{param_dict["destination"]}/holog_directional_cosines_'
         f'{param_dict["this_ant"]}_{param_dict["this_ddi"]}_{param_dict["this_map"]}.png'
     )
-    title = f"L&M for: " + create_informative_label_from_summary(summary, "deg")
+    title = "L&M for: " + create_informative_label_from_summary(summary, "deg")
     close_figure(fig, title, plotfile, param_dict["dpi"], param_dict["display"])
 
 

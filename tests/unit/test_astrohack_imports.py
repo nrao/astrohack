@@ -5,6 +5,7 @@ def _test_import(object_name):
     astrohack = importlib.import_module("astrohack")
     try:
         object_ = getattr(astrohack, object_name)
+        del object_
     except AttributeError:
         assert False, f"Could not import {object_name} from astrohack"
 

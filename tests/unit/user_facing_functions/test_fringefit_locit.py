@@ -7,27 +7,26 @@ import pathlib
 
 
 from astrohack import open_position
-from astrohack.locit import locit
+from astrohack.fringefit_locit import fringefit_locit
 from astrohack.utils.verification_tools import (
-    are_lists_equal,
     add_data_folder_to_names_in_class,
     execute_cleanup,
     produce_reference_data,
 )
 
 
-class TestLocit:
-    data_dir = "locit_data"
+class TestFringeFitLocit:
+    data_dir = "fringefit_locit_data"
 
-    lct_name = "locit-input-pha-reference.locit.zarr"
+    fringefit_name = "fft_locit_input.sbd"
 
-    def_pos_name = "locit-input-pha-reference.position.zarr"
-    ref_pos_name = "locit-reference.position.zarr"
+    def_pos_name = "fft_locit_input.position.zarr"
+    alt_pos_name = "fft_locit_alt.position.zarr"
+    ref_pos_name = "fft_locit_reference.position.zarr"
 
-    ant_id = "ea17"
+    ant_id = "ea21"
     ant_key = f"ant_{ant_id}"
-    ddi_id = 0
-    ddi_key = f"ddi_{ddi_id}"
+    ddi_id = 1
 
     @classmethod
     def setup_class(cls):
@@ -35,7 +34,7 @@ class TestLocit:
         Setup any state specific to the execution of the given test class
         such as fetching test data
         """
-        toolviper.utils.data.download(cls.lct_name, folder=cls.data_dir)
+        toolviper.utils.data.download(cls.fringefit_name, folder=cls.data_dir)
         toolviper.utils.data.download(cls.ref_pos_name, folder=cls.data_dir)
 
         add_data_folder_to_names_in_class(cls)
@@ -52,7 +51,9 @@ class TestLocit:
         Run locit with a specified locit_name and expect a file to be created on disk.
         """
 
-        new_pos_mds = locit(locit_name=self.lct_name, overwrite=True)
+        new_pos_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name, overwrite=True
+        )
         assert pathlib.Path(
             self.def_pos_name
         ).is_dir(), f"A .position.zarr file named {self.def_pos_name} does not exist."
@@ -72,12 +73,11 @@ class TestLocit:
         """
         if produce_reference_data():
             return
-        new_pos_mds = locit(
-            locit_name=self.lct_name,
-            position_name=self.def_pos_name,
+        new_pos_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
+            position_name=self.alt_pos_name,
             ant=self.ant_id,
             ddi=self.ddi_id,
-            combine_ddis="no",
             parallel=False,
             overwrite=True,
         )
@@ -88,11 +88,19 @@ class TestLocit:
             ant_list[0] == self.ant_key
         ), "Ant name should be the same as the one given."
 
-        ddi_list = list(new_pos_mds[self.ant_key].keys())
-        assert len(ddi_list) == 1, "A single ddi should be present."
+        ref_pos_mds = open_position(self.ref_pos_name)
+
+        ref_ave_freq = ref_pos_mds[self.ant_key].attrs["frequency"]
+        new_ave_freq = new_pos_mds[self.ant_key].attrs["frequency"]
         assert (
-            ddi_list[0] == self.ddi_key
-        ), "DDI key should be the same as the one given."
+            ref_ave_freq != new_ave_freq
+        ), "Average frequencies in new and ref position mds must not match"
+
+        ref_delay_arr = ref_pos_mds[self.ant_key]["DELAYS"]
+        new_delay_arr = new_pos_mds[self.ant_key]["DELAYS"]
+        assert (
+            new_delay_arr.size < ref_delay_arr.size
+        ), "New delay array must be smaller than ref delay array."
 
     def test_fit_kterm(self):
         """
@@ -100,23 +108,19 @@ class TestLocit:
         """
         if produce_reference_data():
             return
-        position_mds = locit(
-            locit_name=self.lct_name,
+        position_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             fit_kterm=True,
-            combine_ddis="no",
             parallel=False,
             overwrite=True,
         )
 
         for ant in position_mds.keys():
-            for ddi in position_mds[ant].keys():
-                # This is a bit redundant since calling koff_fit when it doesn't exist throws and exception, but it
-                # makes what is happening more obvious to others.
-                try:
-                    position_mds[ant][ddi].koff_fit
-                except KeyError as error:
-                    raise KeyError(error)
+            try:
+                position_mds[ant].koff_fit
+            except KeyError as error:
+                raise KeyError(error)
 
     def test_fit_rate(self):
         """
@@ -125,24 +129,20 @@ class TestLocit:
         """
         if produce_reference_data():
             return
-        position_mds = locit(
-            locit_name=self.lct_name,
+        position_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             fit_delay_rate=True,
-            combine_ddis="no",
             parallel=False,
             overwrite=True,
         )
 
         for ant in position_mds.keys():
-            for ddi in position_mds[ant].keys():
-                # This is a bit redundant since calling rate_fit when it doesn't exist throws and exception, but it
-                # makes what is happening more obvious to others.
-                try:
-                    position_mds[ant]["ddi_0"].rate_fit
+            try:
+                position_mds[ant].rate_fit
 
-                except Exception as error:
-                    raise Exception(error)
+            except Exception as error:
+                raise Exception(error)
 
     def test_elevation_limit(self):
         """
@@ -150,8 +150,8 @@ class TestLocit:
         """
         if produce_reference_data():
             return
-        new_pos_mds = locit(
-            locit_name=self.lct_name,
+        new_pos_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
             position_name=self.def_pos_name,
             elevation_limit=90.0,
             parallel=False,
@@ -168,43 +168,17 @@ class TestLocit:
         """
         if produce_reference_data():
             return
-        pol_sel = "R"
-        position_mds = locit(
-            locit_name=self.lct_name,
-            position_name=self.def_pos_name,
-            polarization=pol_sel,
-            parallel=False,
-            overwrite=True,
-        )
+        for pol in ["R", "L"]:
+            position_mds = fringefit_locit(
+                fringefit_caltable=self.fringefit_name,
+                position_name=self.def_pos_name,
+                polarization=pol,
+                parallel=False,
+                overwrite=True,
+            )
 
-        for ant in position_mds.keys():
-            assert position_mds[ant].polarization == pol_sel
-
-    def test_combine_ddis(self):
-        """
-          Run locit with combine_ddis=False and check that the file created on disk contains delays and position \
-          solutions for all DDIs.
-        """
-        if produce_reference_data():
-            return
-        position_mds = locit(
-            locit_name=self.lct_name,
-            position_name=self.def_pos_name,
-            combine_ddis="simple",
-            parallel=False,
-            overwrite=True,
-        )
-
-        ref_list = [
-            "DECLINATION",
-            "DELAYS",
-            "ELEVATION",
-            "HOUR_ANGLE",
-            "LST",
-            "MODEL",
-        ]
-        for key in position_mds.keys():
-            assert are_lists_equal(list(position_mds[key].keys()), ref_list)
+            for ant in position_mds.keys():
+                assert position_mds[ant].polarization == pol
 
     def test_overwrite(self):
         """
@@ -216,8 +190,8 @@ class TestLocit:
         # overwritten. We do this by checking the modification time.
         initial_time = os.path.getctime(self.def_pos_name)
 
-        locit(
-            locit_name=self.lct_name,
+        fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
             overwrite=True,
         )
         modified_time = os.path.getctime(self.def_pos_name)
@@ -226,7 +200,7 @@ class TestLocit:
         ), "Recreated file has to have a different time from the original file."
 
         with pytest.raises(FileExistsError):
-            locit(
-                locit_name=self.lct_name,
+            fringefit_locit(
+                fringefit_caltable=self.fringefit_name,
                 overwrite=False,
             )

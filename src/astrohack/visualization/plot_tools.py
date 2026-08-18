@@ -266,10 +266,14 @@ def plot_boxes_limits_and_labels(
         marker_color: Color for the array center marker
         rectangle_color: Color of the rectangle representing the inner array box in the outer array plot
     """
-    half_box = box_size / 2.0
     x_lim, y_lim = outerax.get_xlim(), outerax.get_ylim()
     x_half, x_mid = (x_lim[1] - x_lim[0]) / 2, (x_lim[1] + x_lim[0]) / 2
     y_half, y_mid = (y_lim[1] - y_lim[0]) / 2, (y_lim[1] + y_lim[0]) / 2
+
+    if box_size == 0:
+        half_box = np.min([x_half, y_half])
+    else:
+        half_box = box_size / 2.0
 
     if x_half > y_half:
         y_lim = (y_mid - x_half, y_mid + x_half)
@@ -573,3 +577,9 @@ def set_y_axis_lims_from_default(
             applied_scale[i_lim] = sub_lims[i_lim]
 
     ax.set_ylim(applied_scale)
+
+
+def filter_duplicates_in_legend(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    ax.legend(by_label.values(), by_label.keys())

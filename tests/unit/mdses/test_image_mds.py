@@ -22,7 +22,7 @@ matplotlib.use("Agg")
 class TestimageMDS:
     data_dir = "image_data"
     destination_folder = "image_exports"
-    ref_products_name = f"ref_image_products"
+    ref_products_name = "ref_image_products"
 
     img_name = "ea25_cal_before_reference.image.zarr"
 
@@ -84,6 +84,8 @@ class TestimageMDS:
         img_mds.export_to_fits(
             self.destination_folder, ant=self.ant_id, ddi=self.ddi_id, parallel=False
         )
+        if produce_reference_data():
+            return
         self.fits_list_assertions()
         return
 

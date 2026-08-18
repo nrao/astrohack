@@ -13,8 +13,12 @@ from astrohack.utils.text import (
     create_informative_label_from_summary,
 )
 from astrohack.utils.conversion import to_db, convert_unit
-from astrohack.visualization import create_figure_and_axes, scatter_plot, close_figure
-from astrohack.visualization.plot_tools import set_y_axis_lims_from_default
+from astrohack.visualization.plot_tools import (
+    set_y_axis_lims_from_default,
+    create_figure_and_axes,
+    scatter_plot,
+    close_figure,
+)
 
 from astrohack.visualization.observation_summary import (
     generate_observation_summary,
@@ -590,7 +594,7 @@ def _add_secondary_beam_hpbw_x_axis_to_plot(pb_fwhm, ax):
         ax.text(itk * pb_fwhm, y_max, f"{itk:d}", va="bottom", ha="center")
 
 
-def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
+def _add_lobe_identification_to_plot(ax, centers, peaks, y_off, y_lims):
     """
     Add gaussians identification to plot
 
@@ -610,7 +614,10 @@ def _add_lobe_identification_to_plot(ax, centers, peaks, y_off):
     :rtype: NoneType
     """
     for i_peak, peak in enumerate(peaks):
-        ax.text(centers[i_peak], peak + y_off, f"{i_peak+1})", ha="center", va="bottom")
+        text_y_coor = peak + y_off
+        if text_y_coor < y_lims[1] - y_off:
+            text_y_coor = y_lims[1] - y_off
+        ax.text(centers[i_peak], text_y_coor, f"{i_peak+1})", ha="center", va="bottom")
 
 
 def _add_beam_parameters_box(
@@ -739,10 +746,7 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
             amps = np.array(cut_xds.attrs[f"{parallel_hand}_amp_fit_pars"][1::3])
 
             _add_lobe_identification_to_plot(
-                this_ax,
-                centers,
-                amps,
-                y_off,
+                this_ax, centers, amps, y_off, (-y_off, max_amp + 3 * y_off)
             )
         else:
             scatter_plot(
@@ -856,6 +860,7 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
                 centers,
                 amps,
                 y_off,
+                phase_scale,
             )
         else:
             scatter_plot(
@@ -913,7 +918,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     pb_fwhm = 0.0
     fsl_ratio = 0.0
     xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
-    ylabel = f"Beam Power [dB]"
+    ylabel = "Beam Power [dB]"
 
     # Loop over correlations
     n_data = 0

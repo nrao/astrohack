@@ -7,6 +7,7 @@ import pytest
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 from astrohack import combine, open_image
 
@@ -48,7 +49,8 @@ class TestCombine:
         assert pathlib.Path(
             self.def_cmb_name
         ).is_dir(), f"A .combine.zarr file named {self.def_cmb_name} does not exist."
-
+        if produce_reference_data():
+            return
         ref_cmb_mds = open_image(self.ref_cmb_name)
         assert new_cmb_mds.is_close_to(
             ref_cmb_mds
@@ -58,7 +60,8 @@ class TestCombine:
         """
         Specify a ddi value to be process and check that it is the only one processed.
         """
-
+        if produce_reference_data():
+            return
         cmb_mds = combine(
             image_name=self.img_name,
             combine_name=self.def_cmb_name,
@@ -101,7 +104,8 @@ class TestCombine:
         """
         Specify that the output file should be overwritten if it exists; check that it is overwritten.
         """
-
+        if produce_reference_data():
+            return
         initial_time = os.path.getctime(self.def_cmb_name)
 
         # Combine image data

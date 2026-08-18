@@ -150,9 +150,10 @@ def close_figure(
                     f"'{mpl_backend}' backend not supported for interactive plots"
                 )
         elif py_env in ["jupyter"]:
-            from IPython.display import display, HTML
+            from IPython import display
 
-            display(HTML(f'<img src="{filename}" style="max-width:60%; height:auto;">'))
+            display.display(display.Image(filename, embed=True))
+            # display(HTML(f'<img src="{filename}" style="max-width:60%; height:auto;">'))
         else:
             logger.warning(f"Unrecognized python environment '{py_env}'")
 

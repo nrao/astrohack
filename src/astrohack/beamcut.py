@@ -153,7 +153,7 @@ def beamcut(
                 dpi=dpi,
                 parallel=parallel,
             )
-            beamcut_mds.plot_in_db(
+            beamcut_mds.plot_in_tapering(
                 destination,
                 lm_unit=lm_unit,
                 azel_unit=azel_unit,

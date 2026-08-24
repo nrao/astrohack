@@ -367,7 +367,7 @@ def run_astrohack_exports(param_dict, msger):
         pnt_mds.plot_array_configuration,
         bmc_mds.plot_in_amplitude,
         bmc_mds.plot_in_phase,
-        bmc_mds.plot_in_db,
+        bmc_mds.plot_in_tapering,
         bmc_mds.plot_lm_offsets,
         bmc_mds.export_report,
     ]

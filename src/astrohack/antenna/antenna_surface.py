@@ -11,7 +11,7 @@ from astrohack.utils.algorithms import (
     phase_wrapping,
 )
 from astrohack.utils.constants import clight, fourpi
-from astrohack.utils.conversion import to_db
+from astrohack.utils.conversion import to_antenna_tapering
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.text import (
     add_prefix,
@@ -308,7 +308,7 @@ class AntennaSurface:
 
         theo_gain = fourpi * self.telescope.diameter / wavelength
         real_gain = theo_gain * real_factor
-        return to_db(real_gain), to_db(theo_gain)
+        return to_antenna_tapering(real_gain), to_antenna_tapering(theo_gain)
 
     def get_rms(self, unit="mm"):
         """

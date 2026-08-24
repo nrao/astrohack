@@ -12,7 +12,7 @@ from astrohack.utils.text import (
     spc,
     create_informative_label_from_summary,
 )
-from astrohack.utils.conversion import to_db, convert_unit
+from astrohack.utils.conversion import to_antenna_tapering, convert_unit
 from astrohack.visualization.plot_tools import (
     set_y_axis_lims_from_default,
     create_figure_and_axes,
@@ -528,7 +528,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
                         f"{lm_fac*centers[i_peak]:.{precision}f}",  # center
                         f"{amps[i_peak]:.{precision}f}",  # Amp
                         f"{lm_fac*fwhms[i_peak]:.{precision}f}",  # FWHM
-                        f"{to_db(amps[i_peak]/max_amp):.{precision}f}",  # Attenuation
+                        f"{to_antenna_tapering(amps[i_peak] / max_amp):.{precision}f}",  # Attenuation
                     ]
                 )
             for line in table.get_string().splitlines():
@@ -670,7 +670,7 @@ def _add_beam_parameters_box(
         head = ""
     pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}{lnbr}"
     pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}{lnbr}"
-    pars_str += f"{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}"
+    pars_str += f"{head}FSLR = {format_value_unit(to_antenna_tapering(sidelobe_ratio), 'dB', 2)}"
     bounds_box = dict(boxstyle="square", facecolor="white", alpha=alpha)
     ax.text(
         x_pos,
@@ -930,7 +930,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         if max_amp == 0:
             y_data = np.full_like(x_data, -1)
         else:
-            y_data = to_db(amps / max_amp)
+            y_data = to_antenna_tapering(amps / max_amp)
 
         y_min = np.nanmin(y_data)
         if y_min < min_attenuation:

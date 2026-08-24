@@ -7,9 +7,20 @@ from astrohack.utils.tools import get_str_idx_in_list
 
 
 # Global conversion functions
-def to_db(val: float):
+def to_antenna_tapering(val: float | np.ndarray):
     """
-    Converts a float value to decibels
+    Converts a float or float array value to antenna tapering
+    Args:
+        val (float): Value to be converted to antenna tapering
+    Returns:
+        Value in antenna tapering
+    """
+    return 2 * to_db(val)
+
+
+def to_db(val: float | np.ndarray):
+    """
+    Converts a float or float array value to decibels
     Args:
         val (float): Value to be converted to decibels
     Returns:

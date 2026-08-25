@@ -506,7 +506,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
         f"Center [{lm_unit}]",
         "Amplitude [ ]",
         f"FWHM [{lm_unit}]",
-        "Attenuation [dB]",
+        "Tapering [dB]",
     ]
     outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
@@ -528,7 +528,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
                         f"{lm_fac*centers[i_peak]:.{precision}f}",  # center
                         f"{amps[i_peak]:.{precision}f}",  # Amp
                         f"{lm_fac*fwhms[i_peak]:.{precision}f}",  # FWHM
-                        f"{to_antenna_tapering(amps[i_peak] / max_amp):.{precision}f}",  # Attenuation
+                        f"{to_antenna_tapering(amps[i_peak] / max_amp):.{precision}f}",  # Tapering
                     ]
                 )
             for line in table.get_string().splitlines():

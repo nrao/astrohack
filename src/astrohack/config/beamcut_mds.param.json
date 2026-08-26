@@ -150,7 +150,7 @@
             "type": ["boolean"]
         }
     },
-    "AstrohackBeamcutFile.plot_in_db":{
+    "AstrohackBeamcutFile.plot_in_tapering":{
         "destination":{
             "nullable": false,
             "required": true,

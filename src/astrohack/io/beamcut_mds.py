@@ -12,7 +12,7 @@ from astrohack.utils.text import (
     spc,
     create_informative_label_from_summary,
 )
-from astrohack.utils.conversion import to_db, convert_unit
+from astrohack.utils.conversion import to_antenna_tapering, convert_unit
 from astrohack.visualization.plot_tools import (
     set_y_axis_lims_from_default,
     create_figure_and_axes,
@@ -164,7 +164,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         return
 
     @validate(custom_checker=custom_plots_checker)
-    def plot_in_db(
+    def plot_in_tapering(
         self,
         destination: str,
         ant: Union[str, List[str]] = "all",
@@ -177,7 +177,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
         parallel: bool = False,
     ) -> None:
         """
-        Plot beamcuts contained in the beamcut_mds in attenuation
+        Plot beamcuts contained in the beamcut_mds in tapering
 
         :param destination: Directory into which to save plots.
         :type destination: str
@@ -212,7 +212,7 @@ class AstrohackBeamcutFile(AstrohackBaseFile):
 
         create_and_execute_graphs_for_outputs(
             mds_object=self,
-            chunk_function=_plot_beamcut_in_attenuation_chunk,
+            chunk_function=_plot_beamcut_in_tapering_chunk,
             param_dict=locals(),
             key_order=["ant", "ddi"],
         )
@@ -405,9 +405,9 @@ def _plot_beamcut_in_amplitude_chunk(par_dict):
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
-def _plot_beamcut_in_attenuation_chunk(par_dict):
+def _plot_beamcut_in_tapering_chunk(par_dict):
     """
-    Produce attenuation beam cut plots from a xdtree containing beam cuts.
+    Produce tapering beam cut plots from a xdtree containing beam cuts.
 
     :param par_dict: Paremeter dictionary controlling plot aspects
     :type par_dict: dict
@@ -423,7 +423,7 @@ def _plot_beamcut_in_attenuation_chunk(par_dict):
         [6, 1 + n_cuts * 4], [n_cuts, 1], force_2d_axes_array=True
     )
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
-        _plot_single_cut_in_attenuation(cut_xds, axes[icut, 0], par_dict)
+        _plot_single_cut_in_tapering(cut_xds, axes[icut, 0], par_dict)
 
     # Header creation
     summary = cut_xdtree.attrs["summary"]
@@ -506,7 +506,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
         f"Center [{lm_unit}]",
         "Amplitude [ ]",
         f"FWHM [{lm_unit}]",
-        "Attenuation [dB]",
+        "Tapering [dB]",
     ]
     outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
@@ -528,7 +528,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
                         f"{lm_fac*centers[i_peak]:.{precision}f}",  # center
                         f"{amps[i_peak]:.{precision}f}",  # Amp
                         f"{lm_fac*fwhms[i_peak]:.{precision}f}",  # FWHM
-                        f"{to_db(amps[i_peak]/max_amp):.{precision}f}",  # Attenuation
+                        f"{to_antenna_tapering(amps[i_peak] / max_amp):.{precision}f}",  # Tapering
                     ]
                 )
             for line in table.get_string().splitlines():
@@ -629,7 +629,7 @@ def _add_beam_parameters_box(
     alpha=0.8,
     x_pos=0.05,
     y_pos=0.95,
-    attenuation_plot=False,
+    tapering_plot=False,
 ):
     """
     Add text bos with beam parameters
@@ -658,19 +658,19 @@ def _add_beam_parameters_box(
     :param y_pos: Relative y position of the text box
     :type y_pos: float
 
-    :param attenuation_plot: Is this an attenuation plot?
-    :type attenuation_plot: bool
+    :param tapering_plot: Is this a tapering plot?
+    :type tapering_plot: bool
 
     :return: None
     :rtype: NoneType
     """
-    if attenuation_plot:
+    if tapering_plot:
         head = "avg "
     else:
         head = ""
     pars_str = f"{head}PB off. = {format_value_unit(pb_center, lm_unit, 3)}{lnbr}"
     pars_str += f"{head}PB FWHM = {format_value_unit(pb_fwhm, lm_unit, 3)}{lnbr}"
-    pars_str += f"{head}FSLR = {format_value_unit(to_db(sidelobe_ratio), 'dB', 2)}"
+    pars_str += f"{head}FSLR = {format_value_unit(to_antenna_tapering(sidelobe_ratio), 'dB', 2)}"
     bounds_box = dict(boxstyle="square", facecolor="white", alpha=alpha)
     ax.text(
         x_pos,
@@ -892,9 +892,9 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
         )
 
 
-def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
+def _plot_single_cut_in_tapering(cut_xds, ax, par_dict):
     """
-    Plot a single beam cut in attenuation with superposed correlations
+    Plot a single beam cut in tapering with superposed correlations
 
     :param cut_xds: xarray dataset containing the beamcut
     :type cut_xds: xarray.Dataset
@@ -913,12 +913,12 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
     corr_colors = ["blue", "red"]
 
-    min_attenuation = 1e34
+    min_tapering = 1e34
     pb_center = 0.0
     pb_fwhm = 0.0
     fsl_ratio = 0.0
     xlabel = f"{cut_xds.attrs['xlabel']} [{lm_unit}]"
-    ylabel = "Beam Power [dB]"
+    ylabel = "Tapering [dB]"
 
     # Loop over correlations
     n_data = 0
@@ -930,11 +930,11 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         if max_amp == 0:
             y_data = np.full_like(x_data, -1)
         else:
-            y_data = to_db(amps / max_amp)
+            y_data = to_antenna_tapering(amps / max_amp)
 
         y_min = np.nanmin(y_data)
-        if y_min < min_attenuation:
-            min_attenuation = y_min
+        if y_min < min_tapering:
+            min_tapering = y_min
 
         ax.plot(
             x_data,
@@ -960,10 +960,8 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
     pb_fwhm /= n_data
     fsl_ratio /= n_data
     # equalize Y scale between correlations
-    y_off = 0.1 * np.abs(min_attenuation)
-    set_y_axis_lims_from_default(
-        ax, par_dict["y_scale"], (min_attenuation - y_off, y_off)
-    )
+    y_off = 0.1 * np.abs(min_tapering)
+    set_y_axis_lims_from_default(ax, par_dict["y_scale"], (min_tapering - y_off, y_off))
 
     # Add fit peak identifiers
     first_corr = cut_xds.attrs["available_corrs"][0]
@@ -979,7 +977,7 @@ def _plot_single_cut_in_attenuation(cut_xds, ax, par_dict):
         pb_fwhm * lm_fac,
         fsl_ratio,
         lm_unit,
-        attenuation_plot=True,
+        tapering_plot=True,
     )
     return
 

@@ -73,7 +73,7 @@ class TestBeamcutMDS:
 
         exec_dict = {
             "amplitude": beamcut_mds.plot_in_amplitude,
-            "db": beamcut_mds.plot_in_db,
+            "db": beamcut_mds.plot_in_tapering,
             "lm_offsets": beamcut_mds.plot_lm_offsets,
             "phase": beamcut_mds.plot_in_phase,
         }

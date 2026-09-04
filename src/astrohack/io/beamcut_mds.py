@@ -510,7 +510,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
     ]
     outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
-        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, icut)
+        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, icut, lm_unit)
         for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
             outstr += f"{spacing*spc}{item_marker}{spc}{parallel_hand} {sub_title}, Beam fit results:{lnbr}"
             table = create_pretty_table(items, "c")
@@ -699,13 +699,13 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
     :rtype: NoneType
     """
     # Init
+    lm_unit = par_dict["lm_unit"]
     i_cut = int(cut_xds.name.split("_")[1])
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut, lm_unit)
     max_amp = cut_xds.attrs["all_corr_ymax"]
     if max_amp < 1e-2:
         max_amp = 1.0
     y_off = 0.05 * max_amp
-    lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
 
     # Loop over correlations
@@ -799,11 +799,11 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
     :rtype: NoneType
     """
     # Init
+    lm_unit = par_dict["lm_unit"]
     i_cut = int(cut_xds.name.split("_")[1])
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut, lm_unit)
     phase_unit = par_dict["phase_unit"]
     phase_fac = convert_unit("rad", phase_unit, "trigonometric")
-    lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
 
     phase_scale = par_dict["phase_scale"]
@@ -911,8 +911,8 @@ def _plot_single_cut_in_tapering(cut_xds, ax, par_dict):
     :rtype: NoneType
     """
     i_cut = int(cut_xds.name.split("_")[1])
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
     lm_unit = par_dict["lm_unit"]
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut, lm_unit)
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
     corr_colors = ["blue", "red"]
 
@@ -956,7 +956,7 @@ def _plot_single_cut_in_tapering(cut_xds, ax, par_dict):
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(sub_title)
+    ax.set_title(sub_title, fontsize=10)
     ax.legend(loc="upper right")
 
     pb_center /= n_data
@@ -1044,7 +1044,7 @@ def _plot_cuts_in_lm_sub(cut_xdtree, par_dict):
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
-def _make_parallel_hand_sub_title(attributes, i_cut):
+def _make_parallel_hand_sub_title(attributes, i_cut, lm_unit):
     """
     Make subtitle for data based on XDS attributes.
 
@@ -1059,7 +1059,10 @@ def _make_parallel_hand_sub_title(attributes, i_cut):
     """
     direction = attributes["direction"]
     time_string = attributes["time_string"]
-    return f"{direction}, {time_string} UTC, cut {i_cut}"
+    exp_pb_fwhm = attributes["expected_pb_fwhm"] * convert_unit(
+        "rad", lm_unit, "trigonometric"
+    )
+    return f"{direction}, {time_string} UTC, cut {i_cut}, exp. PB = {exp_pb_fwhm:.2f} [{lm_unit}]"
 
 
 def _create_beamcut_header(summary, par_dict):

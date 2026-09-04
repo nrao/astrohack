@@ -1054,5 +1054,5 @@ def _create_beamcut_header(summary, par_dict):
     """
 
     return create_informative_label_from_summary(
-        summary, par_dict["azel_unit"], add_date=False
+        summary, par_dict["azel_unit"], add_date=False, add_source=True
     )

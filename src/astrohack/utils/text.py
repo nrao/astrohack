@@ -659,10 +659,15 @@ def format_az_el_information(az_el_dict, key="center", unit="deg", precision=".1
 
 
 def create_informative_label_from_summary(
-    summary, azel_unit, freq_precision=3, add_date=True
+    summary,
+    azel_unit,
+    freq_precision=3,
+    add_date=True,
+    add_source=False,
 ):
     ant_name = summary["general"]["antenna name"]
     ant_station = summary["general"]["station"]
+    source = summary["general"]["source"]
     freq = summary["spectral"]["rep. frequency"]
     az_el = np.array(summary["general"]["az el info"]["mean"]) * convert_unit(
         "rad", azel_unit, "trigonometric"
@@ -676,8 +681,11 @@ def create_informative_label_from_summary(
 
     outstr = f"{ant_name.upper()} @ {ant_station.upper()}, "
     outstr += f"{format_frequency(freq, add_nu=False, decimal_places=freq_precision)}, "
-    outstr += f"Az, El ~ {az_el[0]:{azel_precision}}, "
-    outstr += f"{az_el[1]:{azel_precision}} {azel_unit}"
+    if add_source:
+        outstr += f"{source} @ "
+    outstr += (
+        f"Az={az_el[0]:{azel_precision}}, El={az_el[1]:{azel_precision}} {azel_unit}"
+    )
     if add_date:
         outstr += f", {time_str}"
 

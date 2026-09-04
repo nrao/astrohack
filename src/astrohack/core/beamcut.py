@@ -205,7 +205,7 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
     if np.isclose(dx, dy, rtol=3e-1):  # X case
         result = linregress(lm_offsets[:, 0], lm_offsets[:, 1])
         lm_angle = np.arctan(result.slope) + np.pi / 2
-        direction = "mixed directions ("
+        direction = "mixed ("
         if dy < 0 and dx < 0:
             direction += "NW -> SE"
             # Fix the sign of the minimum
@@ -241,7 +241,7 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
         # Fix the sign of the minimum
         if y_min < 0:
             lm_dist[imin_lm] *= -1
-        direction = "Elevation direction ("
+        direction = "Elevation ("
         if dy < 0:
             direction += "N -> S"
             lm_dist *= -1  # Flip as sense is negative
@@ -254,7 +254,7 @@ def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"
         # Fix the sign of the minimum
         if x_min < 0:
             lm_dist[imin_lm] *= -1
-        direction = "Azimuth direction ("
+        direction = "Azimuth ("
         if dx > 0:
             direction += "E -> W"
         else:

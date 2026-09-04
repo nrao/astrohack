@@ -40,30 +40,33 @@ def process_beamcut_chunk(beamcut_chunk_params: dict, output_mds: AstrohackBeamc
     datalabel = create_dataset_label(ant_key, ddi_key)
 
     # This assumes that there will be no more than one mapping
-    try:
-        input_xds = xdt_data["map_0"]
-    except KeyError:
+    n_children = len(xdt_data.keys())
+    if n_children == 0:
         logger.warning(f"No beamcut data for {datalabel}")
-        return
+    else:
+        logger.info(f"processing {datalabel}")
 
-    logger.info(f"processing {datalabel}")
+        cut_xdtree = xr.DataTree(name=f"{ant_key}-{ddi_key}")
+        n_cut = 0
+        for map_xds in xdt_data.values():
+            cut_xdtree, n_cut = _extract_cuts_from_visibilities(
+                map_xds, cut_xdtree, n_cut, ant_key, ddi_key
+            )
 
-    cut_xdtree = _extract_cuts_from_visibilities(input_xds, ant_key, ddi_key)
+        _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel)
 
-    _beamcut_multi_lobes_gaussian_fit(cut_xdtree, datalabel)
-
-    output_mds.add_node(cut_xdtree, [ant_key, ddi_key])
+        output_mds.add_node(cut_xdtree, [ant_key, ddi_key])
 
 
 ###########################################################
 ### Data extraction
 ###########################################################
-def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
+def _extract_cuts_from_visibilities(map_xds, cut_xdtree, n_cut, antenna, ddi):
     """
     Creates data tree containing the different cuts from a holog xds.
 
-    :param input_xds: holog xds containing visibilities with beam cuts.
-    :type input_xds: xarray.Dataset
+    :param map_xds: holog xds containing visibilities with beam cuts.
+    :type map_xds: xarray.Dataset
 
     :param antenna: Antenna key
     :type antenna: str
@@ -74,19 +77,18 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
     :return: Data tree containing the beamcut xdses.
     :rtype: xarray.DataTree
     """
-    cut_xdtree = xr.DataTree(name=f"{antenna}-{ddi}")
-    scan_time_ranges = input_xds.attrs["scan_time_ranges"]
-    scan_list = input_xds.attrs["scan_list"]
-    obs_summ = deepcopy(input_xds.attrs["summary"])
+    scan_time_ranges = map_xds.attrs["scan_time_ranges"]
+    scan_list = map_xds.attrs["scan_list"]
+    obs_summ = deepcopy(map_xds.attrs["summary"])
     obs_summ["spectral"]["channel width"] *= obs_summ["spectral"]["number of channels"]
     obs_summ["spectral"]["number of channels"] = 1
     cut_xdtree.attrs["summary"] = obs_summ
 
-    lm_offsets = input_xds.DIRECTIONAL_COSINES.values
-    time_axis = input_xds.time.values
-    corr_axis = input_xds.pol.values
-    visibilities = input_xds.VIS.values
-    weights = input_xds.WEIGHT.values
+    lm_offsets = map_xds.DIRECTIONAL_COSINES.values
+    time_axis = map_xds.time.values
+    corr_axis = map_xds.pol.values
+    visibilities = map_xds.VIS.values
+    weights = map_xds.WEIGHT.values
 
     nchan = visibilities.shape[1]
     fchan = 4
@@ -166,13 +168,14 @@ def _extract_cuts_from_visibilities(input_xds, antenna, ddi):
         xds.attrs.update({"all_corr_ymax": all_corr_ymax})
         cut_xdtree = cut_xdtree.assign(
             {
-                f"cut_{iscan}": xr.DataTree(
-                    dataset=xds.assign_coords(coords), name=f"cut_{iscan}"
+                f"cut_{n_cut}": xr.DataTree(
+                    dataset=xds.assign_coords(coords), name=f"cut_{n_cut}"
                 )
             }
         )
+        n_cut += 1
 
-    return cut_xdtree
+    return cut_xdtree, n_cut
 
 
 def _cut_direction_determination_and_label_creation(lm_offsets, angle_unit="deg"):

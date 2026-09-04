@@ -491,7 +491,7 @@ def _identify_pb_and_sidelobes_in_fit(
         logger.warning(
             f"Cannot reliably identify primary beam for {datalabel}, assuming largest amplitude peak."
         )
-        pb_center = fwhms[i_pb_amp]
+        pb_center = centers[i_pb_amp]
         pb_fwhm = fwhms[i_pb_amp]
         first_side_lobe_ratio = np.nan
 

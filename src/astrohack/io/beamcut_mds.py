@@ -995,7 +995,24 @@ def _plot_cuts_in_lm_sub(cut_xdtree, par_dict):
     :return: None
     :rtype: NoneType
     """
-    colors = ["blue", "red", "green", "black", "orange", "grey"]
+    colors = [
+        "blue",
+        "red",
+        "green",
+        "black",
+        "orange",
+        "grey",
+        "purple",
+        "brown",
+        "pink",
+        "olive",
+        "cyan",
+        "gold",
+        "navy",
+        "darkorange",
+        "crimson",
+        "forestgreen",
+    ]
     lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
 

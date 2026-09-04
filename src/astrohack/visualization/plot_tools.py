@@ -354,6 +354,7 @@ def scatter_plot(
     force_equal_aspect: bool = False,
     add_legend: bool = True,
     legend_location: str = "best",
+    title_fontsize: int = 10,
 ):
     """
     Do scatter simple scatter plots of data to a plotting axis
@@ -396,6 +397,7 @@ def scatter_plot(
         force_equal_aspect: Force equal aspect on plot box
         add_legend: add legend to the plot
         legend_location: Location of the legend in the plot
+        title_fontsize: Font size of the title
     """
     ax.plot(
         xdata,
@@ -500,7 +502,7 @@ def scatter_plot(
         ax.set_aspect("equal", adjustable="box")
 
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize=title_fontsize)
 
     if add_legend:
         ax.legend(loc=legend_location)

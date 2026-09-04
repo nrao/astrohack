@@ -510,7 +510,7 @@ def _create_report_chunk(par_dict, spacing=2, item_marker="-", precision=3):
     ]
     outstr += "Beam cut for " + _create_beamcut_header(summary, par_dict) + 2 * lnbr
     for icut, cut_xds in enumerate(cut_xdtree.children.values()):
-        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+        sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, icut)
         for i_corr, parallel_hand in enumerate(cut_xds.attrs["available_corrs"]):
             outstr += f"{spacing*spc}{item_marker}{spc}{parallel_hand} {sub_title}, Beam fit results:{lnbr}"
             table = create_pretty_table(items, "c")
@@ -699,7 +699,8 @@ def _plot_single_cut_in_amplitude(cut_xds, axes, par_dict):
     :rtype: NoneType
     """
     # Init
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    i_cut = int(cut_xds.name.split("_")[1])
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
     max_amp = cut_xds.attrs["all_corr_ymax"]
     if max_amp < 1e-2:
         max_amp = 1.0
@@ -798,7 +799,8 @@ def _plot_single_cut_in_phase(cut_xds, axes, par_dict):
     :rtype: NoneType
     """
     # Init
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    i_cut = int(cut_xds.name.split("_")[1])
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
     phase_unit = par_dict["phase_unit"]
     phase_fac = convert_unit("rad", phase_unit, "trigonometric")
     lm_unit = par_dict["lm_unit"]
@@ -908,7 +910,8 @@ def _plot_single_cut_in_tapering(cut_xds, ax, par_dict):
     :return: None
     :rtype: NoneType
     """
-    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs)
+    i_cut = int(cut_xds.name.split("_")[1])
+    sub_title = _make_parallel_hand_sub_title(cut_xds.attrs, i_cut)
     lm_unit = par_dict["lm_unit"]
     lm_fac = convert_unit("rad", lm_unit, "trigonometric")
     corr_colors = ["blue", "red"]
@@ -1041,19 +1044,22 @@ def _plot_cuts_in_lm_sub(cut_xdtree, par_dict):
     close_figure(fig, title, filename, par_dict["dpi"], par_dict["display"])
 
 
-def _make_parallel_hand_sub_title(attributes):
+def _make_parallel_hand_sub_title(attributes, i_cut):
     """
     Make subtitle for data based on XDS attributes.
 
     :param attributes: beamcut xds attributes
     :type attributes: dict
 
+    :param i_cut: Cut number for subtitle
+    :type i_cut: int
+
     :return: Subtitle string
     :rtype: str
     """
     direction = attributes["direction"]
     time_string = attributes["time_string"]
-    return f"{direction}, {time_string} UTC"
+    return f"{direction}, {time_string} UTC, cut {i_cut}"
 
 
 def _create_beamcut_header(summary, par_dict):

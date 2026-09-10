@@ -92,9 +92,11 @@ class TestBeamcut:
             overwrite=True,
         )
         if produce_reference_data():
-            ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
-            assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
-            assert assertion, "Reference and new mdses are not close enough."
+            return
+
+        ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
+        assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
+        assert assertion, "Reference and new mdses are not close enough."
 
     def test_destination(self):
         # Deleting destination if it exists just to make test more robust

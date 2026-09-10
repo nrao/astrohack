@@ -97,10 +97,21 @@ def close_figure(
         display: Keep the plotting window open?
         tight_layout: Plots in the figure are tightly packed?
     """
-    if title is not None:
-        figure.suptitle(title)
+
     if tight_layout:
-        figure.tight_layout()
+
+        grid_spec = figure.axes[0].get_gridspec()
+        nrows = grid_spec.nrows
+        if nrows > 4:
+            figure.set_layout_engine("tight", rect=[0.015, 0.015, 0.985, 0.97])
+            y_off = 0.985
+        else:
+            y_off = None
+            figure.tight_layout()
+
+    if title is not None:
+        figure.suptitle(title, x=0.5, y=y_off)
+
     # Force filename to contain .png in case no extension is present
     if len(filename.split(".")) == 1:
         filename += ".png"

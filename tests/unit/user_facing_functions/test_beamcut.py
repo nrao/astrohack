@@ -26,9 +26,9 @@ def retrieve_data_from_report(report):
         for line in rep_file:
             if line[0] == "-":  # header line
                 wrds = line.split()
-                az_val = float(wrds[12][:-1])
-                azel_unit = wrds[14]
-                el_val = float(wrds[13])
+                az_val = float(wrds[11].split("=")[-1][:-1])
+                el_val = float(wrds[12].split("=")[-1])
+                azel_unit = wrds[13]
             elif "|" in line:
                 wrds = line.split("|")
                 center_header = wrds[2]

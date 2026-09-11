@@ -26,9 +26,9 @@ def retrieve_data_from_report(report):
         for line in rep_file:
             if line[0] == "-":  # header line
                 wrds = line.split()
-                az_val = float(wrds[12][:-1])
-                azel_unit = wrds[14]
-                el_val = float(wrds[13])
+                az_val = float(wrds[11].split("=")[-1][:-1])
+                el_val = float(wrds[12].split("=")[-1])
+                azel_unit = wrds[13]
             elif "|" in line:
                 wrds = line.split("|")
                 center_header = wrds[2]
@@ -92,9 +92,11 @@ class TestBeamcut:
             overwrite=True,
         )
         if produce_reference_data():
-            ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
-            assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
-            assert assertion, "Reference and new mdses are not close enough."
+            return
+
+        ref_bmc_mds = open_beamcut(self.remote_beamcut_name)
+        assertion = ref_bmc_mds.is_close_to(new_bmc_mds)
+        assert assertion, "Reference and new mdses are not close enough."
 
     def test_destination(self):
         # Deleting destination if it exists just to make test more robust

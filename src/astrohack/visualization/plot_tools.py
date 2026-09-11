@@ -97,10 +97,21 @@ def close_figure(
         display: Keep the plotting window open?
         tight_layout: Plots in the figure are tightly packed?
     """
+    grid_spec = figure.axes[0].get_gridspec()
+    nrows = grid_spec.nrows
+    if nrows > 4 and tight_layout:
+        y_off = 0.985
+    else:
+        y_off = None
     if title is not None:
-        figure.suptitle(title)
+        figure.suptitle(title, x=0.5, y=y_off)
+
     if tight_layout:
-        figure.tight_layout()
+        if nrows > 4:
+            figure.set_layout_engine("tight", rect=[0.015, 0.015, 0.985, 0.97])
+        else:
+            figure.tight_layout()
+
     # Force filename to contain .png in case no extension is present
     if len(filename.split(".")) == 1:
         filename += ".png"
@@ -354,6 +365,7 @@ def scatter_plot(
     force_equal_aspect: bool = False,
     add_legend: bool = True,
     legend_location: str = "best",
+    title_fontsize: int = 10,
 ):
     """
     Do scatter simple scatter plots of data to a plotting axis
@@ -396,6 +408,7 @@ def scatter_plot(
         force_equal_aspect: Force equal aspect on plot box
         add_legend: add legend to the plot
         legend_location: Location of the legend in the plot
+        title_fontsize: Font size of the title
     """
     ax.plot(
         xdata,
@@ -500,7 +513,7 @@ def scatter_plot(
         ax.set_aspect("equal", adjustable="box")
 
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize=title_fontsize)
 
     if add_legend:
         ax.legend(loc=legend_location)

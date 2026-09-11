@@ -234,6 +234,7 @@ def main():
         # "unit/user_facing_functions/test_holog.py",
         # "unit/user_facing_functions/test_panel.py",
         # "unit/user_facing_functions/test_combine.py",
+        # "unit/user_facing_functions/test_beamcut.py",
         # "unit/antenna_classes/test_class_antenna_surface.py"
         # "unit/mdses/test_holog_mds.py",
         # "unit/mdses/test_image_mds.py",

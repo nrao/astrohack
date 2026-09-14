@@ -127,7 +127,7 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
             split_pols=True,
         )
 
-        time, field_id, delays, scans, freq = _delays_from_phase_differences(
+        time, field_id, delays, freq, scans = _delays_from_phase_differences(
             ddi_0, ddi_1
         )
         _locit_common_flow(
@@ -194,6 +194,7 @@ def _locit_common_flow(
                     coordinates,
                     lst,
                     delays,
+                    scans,
                     fit,
                     variance,
                     chi_squared,
@@ -482,6 +483,7 @@ def _create_output_xds(
     coordinates,
     lst,
     delays,
+    scans,
     fit,
     variance,
     chi_squared,
@@ -537,6 +539,7 @@ def _create_output_xds(
 
     coords = {"time": coordinates[3, :]}
     output_xds["DELAYS"] = xr.DataArray(delays, dims=["time"])
+    output_xds["SCANS"] = xr.DataArray(scans, dims=["time"])
     output_xds["MODEL"] = xr.DataArray(model, dims=["time"])
     output_xds["HOUR_ANGLE"] = xr.DataArray(coordinates[0, :], dims=["time"])
     output_xds["DECLINATION"] = xr.DataArray(coordinates[1, :], dims=["time"])

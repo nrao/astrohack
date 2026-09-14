@@ -34,50 +34,19 @@ def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     field_id, time, delays, scans, freq = _get_data_from_locit_xds(
         input_xdt, locit_parms["polarization"]
     )
-    ant_key = locit_parms["this_ant"]
-    ddi_key = locit_parms["this_ddi"]
-    antenna_info = input_xdt.parent.attrs["antenna_info"]
-    source_dict = input_xdt.parent.parent.attrs["source_dict"]
-    if _has_valid_data(field_id, time, delays, ant_key, ddi=ddi_key):
-
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
-        )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
-            fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
-            if converged:
-                model, chi_squared = _compute_chi_squared(
-                    delays,
-                    fit,
-                    coordinates,
-                    locit_parms["fit_kterm"],
-                    locit_parms["fit_delay_rate"],
-                )
-                out_xds = _create_output_xds(
-                    coordinates,
-                    lst,
-                    delays,
-                    fit,
-                    variance,
-                    chi_squared,
-                    model,
-                    locit_parms,
-                    freq,
-                    elevation_limit,
-                    antenna_info,
-                )
-                # This is a workaround to add antenna info for locit_mds methods
-                if not pathlib.Path(
-                    f"{output_mds.filename}/{ant_key}/.zattrs"
-                ).exists():
-                    ant_xdt = xr.DataTree(name=f"{ant_key}")
-                    ant_xdt.attrs["antenna_info"] = antenna_info
-                    ant_xdt = ant_xdt.assign(
-                        {f"{ddi_key}": xr.DataTree(dataset=out_xds, name=f"{ddi_key}")}
-                    )
-                    output_mds.add_node(ant_xdt, [ant_key])
-                else:
-                    output_mds.add_node(out_xds, [ant_key, ddi_key])
+    _locit_common_flow(
+        field_id,
+        time,
+        delays,
+        scans,
+        freq,
+        locit_parms,
+        input_xdt.parent.attrs["antenna_info"],
+        input_xdt.parent.parent.attrs["source_dict"],
+        locit_parms["this_ant"],
+        locit_parms["this_ddi"],
+        output_mds,
+    )
 
 
 def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -91,9 +60,6 @@ def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     xds save to disk in the .zarr format
     """
     ant_xdt = locit_parms["xdt_data"]
-    antenna_info = ant_xdt.attrs["antenna_info"]
-    source_dict = ant_xdt.parent.attrs["source_dict"]
-    ant_key = locit_parms["this_ant"]
 
     delay_list = []
     time_list = []
@@ -116,34 +82,19 @@ def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     field_id = np.concatenate(field_list)
     scans = np.concatenate(scan_list)
 
-    if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
-        )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
-            fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
-            if converged:
-                model, chi_squared = _compute_chi_squared(
-                    delays,
-                    fit,
-                    coordinates,
-                    locit_parms["fit_kterm"],
-                    locit_parms["fit_delay_rate"],
-                )
-                out_xds = _create_output_xds(
-                    coordinates,
-                    lst,
-                    delays,
-                    fit,
-                    variance,
-                    chi_squared,
-                    model,
-                    locit_parms,
-                    freq_list,
-                    elevation_limit,
-                    antenna_info,
-                )
-                output_mds.add_node(out_xds, [ant_key])
+    _locit_common_flow(
+        field_id,
+        time,
+        delays,
+        scans,
+        freq_list,
+        locit_parms,
+        ant_xdt.attrs["antenna_info"],
+        ant_xdt.parent.attrs["source_dict"],
+        locit_parms["this_ant"],
+        None,
+        output_mds,
+    )
 
 
 def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -156,36 +107,78 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
 
     """
     ant_xdt = locit_parms["xdt_data"]
-    antenna_info = ant_xdt.attrs["antenna_info"]
-    source_dict = ant_xdt.parent.attrs["source_dict"]
-    ant_key = locit_parms["this_ant"]
-
     ddi_list = param_to_list(locit_parms["ddi"], ant_xdt, "ddi")
     nddis = len(ddi_list)
 
     if nddis != 2:
-        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {ant_key.split('_')[1]}."
+        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {locit_parms['this_ant'].split('_')[1]}."
         logger.error(msg)
-        return None
+    else:
+        ddi_0 = _get_data_from_locit_xds(
+            ant_xdt[ddi_list[0]],
+            locit_parms["polarization"],
+            get_phases=True,
+            split_pols=True,
+        )
+        ddi_1 = _get_data_from_locit_xds(
+            ant_xdt[ddi_list[1]],
+            locit_parms["polarization"],
+            get_phases=True,
+            split_pols=True,
+        )
 
-    ddi_0 = _get_data_from_locit_xds(
-        ant_xdt[ddi_list[0]],
-        locit_parms["polarization"],
-        get_phases=True,
-        split_pols=True,
-    )
-    ddi_1 = _get_data_from_locit_xds(
-        ant_xdt[ddi_list[1]],
-        locit_parms["polarization"],
-        get_phases=True,
-        split_pols=True,
-    )
+        time, field_id, delays, scans, freq = _delays_from_phase_differences(
+            ddi_0, ddi_1
+        )
+        _locit_common_flow(
+            field_id,
+            time,
+            delays,
+            scans,
+            freq,
+            locit_parms,
+            ant_xdt.attrs["antenna_info"],
+            ant_xdt.parent.attrs["source_dict"],
+            locit_parms["this_ant"],
+            None,
+            output_mds,
+        )
 
-    time, field_id, delays, scans, freq = _delays_from_phase_differences(ddi_0, ddi_1)
 
+def _locit_common_flow(
+    field_id,
+    time,
+    delays,
+    scans,
+    freq_info,
+    locit_parms,
+    antenna_info,
+    source_dict,
+    ant_key,
+    ddi_key,
+    output_mds,
+):
+    """
+    Function to oversee the common flow between the different modes of locit
+    Args:
+        field_id: Field IDs
+        time: Time axis
+        delays: delays
+        scans: Scan IDs
+        freq_info: Frquency information
+        locit_parms: locit parameters
+        antenna_info: Antenna information
+        source_dict: Source dictionary
+        ant_key: antenna key
+        ddi_key: ddi key, None should be used for cases without ddi
+        output_mds: Output position mds object
+
+    Returns:
+        Saves locit execution to disk.
+    """
     if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
+        coordinates, delays, scans, lst, elevation_limit, nin = _build_filtered_arrays(
+            field_id, time, delays, scans, locit_parms, antenna_info, source_dict
         )
         if _elevation_ok(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
@@ -206,11 +199,28 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
                     chi_squared,
                     model,
                     locit_parms,
-                    freq,
+                    freq_info,
                     elevation_limit,
                     antenna_info,
                 )
-                output_mds.add_node(out_xds, [ant_key])
+                if ddi_key is not None:
+                    if not pathlib.Path(
+                        f"{output_mds.filename}/{ant_key}/.zattrs"
+                    ).exists():
+                        ant_xdt = xr.DataTree(name=f"{ant_key}")
+                        ant_xdt.attrs["antenna_info"] = antenna_info
+                        ant_xdt = ant_xdt.assign(
+                            {
+                                f"{ddi_key}": xr.DataTree(
+                                    dataset=out_xds, name=f"{ddi_key}"
+                                )
+                            }
+                        )
+                        output_mds.add_node(ant_xdt, [ant_key])
+                    else:
+                        output_mds.add_node(out_xds, [ant_key, ddi_key])
+                else:
+                    output_mds.add_node(out_xds, [ant_key])
 
 
 def _delays_from_phase_differences(ddi_0, ddi_1):
@@ -422,7 +432,7 @@ def _get_data_from_locit_xds(
         ]
         field_id = [xds_data["P0_FIELD_ID"].values, xds_data["P1_FIELD_ID"].values]
         time = [xds_data.p0_time.values, xds_data.p1_time.values]
-        scans = [xds_data["P0_SCANS"].values, xds_data["P0_SCANS"].values]
+        scans = [xds_data["P0_SCANS"].values, xds_data["P1_SCANS"].values]
         if not split_pols:
             phases = np.concatenate(phases)
             field_id = np.concatenate(field_id)
@@ -609,7 +619,7 @@ def _compute_chi_squared(delays, fit, coordinates, fit_kterm, fit_rate):
 
 
 def _build_filtered_arrays(
-    field_id, time, delays, locit_parms, antenna_info, source_dict
+    field_id, time, delays, scans, locit_parms, antenna_info, source_dict
 ):
     """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the \
     elevation limit
@@ -618,10 +628,13 @@ def _build_filtered_arrays(
         field_id: Array with the observed field per delay
         time: Time array with the time of each delay
         delays: The delay array
+        scans: The scan array
         locit_parms: Locit main function parameters
+        antenna_info: Antenna info
+        source_dict: Dictionary with the source name and coordinates
 
     Returns:
-    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the \
+    coordinates (ha, dec, ele, time), delays, scans, local sidereal time all filtered by elevation limit and the \
     elevation_limit
     """
     elevation_limit = locit_parms["elevation_limit"] * convert_unit(
@@ -657,8 +670,9 @@ def _build_filtered_arrays(
     coordinates = coordinates[:, selection]
     lst = lst[selection]
     nin = np.sum(selection)
+    scans = scans[selection]
 
-    return coordinates, delays, lst, elevation_limit, nin
+    return coordinates, delays, scans, lst, elevation_limit, nin
 
 
 def _geometrical_coeffs(coordinates):

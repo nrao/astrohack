@@ -601,6 +601,41 @@ def _plot_sky_coverage_chunk(parm_dict):
     return
 
 
+def _add_scans_to_plot(ax, time, scans):
+    """
+    Add Scan information to an axes object that has time as the X axis.
+    Args:
+        ax: axes object to add Scan information to
+        time: time values for scans
+        scans: Scan IDs
+
+    Returns:
+        None
+    """
+    text_bottom = 0.95
+    for i_time, time in enumerate(time):
+        scan = scans[i_time]
+        ax.text(
+            time,
+            text_bottom,
+            scan,
+            ha="center",
+            va="bottom",
+            transform=ax.get_xaxis_transform(),
+            fontsize=3.5,
+            rotation=90,
+        )
+        ax.axvline(
+            time,
+            ymin=0,
+            ymax=text_bottom - 0.005,
+            color="red",
+            linestyle="dashed",
+            linewidth=0.5,
+        )
+    return
+
+
 def _plot_delays_chunk(parm_dict):
     """
     Plot the delays and optionally the delay model for a XDS
@@ -640,6 +675,7 @@ def _plot_delays_chunk(parm_dict):
     dec = ant_xdt["DECLINATION"] * angle_fact
     ele = ant_xdt["ELEVATION"] * angle_fact
     delays = ant_xdt["DELAYS"].values * delay_fact
+    scans = ant_xdt["SCANS"].values
 
     elelim, elelines, declim, declines, halim = _compute_plot_borders(
         angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
@@ -668,6 +704,7 @@ def _plot_delays_chunk(parm_dict):
         ylim=delaylim,
         model=model,
     )
+    _add_scans_to_plot(axes[0, 0], time, scans)
     scatter_plot(
         axes[0, 1],
         ele,

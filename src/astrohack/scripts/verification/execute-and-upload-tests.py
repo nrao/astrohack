@@ -268,7 +268,7 @@ def main():
         # "stakeholder/test_stakeholder_vla.py",
         # "unit/user_facing_functions/test_locit.py",
         # "unit/user_facing_functions/test_extract_locit.py",
-        "unit/user_facing_functions/test_fringefit_locit.py",
+        # "unit/user_facing_functions/test_fringefit_locit.py",
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

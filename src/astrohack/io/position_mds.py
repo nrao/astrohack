@@ -15,7 +15,11 @@ from astrohack.utils.text import (
     lnbr,
     undscr,
 )
-from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
+from astrohack.utils.algorithms import (
+    rotate_to_gmt,
+    compute_antenna_relative_off,
+    data_statistics,
+)
 from astrohack.utils.conversion import convert_unit
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.io.locit_mds import AstrohackLocitFile
@@ -601,38 +605,35 @@ def _plot_sky_coverage_chunk(parm_dict):
     return
 
 
-def _add_scans_to_plot(ax, time, scans):
+def _add_scans_to_plot(ax, time, scans, residuals):
     """
     Add Scan information to an axes object that has time as the X axis.
     Args:
         ax: axes object to add Scan information to
         time: time values for scans
         scans: Scan IDs
+        residuals: residual values for times and scans
 
     Returns:
         None
     """
-    text_bottom = 0.95
+    residual_stats = data_statistics(residuals)
+    scan_selection = np.abs(residuals) > 3 * residual_stats["rms"]
+    text_bottom = 1.02
     for i_time, time in enumerate(time):
-        scan = scans[i_time]
-        ax.text(
-            time,
-            text_bottom,
-            scan,
-            ha="center",
-            va="bottom",
-            transform=ax.get_xaxis_transform(),
-            fontsize=3.5,
-            rotation=90,
-        )
-        ax.axvline(
-            time,
-            ymin=0,
-            ymax=text_bottom - 0.005,
-            color="red",
-            linestyle="dashed",
-            linewidth=0.5,
-        )
+        if scan_selection[i_time]:
+            scan = scans[i_time]
+            ax.text(
+                time,
+                text_bottom,
+                scan,
+                ha="center",
+                va="bottom",
+                transform=ax.get_xaxis_transform(),
+                fontsize=3.5,
+                rotation=90,
+            )
+
     return
 
 
@@ -704,7 +705,8 @@ def _plot_delays_chunk(parm_dict):
         ylim=delaylim,
         model=model,
     )
-    _add_scans_to_plot(axes[0, 0], time, scans)
+    _add_scans_to_plot(axes[0, 0], time, scans, delays - model)
+
     scatter_plot(
         axes[0, 1],
         ele,

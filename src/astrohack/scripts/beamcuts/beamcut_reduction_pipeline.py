@@ -21,6 +21,7 @@ from astrohack.utils.pipeline_support import (
     run_casatask,
     run_astrohack_function,
     add_basic_info_and_parameters_to_report,
+    parse_list_or_none,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -232,11 +233,10 @@ def param_init(param_dict: dict, msger: MessageBoard):
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
+    param_dict["exclude_bad_antennas"] = parse_list_or_none(
+        param_dict, "exclude_bad_antennas", list_type=str
+    )
 
-    if param_dict["exclude_bad_antennas"] is not None:
-        param_dict["exclude_bad_antennas"] = parse_list_or_all(
-            param_dict["exclude_bad_antennas"]
-        )
     param_dict["parallel"] = param_dict["ncores"] >= 2
     initialization_check(param_dict, "Beam cut reduction parameters")
     return param_dict

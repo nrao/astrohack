@@ -202,9 +202,33 @@ class TestLocit:
             "HOUR_ANGLE",
             "LST",
             "MODEL",
+            "SCANS",
         ]
         for key in position_mds.keys():
-            assert are_lists_equal(list(position_mds[key].keys()), ref_list)
+            assert are_lists_equal(
+                list(position_mds[key].keys()), ref_list
+            ), "An XDS should contain all the expected keys"
+
+    def test_scan_exclusion(self):
+        """
+        Test excluding a few scans from the data set.
+        """
+        if produce_reference_data():
+            return
+        bad_scans = [3, 5, 15]
+        position_mds = locit(
+            locit_name=self.lct_name,
+            position_name=self.def_pos_name,
+            combine_ddis="simple",
+            exclude_scans=bad_scans,
+            parallel=False,
+            overwrite=True,
+        )
+        ant_xds = position_mds[self.ant_key]
+        for bad_scan in bad_scans:
+            assert (
+                bad_scan not in ant_xds.SCANS.values
+            ), f"Scan {bad_scan} should have been excluded from dataset"
 
     def test_overwrite(self):
         """

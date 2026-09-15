@@ -180,6 +180,26 @@ class TestFringeFitLocit:
             for ant in position_mds.keys():
                 assert position_mds[ant].polarization == pol
 
+    def test_scan_exclusion(self):
+        """
+        Test excluding a few scans from the data set.
+        """
+        if produce_reference_data():
+            return
+        bad_scans = [3, 5, 15]
+        position_mds = fringefit_locit(
+            fringefit_caltable=self.fringefit_name,
+            position_name=self.def_pos_name,
+            exclude_scans=bad_scans,
+            parallel=False,
+            overwrite=True,
+        )
+        ant_xds = position_mds[self.ant_key]
+        for bad_scan in bad_scans:
+            assert (
+                bad_scan not in ant_xds.SCANS.values
+            ), f"Scan {bad_scan} should have been excluded from dataset"
+
     def test_overwrite(self):
         """
         Specify the output file should be overwritten; check that it WAS.

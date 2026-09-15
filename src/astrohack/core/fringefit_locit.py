@@ -5,6 +5,7 @@ from astropy.coordinates import EarthLocation, SkyCoord, CIRS, AltAz
 from casacoretables import tables as ctables
 from astropy.time import Time
 import astropy.units as u
+from dask.array import logical_and
 
 from astrohack import AstrohackPositionFile
 import toolviper.utils.logger as logger
@@ -37,6 +38,7 @@ def fringefit_locit_looping_dict(
     fparam = main_table.getcol("FPARAM")
     spw = main_table.getcol("SPECTRAL_WINDOW_ID")
     field = main_table.getcol("FIELD_ID")
+    scans = main_table.getcol("SCAN_NUMBER")
 
     delays = fparam[:, 0, 1::4] * 1e-9
     if locit_parms["ant"] == "all":
@@ -74,6 +76,7 @@ def fringefit_locit_looping_dict(
                 "delays": delays[ant_selection],  # convert to sec
                 "fields": field[ant_selection],
                 "spw": spw[ant_selection],
+                "scans": scans[ant_selection],
             }
             looping_dict[ant_key] = this_ant_data
         else:
@@ -89,7 +92,7 @@ def _match_delays_to_coordinates(
     delay_dict: dict,
     init_time: float,
     ddi_dict: dict,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, list]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, list]:
     """
     Match delays to coordinates
     Args:
@@ -101,8 +104,8 @@ def _match_delays_to_coordinates(
         ddi_dict: Dictionary containing the spectral window information.
 
     Returns:
-        a tuple containing: the [n,4] coordinates array, [n] delay array, [n] LST array, Elevation limit in \
-        rad, list of used spws.
+        a size 6 tuple containing: the [n,4] coordinates array, [n] delay array, [n] LST array, [n] scan array, \
+        Elevation limit in rad, list of used spws.
     """
     user_pol_sel = locit_parms["polarization"]
     el_limit = (
@@ -130,6 +133,7 @@ def _match_delays_to_coordinates(
     ant_time = delay_dict["time"][ddi_sel] / 86400
     ant_fields = delay_dict["fields"][ddi_sel]
     ant_delays = delay_dict["delays"][ddi_sel]
+    ant_scans = delay_dict["scans"][ddi_sel]
 
     geo_pos = ant_info["geocentric_position"]
     ant_location = EarthLocation.from_geocentric(
@@ -155,6 +159,7 @@ def _match_delays_to_coordinates(
     coordinate_array = np.zeros((4, n_pol * n_rows))
     delay_array = np.zeros(n_pol * n_rows)
     lst_array = np.zeros(n_pol * n_rows)
+    scan_array = np.zeros(n_pol * n_rows, dtype=int)
     for i_pol, pol_id in enumerate(pol_sel):
         f_row = i_pol * n_rows
         l_row = (i_pol + 1) * n_rows
@@ -164,12 +169,18 @@ def _match_delays_to_coordinates(
         coordinate_array[3, f_row:l_row] = ant_time - init_time
         delay_array[f_row:l_row] = ant_delays[:, pol_id]
         lst_array[f_row:l_row] = lst
+        scan_array[f_row:l_row] = ant_scans
 
     el_selection = coordinate_array[2, :] >= el_limit
+    scan_selection = np.full_like(scan_array, True)
+    for bad_scan in locit_parms["exclude_scans"]:
+        scan_selection = np.logical_and(scan_selection, scan_array != bad_scan)
+    final_selection = np.logical_and(el_selection, scan_selection)
     return (
-        coordinate_array[:, el_selection],
-        delay_array[el_selection],
-        lst_array,
+        coordinate_array[:, final_selection],
+        delay_array[final_selection],
+        lst_array[final_selection],
+        scan_array[final_selection],
         el_limit,
         used_ddis,
     )
@@ -222,7 +233,7 @@ def fringefit_locit_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
 
     delay_dict = locit_parms["dic_data"]
     init_time = output_mds.root.attrs["time_range"][0]
-    coordinates, delays, lst, el_limit, used_ddis = _match_delays_to_coordinates(
+    coordinates, delays, lst, scans, el_limit, used_ddis = _match_delays_to_coordinates(
         locit_parms, src_dict, antenna_info, delay_dict, init_time, ddi_dict
     )
     if coordinates.size == 0:
@@ -247,6 +258,7 @@ def fringefit_locit_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
         coordinates,
         lst,
         delays,
+        scans,
         fit,
         variance,
         chi2,

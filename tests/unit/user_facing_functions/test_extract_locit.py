@@ -10,6 +10,7 @@ from astrohack.extract_locit import extract_locit
 from astrohack.utils.verification_tools import (
     add_data_folder_to_names_in_class,
     execute_cleanup,
+    produce_reference_data,
 )
 
 
@@ -55,6 +56,9 @@ class TestExtractLocit:
             self.def_lct_name
         ).is_dir(), f"A .locit.zarr file named {self.def_lct_name} does not exist."
 
+        if produce_reference_data():
+            return
+
         ref_lct_mds = open_locit(self.ref_lct_name)
         assert new_lct_mds.is_close_to(
             ref_lct_mds
@@ -64,6 +68,8 @@ class TestExtractLocit:
         """
         Check that only specified antenna is processed.
         """
+        if produce_reference_data():
+            return
 
         new_lct_mds = extract_locit(
             cal_table=self.cal_table_name,
@@ -88,6 +94,9 @@ class TestExtractLocit:
         """
         Specify the output file should be overwritten; check that it WAS.
         """
+        if produce_reference_data():
+            return
+
         # To check this properly we need to not only know an exception was not thrown but that the file is ACTUALLY
         # overwritten. We do this by checking the modification time.
         initial_time = os.path.getctime(self.def_lct_name)

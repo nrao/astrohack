@@ -185,6 +185,30 @@ def set_tests_to_update():
             },
             "cleanup_names": ["locit_data"],
         },
+        "unit/user_facing_functions/test_extract_locit.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "extract_locit_data/locit-input-pha.locit.zarr",
+                "destiny": "locit-input-pha-reference.locit.zarr",
+                "description": "Reference Astrohack locit file",
+                "type": "Antenna position corrections",
+                "telescope": "VLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["extract_locit_data"],
+        },
+        "unit/user_facing_functions/test_fringefit_locit.py": {
+            "n_items": 1,
+            "item_0": {
+                "creation": "fringefit_locit_data/fft_locit_input.position.zarr",
+                "destiny": "fft_locit_reference.position.zarr",
+                "description": "Reference Astrohack fringefit position file",
+                "type": "Antenna position corrections",
+                "telescope": "ngVLA",
+                "update_manifest": False,
+            },
+            "cleanup_names": ["fringefit_locit_data"],
+        },
     }
 
     return test_dict
@@ -243,6 +267,8 @@ def main():
         # "unit/mdses/test_panel_mds.py",
         # "stakeholder/test_stakeholder_vla.py",
         # "unit/user_facing_functions/test_locit.py",
+        # "unit/user_facing_functions/test_extract_locit.py",
+        "unit/user_facing_functions/test_fringefit_locit.py",
     ]
 
     os.environ["SKIP_PYTEST_CLEANUP"] = "True"

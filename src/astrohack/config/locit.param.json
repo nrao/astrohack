@@ -46,6 +46,11 @@
             "nullable": false,
             "allowed": ["simple", "difference", "no"]
         },
+        "exclude_scans": {
+            "type":["ndarray", "int", "list"],
+            "struct type": ["int"],
+            "nullable": true
+        },
         "parallel":{
             "type":["boolean"]
         },

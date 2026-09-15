@@ -180,7 +180,7 @@ def _locit_common_flow(
         coordinates, delays, scans, lst, elevation_limit, nin = _build_filtered_arrays(
             field_id, time, delays, scans, locit_parms, antenna_info, source_dict
         )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
+        if _selection_leaves_data(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
             if converged:
                 model, chi_squared = _compute_chi_squared(
@@ -377,9 +377,9 @@ def _has_valid_data(field_id, time, delays, antenna, ddi=None):
         return True
 
 
-def _elevation_ok(nin, antenna, ddi=None):
+def _selection_leaves_data(nin, antenna, ddi=None):
     """
-    Determine if elevation limit takes out all the data.
+    Determine if elevation limit and bad scans take out all the data.
     :param nin: Number of filtered points
     :param antenna: antenna key
     :param ddi: ddi key
@@ -388,7 +388,7 @@ def _elevation_ok(nin, antenna, ddi=None):
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
-    msg += "has no valid data, try decreasing the elevation limit."
+    msg += "selection excludes all data, try decreasing the elevation limit or changing excluded scans."
     if nin > 0:
         return True
     else:
@@ -668,12 +668,17 @@ def _build_filtered_arrays(
     )
 
     # Filter data below elevation limit
-    selection = coordinates[2, :] > elevation_limit
-    delays = delays[selection]
-    coordinates = coordinates[:, selection]
-    lst = lst[selection]
-    nin = np.sum(selection)
-    scans = scans[selection]
+    el_selection = coordinates[2, :] > elevation_limit
+    scan_selection = np.full_like(el_selection, True)
+    for bad_scan in locit_parms["exclude_scans"]:
+        scan_selection = np.logical_and(scan_selection, scans != bad_scan)
+    final_selection = np.logical_and(el_selection, scan_selection)
+
+    delays = delays[final_selection]
+    coordinates = coordinates[:, final_selection]
+    lst = lst[final_selection]
+    nin = np.sum(final_selection)
+    scans = scans[final_selection]
 
     return coordinates, delays, scans, lst, elevation_limit, nin
 

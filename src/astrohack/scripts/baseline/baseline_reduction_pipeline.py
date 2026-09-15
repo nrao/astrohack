@@ -20,6 +20,7 @@ from astrohack.utils.pipeline_support import (
     base_name_determination,
     asdm_test_and_import,
     add_basic_info_and_parameters_to_report,
+    parse_list_or_none,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -62,12 +63,6 @@ def parse():
         default="0319+415",
         help="Fringe fit source, default is 0319+415",
     )
-    parser.add_argument(
-        "--scans-to-flag",
-        default=None,
-        type=str,
-        help="Comma separated list of scans to flag, default is None",
-    )
 
     parser.add_argument(
         "-i",
@@ -90,8 +85,7 @@ def parse():
         "--antenna",
         default="all",
         help="Select antennas for which to produce antenna position corrections, "
-        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s"
-        "",
+        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -186,6 +180,13 @@ def parse():
         help="Use fringefit_locit to determine very large errors (> 3 meters) in antenna positions (EXPERIMENTAL)",
     )
 
+    parser.add_argument(
+        "--exclude-scans",
+        default=None,
+        help="Select scans to exclude from locit delay fitting, "
+        f"{list_input_tooltip('5,37')}, default is %(default)s",
+    )
+
     return vars(parser.parse_args())
 
 
@@ -209,11 +210,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
         -param_dict["delay_limits"],
         param_dict["delay_limits"],
     ]
-
-    if param_dict["scans_to_flag"] is None:
-        param_dict["scans_to_flag"] = []
-    else:
-        param_dict["scans_to_flag"] = param_dict["scans_to_flag"].split(",")
+    param_dict["exclude_scans"] = parse_list_or_none(param_dict, "exclude_scans")
 
     # Ms data fetching and some consistency checks
     pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
@@ -264,29 +261,6 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
         intended_output=param_dict["pointing_only_ms"],
         overwrite=param_dict["overwrite"],
     )
-
-    if len(param_dict["scans_to_flag"]) > 0:
-        run_casatask(
-            "flagdata",
-            {
-                "vis": param_dict["pointing_only_ms"],
-                "mode": "manual",
-                "scan": ",".join(param_dict["scans_to_flag"]),
-                "action": "apply",
-                "display": "report",
-                "flagbackup": False,
-            },
-            msger,
-        )
-        run_casatask(
-            "flagmanager",
-            {
-                "vis": param_dict["pointing_only_ms"],
-                "mode": "save",
-                "versionname": "baseflags",
-            },
-            msger,
-        )
 
     if param_dict["use_fringefit_locit"]:
         if param_dict["antenna"] == "all":
@@ -435,6 +409,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "elevation_limit": param_dict["elevation_limit"],
         "polarization": param_dict["polarization"],
         "combine_ddis": param_dict["combination"],
+        "exclude_scans": param_dict["exclude_scans"],
         "parallel": False,
     }
     if param_dict["use_fringefit_locit"]:

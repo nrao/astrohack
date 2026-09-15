@@ -1,6 +1,6 @@
 import toolviper.utils.parameter
 
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from astrohack.core.extract_locit import (
     extract_spectral_info,
@@ -28,6 +28,7 @@ def fringefit_locit(
     fit_delay_rate: bool = False,
     ant: Union[str, List[str]] = "all",
     ddi: Union[str, int, List[int]] = "all",
+    exclude_scans: Union[int, List[int], Tuple[int]] | None = None,
     parallel: bool = True,
     overwrite: bool = False,
 ):
@@ -61,6 +62,9 @@ def fringefit_locit(
 
     :param ddi: List of ddis/ddi to be processed, defaults to "all" when None, ex. 0
     :type ddi: list or int, optional
+
+    :param exclude_scans: List of scans in the fringefit cal table to be excluded from fitting, defaults to None
+    :type exclude_scans: list, or int, optional
 
     :param parallel: Run in parallel. Defaults to False.
     :type parallel: bool, optional

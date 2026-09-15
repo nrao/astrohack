@@ -41,6 +41,11 @@
             "struct type": ["int", "str"],
             "nullable": false
         },
+        "exclude_scans": {
+            "type":["ndarray", "int", "list"],
+            "struct type": ["int"],
+            "nullable": true
+        },
         "parallel":{
             "type":["boolean"]
         },

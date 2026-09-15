@@ -15,6 +15,7 @@ from astrohack.utils.file import overwrite_file
 from astrohack.utils.graph import create_and_execute_graph_from_dict
 from astrohack.utils.text import get_default_file_name
 from astrohack.io.position_mds import AstrohackPositionFile
+from astrohack.utils.tools import build_bad_scan_list
 
 
 @toolviper.utils.parameter.validate()
@@ -115,7 +116,7 @@ def fringefit_locit(
     position_name = get_default_file_name(
         fringefit_caltable, ".position.zarr", position_name
     )
-
+    exclude_scans = build_bad_scan_list(exclude_scans)
     locit_params = locals()
 
     input_params = locit_params.copy()

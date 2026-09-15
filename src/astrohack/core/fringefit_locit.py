@@ -5,6 +5,7 @@ from astropy.coordinates import EarthLocation, SkyCoord, CIRS, AltAz
 from casacoretables import tables as ctables
 from astropy.time import Time
 import astropy.units as u
+from dask.array import logical_and
 
 from astrohack import AstrohackPositionFile
 import toolviper.utils.logger as logger
@@ -171,11 +172,15 @@ def _match_delays_to_coordinates(
         scan_array[f_row:l_row] = ant_scans
 
     el_selection = coordinate_array[2, :] >= el_limit
+    scan_selection = np.full_like(scan_array, True)
+    for bad_scan in locit_parms["exclude_scans"]:
+        scan_selection = np.logical_and(scan_selection, scan_array != bad_scan)
+    final_selection = np.logical_and(el_selection, scan_selection)
     return (
-        coordinate_array[:, el_selection],
-        delay_array[el_selection],
-        lst_array[el_selection],
-        scan_array[el_selection],
+        coordinate_array[:, final_selection],
+        delay_array[final_selection],
+        lst_array[final_selection],
+        scan_array[final_selection],
         el_limit,
         used_ddis,
     )

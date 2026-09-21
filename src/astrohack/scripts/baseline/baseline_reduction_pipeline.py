@@ -759,10 +759,11 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
 
 
 def main():
+    pipeline_type = "baseline"
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the AstroHACK baseline pipeline for the VLA")
+    msger.welcome_message(pipeline_type)
 
     param_dict = param_init(parse(), msger)
     processing_stage = param_dict["starting_stage"]
@@ -785,9 +786,5 @@ def main():
         prepare_html_report(param_dict, msger)
 
     pipeline_end = time.time()
-    msger.heading(
-        f"Baseline processing finished in {format_duration(pipeline_end-pipeline_start)}, "
-        + f"locit results (including parminator file) saved at: {param_dict['exports_name']}."
-        + f" Checkout the HTML report at: {param_dict['report_name']}."
-    )
+    msger.goodbye_message(pipeline_type, param_dict, pipeline_end - pipeline_start)
     return

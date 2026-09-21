@@ -460,10 +460,11 @@ def prepare_html_report(param_dict, msger):
 
 
 def main():
+    pipeline_type = "beamcut"
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
+    msger.welcome_message(pipeline_type)
     main_param_dict = param_init(parse(), msger)
 
     astrohack_stages = ["extract_pointing", "extract_holog", "beamcut", "exports"]
@@ -498,8 +499,4 @@ def main():
         client.shutdown()
 
     pipeline_end = time.time()
-    msger.heading(
-        f"Beamcut processing finished in {format_duration(pipeline_end - pipeline_start)}, "
-        + f"individual plots and text results saved at: {main_param_dict['exports_name']}."
-        + f" Checkout the HTML report at: {main_param_dict['report_name']}."
-    )
+    msger.goodbye_message(pipeline_type, main_param_dict, pipeline_end - pipeline_start)

@@ -434,3 +434,5 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
         default=300,
         help="Dots Per Inch for plotting, default is %(default)d",
     )
+
+    return parser

@@ -4,6 +4,8 @@ import argparse
 import shutil
 from pathlib import Path
 import time
+import numpy as np
+
 from astrohack.utils.text import (
     lnbr,
     spc,
@@ -436,3 +438,93 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
     )
 
     return parser
+
+
+def basic_holography_parser(pipeline_type: str, stage_choices: list):
+    parser = create_parser_with_base_options(pipeline_type, stage_choices)
+
+    parser.add_argument(
+        "-d",
+        "--data-column",
+        type=str,
+        default="CORRECTED_DATA",
+        help="Data column to be extracted from MS, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--plot-pointing",
+        action="store_true",
+        help="Plot antenna pointing, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--exclude-bad-antennas",
+        default=None,
+        type=str,
+        help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
+    )
+
+    parser.add_argument(
+        "-q",
+        "--quack-nchan",
+        default=4,
+        type=int,
+        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "-f",
+        f"--{pipeline_type}-field",
+        default=None,
+        type=str,
+        help=f"Field Id or name containing {pipeline_type} data (default is to determine it from data)",
+    )
+
+    return parser
+
+
+def fetch_ms_metadata_for_holo(param_dict, field_key, pipeline_type):
+    import casatools
+
+    # Fetch metadata from ms
+    msmd = casatools.msmetadata()
+    msmd.open(param_dict["msname"])
+    cal_scans = msmd.scansforintent("*PHASE*")
+    beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
+    spw_list = msmd.spwsforintent("*MAP*")
+    beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
+    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+    all_fields = msmd.fieldnames()
+    msmd.done()
+
+    if param_dict["beamcut_field"] is None:
+        if beamcut_fields.size > 1:
+            raise RuntimeError("More than 1 beam cut field, try splitting the ms")
+        param_dict["beamcut_field"] = beamcut_fields[0]
+    else:
+        try:
+            field_id = int(param_dict["beamcut_field"])
+            if field_id > all_fields.size - 1 or field_id < 0:
+                raise RuntimeError("Specified beam cut field ID is out of range")
+        except ValueError:
+            if param_dict["beamcut_field"] not in all_fields:
+                raise RuntimeError(
+                    f"{param_dict['beamcut_field']} not present in the ms"
+                )
+
+    if nchan.size > 1:
+        raise RuntimeError(
+            "Spectral windows have different nchans, don't know how to proceed automatically"
+        )
+
+    # Convert to comma-separated string
+    param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
+    param_dict["beamcut_scans"] = ",".join(map(str, beamcut_scans))
+
+    fchan = param_dict["quack_nchan"]
+    lchan = nchan[0] - param_dict["quack_nchan"]
+    minspw = f"{round(np.min(spw_list)):d}"
+    maxspw = f"{round(np.max(spw_list)):d}"
+    spwrange = f"{minspw}~{maxspw}"
+    param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
+    return param_dict

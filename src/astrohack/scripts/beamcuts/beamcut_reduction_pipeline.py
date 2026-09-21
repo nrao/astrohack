@@ -13,14 +13,13 @@ from astrohack import (
 from astrohack.utils.pipeline_support import (
     initialization_check,
     MessageBoard,
-    list_input_tooltip,
     base_name_determination,
     asdm_test_and_import,
     parse_list_or_all,
     run_casatask,
     run_astrohack_function,
     add_basic_info_and_parameters_to_report,
-    create_parser_with_base_options,
+    basic_holography_parser,
 )
 from astrohack.utils.text import (
     create_html_file_from_body,
@@ -33,44 +32,9 @@ from astrohack.utils.text import (
 
 
 def parse(pipeline_type, stages):
-    parser = create_parser_with_base_options(pipeline_type, stages)
+    parser = basic_holography_parser(pipeline_type, stages)
 
-    parser.add_argument(
-        "-q",
-        "--quack-nchan",
-        default=4,
-        type=int,
-        help="Number of channels to quack at the edge of the spectral window (default is %(default)s)",
-    )
-
-    parser.add_argument(
-        "-f",
-        "--beamcut-field",
-        default=None,
-        type=str,
-        help="Field Id or name of the beam cut data (default is to determine it from data)",
-    )
-
-    parser.add_argument(
-        "-d",
-        "--data-column",
-        type=str,
-        default="CORRECTED_DATA",
-        help="Data column to be extracted from MS, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "--plot-pointing",
-        action="store_true",
-        help="Plot antenna pointing, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "--exclude-bad-antennas",
-        default=None,
-        type=str,
-        help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
-    )
+    # extract beam cut options will come here
 
     return vars(parser.parse_args())
 

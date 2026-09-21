@@ -1,5 +1,6 @@
 import inspect
 import pathlib
+import argparse
 import shutil
 from pathlib import Path
 import time
@@ -346,3 +347,90 @@ def add_basic_info_and_parameters_to_report(param_dict: dict):
     )
 
     return html_str
+
+
+def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
+    parser = argparse.ArgumentParser(
+        description=f"{pipeline_type.capitalize()} reduction pipeline"
+    )
+
+    parser.add_argument(
+        "filename", type=str, help="Path to the input dataset to process."
+    )
+
+    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
+
+    parser.add_argument(
+        "-r",
+        "--root-name",
+        type=str,
+        default=None,
+        help="Root name for the products of the pipeline, default is ms_name without extension",
+    )
+
+    parser.add_argument(
+        "-s",
+        "--spw",
+        type=str,
+        default="all",
+        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-a",
+        "--antenna",
+        type=str,
+        default="all",
+        help="Select antennas for which to produce beam cuts, "
+        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-n",
+        "--ncores",
+        type=int,
+        default=4,
+        help="Number of cores to use, default is %(default)d",
+    )
+
+    parser.add_argument(
+        "-m",
+        "--memory-per-core",
+        type=str,
+        default="10GB",
+        help="Memory per core to use, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files if found",
+    )
+
+    parser.add_argument(
+        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
+    )
+
+    parser.add_argument(
+        "--reimport-asdm",
+        action="store_true",
+        default=False,
+        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
+    )
+
+    # Example of parameter with choice
+    parser.add_argument(
+        "--starting-stage",
+        type=str,
+        default=stage_choices[0],
+        choices=stage_choices,
+        help="Starting stage in which to start processing (default: %(default)s).",
+    )
+
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="Dots Per Inch for plotting, default is %(default)d",
+    )

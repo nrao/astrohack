@@ -140,6 +140,9 @@ def extract_spectral_info(extract_locit_parms):
 
     ddi_dict = {}
     for i_ddi in ddi_list:
+        if i_ddi >= len(n_chan):
+            logger.warning(f"DDI {i_ddi} not present in the cal table")
+            continue
         if n_chan[i_ddi] != 1:
             error = True
             msg = f"DDI {i_ddi} has {n_chan[i_ddi]}, which is not supported"

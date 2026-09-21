@@ -80,6 +80,17 @@ class MessageBoard:
     def done(self):
         return self.one_liner("Done!")
 
+    def welcome_message(self, pipeline_type):
+        self.heading(f"Welcome to the AstroHACK {pipeline_type} reduction pipeline")
+
+    def goodbye_message(self, pipeline_type: str, param_dict: dict, duration: float):
+        msg = (
+            f"{pipeline_type.capitalize()} processing finished in {format_duration(duration)}"
+            f", individual plots and text results saved at: {param_dict['exports_name']}."
+            f" Checkout the HTML report at: {param_dict['report_name']}."
+        )
+        self.heading(msg)
+
 
 def run_casatask(
     task_name: str,

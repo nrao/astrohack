@@ -146,6 +146,10 @@ def param_init(param_dict: dict, msger: MessageBoard):
         param_dict, "exclude_bad_antennas", list_type=str
     )
 
+    if param_dict["exclude_bad_antennas"] is not None:
+        param_dict["exclude_bad_antennas"] = parse_list_or_all(
+            param_dict, "exclude_bad_antennas"
+        )
     param_dict["parallel"] = param_dict["ncores"] >= 2
     initialization_check(param_dict, "Beam cut reduction parameters")
     return param_dict

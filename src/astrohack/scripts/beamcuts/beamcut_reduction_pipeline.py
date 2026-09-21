@@ -466,7 +466,7 @@ def main():
     msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
     main_param_dict = param_init(parse(), msger)
 
-    astrohack_stages = ["extract_holog", "extract_pointing", "beamcut", "exports"]
+    astrohack_stages = ["extract_pointing", "extract_holog", "beamcut", "exports"]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
 
     if main_param_dict["processing_stage"] == "calibration":

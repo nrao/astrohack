@@ -20,7 +20,7 @@ from astrohack.utils.pipeline_support import (
     base_name_determination,
     asdm_test_and_import,
     add_basic_info_and_parameters_to_report,
-    parse_list_or_none,
+    create_parser_with_base_options,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -38,24 +38,8 @@ from astrohack.visualization.plot_tools import (
 )
 
 
-def parse():
-    desc = "CASA baseline pipeline"
-
-    parser = argparse.ArgumentParser(
-        description=f"{desc}", formatter_class=argparse.RawTextHelpFormatter
-    )
-
-    parser.add_argument("filename", type=str, help="Path to the input MS/ASDM file")
-
-    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
-
-    parser.add_argument(
-        "-r",
-        "--root-name",
-        type=str,
-        default=None,
-        help="Root name for the calibration tables, default is filename without extension",
-    )
+def parse(pipelie_type, stages):
+    parser = create_parser_with_base_options(pipelie_type, stages)
 
     parser.add_argument(
         "-f",
@@ -70,22 +54,6 @@ def parse():
         default="CALIBRATE_POINTING#ON_SOURCE",
         type=str,
         help="Intent for pointing observations.",
-    )
-
-    parser.add_argument(
-        "-s",
-        "--spw",
-        type=str,
-        default="all",
-        help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-a",
-        "--antenna",
-        default="all",
-        help="Select antennas for which to produce antenna position corrections, "
-        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -136,41 +104,6 @@ def parse():
         type=float,
         default=0.1,
         help="Symmetrical limit for delay plots, default is %(default)s which results in the limits being [-%(default)s, %(default)s]",
-    )
-
-    parser.add_argument(
-        "-d",
-        "--dpi",
-        type=int,
-        default=300,
-        help="DPI for png figures (default: %(default)s)",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--overwrite",
-        default=False,
-        action="store_true",
-        help="Overwrite existing files (MSes, caltables, locit files, plots)",
-    )
-
-    parser.add_argument(
-        "--starting-stage",
-        type=str,
-        default="calibration",
-        choices=["calibration", "locit", "exports", "report"],
-        help="Starting stage in which to start processing (default: %(default)s).",
-    )
-
-    parser.add_argument(
-        "--reimport-asdm",
-        action="store_true",
-        default=False,
-        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
-    )
-
-    parser.add_argument(
-        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
     )
 
     parser.add_argument(
@@ -763,26 +696,27 @@ def main():
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
+    stages = ["calibration", "locit", "exports", "report"]
     msger.welcome_message(pipeline_type)
 
-    param_dict = param_init(parse(), msger)
+    param_dict = param_init(parse(pipeline_type, stages), msger)
     processing_stage = param_dict["starting_stage"]
 
-    if processing_stage == "calibration":
+    if processing_stage == stages[0]:
         run_casa_pre_locit_steps(param_dict, msger)
-        processing_stage = "locit"
+        processing_stage = stages[1]
 
-    if processing_stage == "locit":
+    if processing_stage == stages[1]:
         run_astrohack_locit(param_dict, msger)
-        processing_stage = "exports"
+        processing_stage = stages[2]
 
-    if processing_stage == "exports":
+    if processing_stage == stages[2]:
         run_astrohack_exports(param_dict, msger)
         if not param_dict["use_fringefit_locit"]:
             run_post_locit_plots(param_dict, msger)
-        processing_stage = "report"
+        processing_stage = stages[3]
 
-    if processing_stage == "report":
+    if processing_stage == stages[3]:
         prepare_html_report(param_dict, msger)
 
     pipeline_end = time.time()

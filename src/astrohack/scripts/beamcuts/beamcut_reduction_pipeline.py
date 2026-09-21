@@ -1,4 +1,3 @@
-import argparse
 import time
 import casatools
 
@@ -24,7 +23,6 @@ from astrohack.utils.pipeline_support import (
     create_parser_with_base_options,
 )
 from astrohack.utils.text import (
-    format_duration,
     create_html_file_from_body,
     add_heading_to_html,
     create_single_html_image_with_header,

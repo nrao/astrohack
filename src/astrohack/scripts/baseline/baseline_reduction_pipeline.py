@@ -1,4 +1,3 @@
-import argparse
 import os
 import time
 import numpy as np
@@ -14,7 +13,6 @@ from astrohack.utils.pipeline_support import (
     initialization_check,
     run_casatask,
     proceed_check,
-    list_input_tooltip,
     run_astrohack_function,
     parse_list_or_all,
     base_name_determination,

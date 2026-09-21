@@ -377,7 +377,7 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
         "--spw",
         type=str,
         default="all",
-        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
+        help=f"Select SPWs for processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -385,8 +385,7 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
         "--antenna",
         type=str,
         default="all",
-        help="Select antennas for which to produce beam cuts, "
-        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
+        help=f"Select antennas for processing, {list_input_tooltip('ea01,ea02')}, default is %(default)s",
     )
 
     parser.add_argument(

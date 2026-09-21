@@ -2,12 +2,38 @@ import time
 
 from toolviper.dask.client import local_client
 
-from astrohack.utils.pipeline_support import MessageBoard
+from astrohack.utils.pipeline_support import (
+    MessageBoard,
+    create_parser_with_base_options,
+    list_input_tooltip,
+)
 
 
-def parse():
-    param_dict = {}
-    return param_dict
+def parse(pipeline_type: str, stages: list):
+    parser = create_parser_with_base_options(pipeline_type, stages)
+
+    parser.add_argument(
+        "-d",
+        "--data-column",
+        type=str,
+        default="CORRECTED_DATA",
+        help="Data column to be extracted from MS, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--plot-pointing",
+        action="store_true",
+        help="Plot antenna pointing, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--exclude-bad-antennas",
+        default=None,
+        type=str,
+        help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
+    )
+
+    return vars(parser.parse_args())
 
 
 def fetch_ms_data():
@@ -36,18 +62,29 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
 
 
 def main():
+    pipeline_type = "holography"
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the AstroHACK BeamCut reduction pipeline")
-    main_param_dict = param_init(parse(), msger)
+    msger.welcome_message(pipeline_type)
+    stages = [
+        "calibration",
+        "extract_pointing",
+        "extract_holog",
+        "holog",
+        "panel",
+        "exports",
+        "report",
+    ]
 
-    astrohack_stages = ["extract_holog", "extract_pointing", "beamcut", "exports"]
+    main_param_dict = param_init(parse(pipeline_type, stages), msger)
+
+    astrohack_stages = stages[1:6]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
 
-    if main_param_dict["processing_stage"] == "calibration":
+    if main_param_dict["processing_stage"] == stages[0]:
         run_casa_calibration(main_param_dict, msger)
-        main_param_dict["processing_stage"] = "extract_pointing"
+        main_param_dict["processing_stage"] = astrohack_stages[0]
 
     if (
         main_param_dict["parallel"]
@@ -74,8 +111,4 @@ def main():
         client.shutdown()
 
     pipeline_end = time.time()
-    msger.heading(
-        f"Beamcut processing finished in {format_duration(pipeline_end - pipeline_start)}, "
-        + f"individual plots and text results saved at: {main_param_dict['exports_name']}."
-        + f" Checkout the HTML report at: {main_param_dict['report_name']}."
-    )
+    msger.goodbye_message(pipeline_type, main_param_dict, pipeline_end - pipeline_start)

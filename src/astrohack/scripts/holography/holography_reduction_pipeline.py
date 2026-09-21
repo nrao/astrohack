@@ -100,11 +100,11 @@ def main():
     if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
         run_astrohack_reduction(main_param_dict, msger)
 
-    if main_param_dict["processing_stage"] == "exports":
+    if main_param_dict["processing_stage"] == astrohack_stages[-1]:
         run_astrohack_exports(main_param_dict, msger)
-        main_param_dict["processing_stage"] = "report"
+        main_param_dict["processing_stage"] = stages[-1]
 
-    if main_param_dict["processing_stage"] == "report":
+    if main_param_dict["processing_stage"] == stages[-1]:
         prepare_html_report(main_param_dict, msger)
 
     if client is not None:

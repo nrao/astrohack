@@ -605,35 +605,34 @@ def _plot_sky_coverage_chunk(parm_dict):
     return
 
 
-def _add_scans_to_plot(ax, time, scans, residuals):
+def _add_scans_to_plot(ax, x_axis, scans, residuals, sigma_clip=3):
     """
     Add Scan information to an axes object that has time as the X axis.
     Args:
         ax: axes object to add Scan information to
-        time: time values for scans
+        x_axis: X axis values for scans
         scans: Scan IDs
         residuals: residual values for times and scans
+        sigma_clip: Level for sigma clipping, default is 3
 
     Returns:
         None
     """
     residual_stats = data_statistics(residuals)
-    scan_selection = np.abs(residuals) > 3 * residual_stats["rms"]
-    text_bottom = 1.02
-    for i_time, time in enumerate(time):
-        if scan_selection[i_time]:
-            scan = scans[i_time]
-            ax.text(
-                time,
-                text_bottom,
-                scan,
-                ha="center",
-                va="bottom",
-                transform=ax.get_xaxis_transform(),
-                fontsize=3.5,
-                rotation=90,
-            )
+    bad_scan_selection = np.abs(residuals) > sigma_clip * residual_stats["rms"]
+    tick_positions = []
+    tick_labels = []
+    for i_x, x_point in enumerate(x_axis):
+        if bad_scan_selection[i_x]:
+            tick_positions.append(x_point)
+            tick_labels.append(str(scans[i_x]))
 
+    if len(tick_positions) > 0:
+        bad_scan_fontsize = 8
+        sec_x_ax = ax.secondary_xaxis("top")
+        sec_x_ax.set_xticks(tick_positions)
+        sec_x_ax.set_xticklabels(tick_labels, fontsize=bad_scan_fontsize)
+        sec_x_ax.set_xlabel("Bad Scans", fontsize=bad_scan_fontsize)
     return
 
 

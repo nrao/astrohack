@@ -21,7 +21,7 @@ from astrohack.utils.pipeline_support import (
     run_casatask,
     run_astrohack_function,
     add_basic_info_and_parameters_to_report,
-    parse_list_or_none,
+    create_parser_with_base_options,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -34,23 +34,8 @@ from astrohack.utils.text import (
 )
 
 
-def parse():
-    parser = argparse.ArgumentParser(description="Beam cut reduction pipeline")
-
-    parser.add_argument(
-        "filename", type=str, help="Path to the input dataset to process."
-    )
-
-    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
-
-    parser.add_argument(
-        "-r",
-        "--root-name",
-        type=str,
-        default=None,
-        help="Root name for the products of the pipeline, default"
-        " is ms_name without extension",
-    )
+def parse(pipeline_type, stages):
+    parser = create_parser_with_base_options(pipeline_type, stages)
 
     parser.add_argument(
         "-q",
@@ -69,78 +54,11 @@ def parse():
     )
 
     parser.add_argument(
-        "-s",
-        "--spw",
-        type=str,
-        default="all",
-        help=f"Select SPWs for which to produce beam cuts, {list_input_tooltip('0,1,2')}, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-a",
-        "--antenna",
-        type=str,
-        default="all",
-        help="Select antennas for which to produce beam cuts, "
-        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-n",
-        "--ncores",
-        type=int,
-        default=4,
-        help="Number of cores to use, default is %(default)d",
-    )
-
-    parser.add_argument(
-        "-m",
-        "--memory-per-core",
-        type=str,
-        default="10GB",
-        help="Memory per core to use, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--overwrite",
-        action="store_true",
-        help="Overwrite existing files if found",
-    )
-
-    parser.add_argument(
         "-d",
         "--data-column",
         type=str,
         default="CORRECTED_DATA",
         help="Data column to be extracted from MS, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
-    )
-
-    # Example of parameter with choice
-    parser.add_argument(
-        "--starting-stage",
-        type=str,
-        default="calibration",
-        choices=[
-            "calibration",
-            "extract_pointing",
-            "extract_holog",
-            "beamcut",
-            "exports",
-            "report",
-        ],
-        help="Starting stage in which to start processing (default: %(default)s).",
-    )
-
-    parser.add_argument(
-        "--dpi",
-        type=int,
-        default=300,
-        help="Dots Per Inch for plotting, default is %(default)d",
     )
 
     parser.add_argument(
@@ -154,13 +72,6 @@ def parse():
         default=None,
         type=str,
         help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
-    )
-
-    parser.add_argument(
-        "--reimport-asdm",
-        action="store_true",
-        default=False,
-        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
     )
 
     return vars(parser.parse_args())
@@ -465,14 +376,23 @@ def main():
     msger = MessageBoard()
     print()
     msger.welcome_message(pipeline_type)
-    main_param_dict = param_init(parse(), msger)
+    stages = [
+        "calibration",
+        "extract_pointing",
+        "extract_holog",
+        "beamcut",
+        "exports",
+        "report",
+    ]
 
-    astrohack_stages = ["extract_pointing", "extract_holog", "beamcut", "exports"]
+    main_param_dict = param_init(parse(pipeline_type, stages), msger)
+
+    astrohack_stages = stages[1:5]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]
 
-    if main_param_dict["processing_stage"] == "calibration":
+    if main_param_dict["processing_stage"] == stages[0]:
         run_casa_calibration(main_param_dict, msger)
-        main_param_dict["processing_stage"] = "extract_pointing"
+        main_param_dict["processing_stage"] = astrohack_stages[0]
 
     if (
         main_param_dict["parallel"]

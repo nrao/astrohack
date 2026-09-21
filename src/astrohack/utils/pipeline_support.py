@@ -483,7 +483,7 @@ def basic_holography_parser(pipeline_type: str, stage_choices: list):
     return parser
 
 
-def fetch_ms_metadata_for_holo(param_dict, field_key, pipeline_type):
+def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     import casatools
 
     # Fetch metadata from ms
@@ -496,21 +496,23 @@ def fetch_ms_metadata_for_holo(param_dict, field_key, pipeline_type):
     nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
     all_fields = msmd.fieldnames()
     msmd.done()
-
-    if param_dict["beamcut_field"] is None:
+    field_key = f"{pipeline_type}_field"
+    if param_dict[field_key] is None:
         if beamcut_fields.size > 1:
-            raise RuntimeError("More than 1 beam cut field, try splitting the ms")
-        param_dict["beamcut_field"] = beamcut_fields[0]
+            raise RuntimeError(
+                f"More than 1 {pipeline_type} field, try splitting the ms"
+            )
+        param_dict[field_key] = beamcut_fields[0]
     else:
         try:
-            field_id = int(param_dict["beamcut_field"])
+            field_id = int(param_dict[field_key])
             if field_id > all_fields.size - 1 or field_id < 0:
-                raise RuntimeError("Specified beam cut field ID is out of range")
-        except ValueError:
-            if param_dict["beamcut_field"] not in all_fields:
                 raise RuntimeError(
-                    f"{param_dict['beamcut_field']} not present in the ms"
+                    f"Specified {pipeline_type} field ID is out of range"
                 )
+        except ValueError:
+            if param_dict[field_key] not in all_fields:
+                raise RuntimeError(f"{param_dict[field_key]} not present in the ms")
 
     if nchan.size > 1:
         raise RuntimeError(
@@ -519,7 +521,7 @@ def fetch_ms_metadata_for_holo(param_dict, field_key, pipeline_type):
 
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
-    param_dict["beamcut_scans"] = ",".join(map(str, beamcut_scans))
+    param_dict[f"{pipeline_type}_scans"] = ",".join(map(str, beamcut_scans))
 
     fchan = param_dict["quack_nchan"]
     lchan = nchan[0] - param_dict["quack_nchan"]

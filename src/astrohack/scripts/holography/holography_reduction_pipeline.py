@@ -6,67 +6,36 @@ from astrohack.utils.pipeline_support import (
     MessageBoard,
     create_parser_with_base_options,
     list_input_tooltip,
+    base_name_determination,
+    asdm_test_and_import,
+    parse_list_or_all,
+    initialization_check,
+    basic_holography_parser,
+    fetch_ms_metadata_for_holograpy,
+    common_parameter_initialization_for_holography,
 )
 
 
 def parse(pipeline_type: str, stages: list):
-    parser = create_parser_with_base_options(pipeline_type, stages)
+    parser = basic_holography_parser(pipeline_type, stages)
 
-    parser.add_argument(
-        "-d",
-        "--data-column",
-        type=str,
-        default="CORRECTED_DATA",
-        help="Data column to be extracted from MS, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "--plot-pointing",
-        action="store_true",
-        help="Plot antenna pointing, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "--exclude-bad-antennas",
-        default=None,
-        type=str,
-        help=f"Exclude antennas with bad data, {list_input_tooltip('ea18,ea01')}, default is %(default)s.",
-    )
+    # Extra holography options come here
 
     return vars(parser.parse_args())
 
 
-def fetch_ms_data():
-    return
-
-
-def param_init(param_dict: dict, msger: MessageBoard):
-
-    return param_dict
-
-
-def run_casa_calibration(param_dict: dict, msger: MessageBoard):
-    return
-
-
-def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
-    return
-
-
-def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
-    return
-
-
-def prepare_html_report(param_dict: dict, msger: MessageBoard):
-    return
-
-
-def main():
-    pipeline_type = "holography"
-    pipeline_start = time.time()
-    msger = MessageBoard()
-    print()
-    msger.welcome_message(pipeline_type)
+def param_init(pipeline_type: str, msger: MessageBoard):
+    extensions = {
+        "delay_cal": ".dcal",
+        "bandpass_cal": ".bcal",
+        "gain_cal": ".gcal",
+        "point": ".point.zarr",
+        "holog": ".holog.zarr",
+        "image": ".image.zarr",
+        "panel": ".panel.zarr",
+        "exports": ".exports",
+        "report": "-report.html",
+    }
     stages = [
         "calibration",
         "extract_pointing",
@@ -76,8 +45,46 @@ def main():
         "exports",
         "report",
     ]
+    param_dict = common_parameter_initialization_for_holography(
+        pipeline_type, stages, extensions, parse, msger
+    )
 
-    main_param_dict = param_init(parse(pipeline_type, stages), msger)
+    # extra parameter initialization comes here
+
+    initialization_check(
+        param_dict, f"{pipeline_type.capitalize()} reduction parameters"
+    )
+    return param_dict, stages
+
+
+def run_casa_calibration(param_dict: dict, msger: MessageBoard):
+    msger.heading("Calibration will come here!")
+    return
+
+
+def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
+    msger.heading("Reduction will come here!")
+    return
+
+
+def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
+    msger.heading("Exports will come here!")
+    return
+
+
+def prepare_html_report(param_dict: dict, msger: MessageBoard):
+    msger.heading("Report will come here!")
+    return
+
+
+def main():
+    pipeline_type = "holography"
+    pipeline_start = time.time()
+    msger = MessageBoard()
+    print()
+    msger.welcome_message(pipeline_type)
+
+    main_param_dict, stages = param_init(pipeline_type, msger)
 
     astrohack_stages = stages[1:6]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]

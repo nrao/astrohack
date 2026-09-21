@@ -20,6 +20,7 @@ from astrohack.utils.pipeline_support import (
     run_astrohack_function,
     add_basic_info_and_parameters_to_report,
     basic_holography_parser,
+    common_parameter_initialization_for_holography,
 )
 from astrohack.utils.text import (
     create_html_file_from_body,
@@ -39,52 +40,7 @@ def parse(pipeline_type, stages):
     return vars(parser.parse_args())
 
 
-def fetch_ms_metadata(param_dict: dict):
-    # Fetch metadata from ms
-    msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
-    cal_scans = msmd.scansforintent("*PHASE*")
-    beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
-    spw_list = msmd.spwsforintent("*MAP*")
-    beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
-    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
-    all_fields = msmd.fieldnames()
-    msmd.done()
-
-    if param_dict["beamcut_field"] is None:
-        if beamcut_fields.size > 1:
-            raise RuntimeError("More than 1 beam cut field, try splitting the ms")
-        param_dict["beamcut_field"] = beamcut_fields[0]
-    else:
-        try:
-            field_id = int(param_dict["beamcut_field"])
-            if field_id > all_fields.size - 1 or field_id < 0:
-                raise RuntimeError("Specified beam cut field ID is out of range")
-        except ValueError:
-            if param_dict["beamcut_field"] not in all_fields:
-                raise RuntimeError(
-                    f"{param_dict['beamcut_field']} not present in the ms"
-                )
-
-    if nchan.size > 1:
-        raise RuntimeError(
-            "Spectral windows have different nchans, don't know how to proceed automatically"
-        )
-
-    # Convert to comma-separated string
-    param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
-    param_dict["beamcut_scans"] = ",".join(map(str, beamcut_scans))
-
-    fchan = param_dict["quack_nchan"]
-    lchan = nchan[0] - param_dict["quack_nchan"]
-    minspw = f"{round(np.min(spw_list)):d}"
-    maxspw = f"{round(np.max(spw_list)):d}"
-    spwrange = f"{minspw}~{maxspw}"
-    param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
-    return param_dict
-
-
-def param_init(param_dict: dict, msger: MessageBoard):
+def param_init(pipeline_type: str, msger: MessageBoard):
     extensions = {
         "delay_cal": ".dcal",
         "bandpass_cal": ".bcal",
@@ -96,27 +52,23 @@ def param_init(param_dict: dict, msger: MessageBoard):
         "report": "-report.html",
     }
 
-    base_name = base_name_determination(param_dict)
-    param_dict = asdm_test_and_import(param_dict, base_name, msger)
+    stages = [
+        "calibration",
+        "extract_pointing",
+        "extract_holog",
+        "beamcut",
+        "exports",
+        "report",
+    ]
 
-    for identifier, extension in extensions.items():
-        param_dict[f"{identifier}_name"] = base_name + extension
-
-    param_dict = fetch_ms_metadata(param_dict)
-
-    param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
-    param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
-    param_dict["exclude_bad_antennas"] = parse_list_or_none(
-        param_dict, "exclude_bad_antennas", list_type=str
+    param_dict = common_parameter_initialization_for_holography(
+        pipeline_type, stages, extensions, parse, msger
     )
 
-    if param_dict["exclude_bad_antennas"] is not None:
-        param_dict["exclude_bad_antennas"] = parse_list_or_all(
-            param_dict, "exclude_bad_antennas"
-        )
-    param_dict["parallel"] = param_dict["ncores"] >= 2
+    # Extra parameter initialization comes here
+
     initialization_check(param_dict, "Beam cut reduction parameters")
-    return param_dict
+    return param_dict, stages
 
 
 def run_casa_calibration(param_dict, msger):
@@ -342,16 +294,8 @@ def main():
     msger = MessageBoard()
     print()
     msger.welcome_message(pipeline_type)
-    stages = [
-        "calibration",
-        "extract_pointing",
-        "extract_holog",
-        "beamcut",
-        "exports",
-        "report",
-    ]
 
-    main_param_dict = param_init(parse(pipeline_type, stages), msger)
+    main_param_dict, stages = param_init(pipeline_type, msger)
 
     astrohack_stages = stages[1:5]
     main_param_dict["processing_stage"] = main_param_dict["starting_stage"]

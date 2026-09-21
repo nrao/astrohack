@@ -4,6 +4,8 @@ import argparse
 import shutil
 from pathlib import Path
 import time
+from typing import Callable
+
 import numpy as np
 
 from astrohack.utils.text import (
@@ -176,7 +178,7 @@ def parse_list_or_none(
 def parse_list_or_all(
     parameter_dict: dict,
     param_key: str,
-    list_type=str,
+    list_type: type = str,
     max_size: int = None,
 ) -> list:
     parameter_value = parameter_dict[param_key]
@@ -529,4 +531,33 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     maxspw = f"{round(np.max(spw_list)):d}"
     spwrange = f"{minspw}~{maxspw}"
     param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
+    return param_dict
+
+
+def common_parameter_initialization_for_holography(
+    pipeline_type: str,
+    stages: list,
+    extensions: dict,
+    parse_function: Callable,
+    msger: MessageBoard,
+):
+    param_dict = parse_function(pipeline_type, stages)
+
+    base_name = base_name_determination(param_dict)
+    param_dict = asdm_test_and_import(param_dict, base_name, msger)
+
+    for identifier, extension in extensions.items():
+        param_dict[f"{identifier}_name"] = base_name + extension
+
+    param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
+
+    param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
+    param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
+
+    if param_dict["exclude_bad_antennas"] is not None:
+        param_dict["exclude_bad_antennas"] = parse_list_or_all(
+            param_dict, "exclude_bad_antennas"
+        )
+    param_dict["parallel"] = param_dict["ncores"] >= 2
+
     return param_dict

@@ -2,11 +2,19 @@ import time
 
 from toolviper.dask.client import local_client
 
+from astrohack import (
+    extract_pointing,
+    extract_holog,
+    holog,
+    combine,
+    panel,
+)
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
     basic_holography_parser,
     common_parameter_initialization_for_holography,
+    run_astrohack_function,
 )
 
 
@@ -14,6 +22,12 @@ def parse(pipeline_type: str, stages: list):
     parser = basic_holography_parser(pipeline_type, stages)
 
     # Extra holography options come here
+    parser.add_argument(
+        "-c",
+        "--combine",
+        action="store_true",
+        help="Combine SPWs to improve SNR (all selected SPWs will be combined)",
+    )
 
     return vars(parser.parse_args())
 
@@ -26,6 +40,7 @@ def param_init(pipeline_type: str, msger: MessageBoard):
         "point": ".point.zarr",
         "holog": ".holog.zarr",
         "image": ".image.zarr",
+        "combine": ".combine.zarr",
         "panel": ".panel.zarr",
         "exports": ".exports",
         "report": "-report.html",
@@ -57,7 +72,45 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
 
 
 def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
-    msger.heading("Reduction will come here!")
+    # Astrohack convenience changes
+    param_dict["ant"] = param_dict["antenna"]
+    param_dict["ddi"] = param_dict["spw"]
+    param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
+    param_dict["ms_name"] = param_dict["msname"]
+
+    status = True
+    exec_exception = None
+
+    exec_list = [
+        ["extract_holog", extract_pointing],
+        ["holog", extract_holog],
+        ["panel", holog],
+        ["exports", panel],
+    ]
+
+    for next_stage, function in exec_list:
+        if status and param_dict["processing_stage"] == function.__name__:
+            status, exec_exception = run_astrohack_function(
+                param_dict,
+                function,
+                msger,
+            )
+            if param_dict["processing_stage"] == "holog" and param_dict["combine"]:
+                status, exec_exception = run_astrohack_function(
+                    param_dict,
+                    combine,
+                    msger,
+                )
+                if status:
+                    param_dict["image_name"] = param_dict["combine_name"]
+            if status:
+                param_dict["processing_stage"] = next_stage
+
+    if not status:
+        raise RuntimeError(
+            f"{param_dict['processing_stage']} failed, see above for details."
+        ) from exec_exception
+
     return
 
 

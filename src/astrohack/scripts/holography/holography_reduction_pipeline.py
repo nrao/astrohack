@@ -8,6 +8,10 @@ from astrohack import (
     holog,
     combine,
     panel,
+    open_pointing,
+    open_holog,
+    open_image,
+    open_panel,
 )
 from astrohack.utils.pipeline_support import (
     MessageBoard,
@@ -15,6 +19,7 @@ from astrohack.utils.pipeline_support import (
     basic_holography_parser,
     common_parameter_initialization_for_holography,
     run_astrohack_function,
+    open_astrohack_file,
 )
 
 
@@ -115,6 +120,28 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
 
 
 def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
+    param_dict["destination"] = param_dict["exports_name"]
+    pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
+    hlg_mds = open_astrohack_file(open_holog, param_dict["holog_name"])
+    img_mds = open_astrohack_file(open_image, param_dict["image_name"])
+    pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
+
+    export_methods = [
+        pnt_mds.plot_array_configuration,
+        pnl_mds.observation_summary,  # this one needs extra care...
+    ]
+    if param_dict["plot_pointing"]:
+        param_dict["plot_antennas_separately"] = True
+        export_methods.append(pnt_mds.plot_pointing_in_time)
+
+    for export_method in export_methods:
+        status, exec_exception = run_astrohack_function(
+            param_dict, export_method, msger
+        )
+        if not status:
+            raise RuntimeError(
+                f"{export_method.__name__} failed see above for details."
+            ) from exec_exception
     msger.heading("Exports will come here!")
     return
 

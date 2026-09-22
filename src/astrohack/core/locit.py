@@ -31,53 +31,22 @@ def locit_separated_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     xds save to disk in the .zarr format
     """
     input_xdt = locit_parms["xdt_data"]
-    field_id, time, delays, freq = _get_data_from_locit_xds(
+    field_id, time, delays, scans, freq = _get_data_from_locit_xds(
         input_xdt, locit_parms["polarization"]
     )
-    ant_key = locit_parms["this_ant"]
-    ddi_key = locit_parms["this_ddi"]
-    antenna_info = input_xdt.parent.attrs["antenna_info"]
-    source_dict = input_xdt.parent.parent.attrs["source_dict"]
-    if _has_valid_data(field_id, time, delays, ant_key, ddi=ddi_key):
-
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
-        )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
-            fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
-            if converged:
-                model, chi_squared = _compute_chi_squared(
-                    delays,
-                    fit,
-                    coordinates,
-                    locit_parms["fit_kterm"],
-                    locit_parms["fit_delay_rate"],
-                )
-                out_xds = _create_output_xds(
-                    coordinates,
-                    lst,
-                    delays,
-                    fit,
-                    variance,
-                    chi_squared,
-                    model,
-                    locit_parms,
-                    freq,
-                    elevation_limit,
-                    antenna_info,
-                )
-                # This is a workaround to add antenna info for locit_mds methods
-                if not pathlib.Path(
-                    f"{output_mds.filename}/{ant_key}/.zattrs"
-                ).exists():
-                    ant_xdt = xr.DataTree(name=f"{ant_key}")
-                    ant_xdt.attrs["antenna_info"] = antenna_info
-                    ant_xdt = ant_xdt.assign(
-                        {f"{ddi_key}": xr.DataTree(dataset=out_xds, name=f"{ddi_key}")}
-                    )
-                    output_mds.add_node(ant_xdt, [ant_key])
-                else:
-                    output_mds.add_node(out_xds, [ant_key, ddi_key])
+    _locit_common_flow(
+        field_id,
+        time,
+        delays,
+        scans,
+        freq,
+        locit_parms,
+        input_xdt.parent.attrs["antenna_info"],
+        input_xdt.parent.parent.attrs["source_dict"],
+        locit_parms["this_ant"],
+        locit_parms["this_ddi"],
+        output_mds,
+    )
 
 
 def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -91,56 +60,41 @@ def locit_combined_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
     xds save to disk in the .zarr format
     """
     ant_xdt = locit_parms["xdt_data"]
-    antenna_info = ant_xdt.attrs["antenna_info"]
-    source_dict = ant_xdt.parent.attrs["source_dict"]
-    ant_key = locit_parms["this_ant"]
 
     delay_list = []
     time_list = []
     field_list = []
     freq_list = []
+    scan_list = []
 
     for ddi, xdt_data in ant_xdt.items():
-        this_field_id, this_time, this_delays, freq = _get_data_from_locit_xds(
-            xdt_data, locit_parms["polarization"]
+        this_field_id, this_time, this_delays, this_scans, freq = (
+            _get_data_from_locit_xds(xdt_data, locit_parms["polarization"])
         )
         freq_list.append(freq)
         field_list.append(this_field_id)
         time_list.append(this_time)
         delay_list.append(this_delays)
+        scan_list.append(this_scans)
 
     delays = np.concatenate(delay_list)
     time = np.concatenate(time_list)
     field_id = np.concatenate(field_list)
+    scans = np.concatenate(scan_list)
 
-    if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
-        )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
-            fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
-            if converged:
-                model, chi_squared = _compute_chi_squared(
-                    delays,
-                    fit,
-                    coordinates,
-                    locit_parms["fit_kterm"],
-                    locit_parms["fit_delay_rate"],
-                )
-                out_xds = _create_output_xds(
-                    coordinates,
-                    lst,
-                    delays,
-                    fit,
-                    variance,
-                    chi_squared,
-                    model,
-                    locit_parms,
-                    freq_list,
-                    elevation_limit,
-                    antenna_info,
-                )
-                output_mds.add_node(out_xds, [ant_key])
+    _locit_common_flow(
+        field_id,
+        time,
+        delays,
+        scans,
+        freq_list,
+        locit_parms,
+        ant_xdt.attrs["antenna_info"],
+        ant_xdt.parent.attrs["source_dict"],
+        locit_parms["this_ant"],
+        None,
+        output_mds,
+    )
 
 
 def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
@@ -153,37 +107,80 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
 
     """
     ant_xdt = locit_parms["xdt_data"]
-    antenna_info = ant_xdt.attrs["antenna_info"]
-    source_dict = ant_xdt.parent.attrs["source_dict"]
-    ant_key = locit_parms["this_ant"]
-
     ddi_list = param_to_list(locit_parms["ddi"], ant_xdt, "ddi")
     nddis = len(ddi_list)
 
     if nddis != 2:
-        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {ant_key.split('_')[1]}."
+        msg = f"The difference method support only 2 DDIs, {nddis} DDIs provided for Antenna {locit_parms['this_ant'].split('_')[1]}."
         logger.error(msg)
-        return None
-
-    ddi_0 = _get_data_from_locit_xds(
-        ant_xdt[ddi_list[0]],
-        locit_parms["polarization"],
-        get_phases=True,
-        split_pols=True,
-    )
-    ddi_1 = _get_data_from_locit_xds(
-        ant_xdt[ddi_list[1]],
-        locit_parms["polarization"],
-        get_phases=True,
-        split_pols=True,
-    )
-
-    time, field_id, delays, freq = _delays_from_phase_differences(ddi_0, ddi_1)
-    if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
-        coordinates, delays, lst, elevation_limit, nin = _build_filtered_arrays(
-            field_id, time, delays, locit_parms, antenna_info, source_dict
+    else:
+        ddi_0 = _get_data_from_locit_xds(
+            ant_xdt[ddi_list[0]],
+            locit_parms["polarization"],
+            get_phases=True,
+            split_pols=True,
         )
-        if _elevation_ok(nin, locit_parms["this_ant"]):
+        ddi_1 = _get_data_from_locit_xds(
+            ant_xdt[ddi_list[1]],
+            locit_parms["polarization"],
+            get_phases=True,
+            split_pols=True,
+        )
+
+        time, field_id, delays, freq, scans = _delays_from_phase_differences(
+            ddi_0, ddi_1
+        )
+        _locit_common_flow(
+            field_id,
+            time,
+            delays,
+            scans,
+            freq,
+            locit_parms,
+            ant_xdt.attrs["antenna_info"],
+            ant_xdt.parent.attrs["source_dict"],
+            locit_parms["this_ant"],
+            None,
+            output_mds,
+        )
+
+
+def _locit_common_flow(
+    field_id,
+    time,
+    delays,
+    scans,
+    freq_info,
+    locit_parms,
+    antenna_info,
+    source_dict,
+    ant_key,
+    ddi_key,
+    output_mds,
+):
+    """
+    Function to oversee the common flow between the different modes of locit
+    Args:
+        field_id: Field IDs
+        time: Time axis
+        delays: delays
+        scans: Scan IDs
+        freq_info: Frquency information
+        locit_parms: locit parameters
+        antenna_info: Antenna information
+        source_dict: Source dictionary
+        ant_key: antenna key
+        ddi_key: ddi key, None should be used for cases without ddi
+        output_mds: Output position mds object
+
+    Returns:
+        Saves locit execution to disk.
+    """
+    if _has_valid_data(field_id, time, delays, locit_parms["this_ant"]):
+        coordinates, delays, scans, lst, elevation_limit, nin = _build_filtered_arrays(
+            field_id, time, delays, scans, locit_parms, antenna_info, source_dict
+        )
+        if _selection_leaves_data(nin, locit_parms["this_ant"]):
             fit, variance, converged = _fit_data(coordinates, delays, locit_parms)
             if converged:
                 model, chi_squared = _compute_chi_squared(
@@ -197,16 +194,34 @@ def locit_difference_chunk(locit_parms: dict, output_mds: AstrohackPositionFile)
                     coordinates,
                     lst,
                     delays,
+                    scans,
                     fit,
                     variance,
                     chi_squared,
                     model,
                     locit_parms,
-                    freq,
+                    freq_info,
                     elevation_limit,
                     antenna_info,
                 )
-                output_mds.add_node(out_xds, [ant_key])
+                if ddi_key is not None:
+                    if not pathlib.Path(
+                        f"{output_mds.filename}/{ant_key}/.zattrs"
+                    ).exists():
+                        ant_xdt = xr.DataTree(name=f"{ant_key}")
+                        ant_xdt.attrs["antenna_info"] = antenna_info
+                        ant_xdt = ant_xdt.assign(
+                            {
+                                f"{ddi_key}": xr.DataTree(
+                                    dataset=out_xds, name=f"{ddi_key}"
+                                )
+                            }
+                        )
+                        output_mds.add_node(ant_xdt, [ant_key])
+                    else:
+                        output_mds.add_node(out_xds, [ant_key, ddi_key])
+                else:
+                    output_mds.add_node(out_xds, [ant_key])
 
 
 def _delays_from_phase_differences(ddi_0, ddi_1):
@@ -217,19 +232,21 @@ def _delays_from_phase_differences(ddi_0, ddi_1):
         ddi_1: Second DDI
 
     Returns:
-    Matched times, matched field ids, matched phase difference delays, difference in frequency
+    Matched times, matched field ids, matched phase difference delays, matched scans, difference in frequency
     """
 
-    freq = ddi_0[3] - ddi_1[3]
+    freq = ddi_0[4] - ddi_1[4]
     if freq > 0:
         pos_time, pos_phase = ddi_0[1:3]
         neg_time, neg_phase = ddi_1[1:3]
         fields = ddi_0[0]
+        scans = ddi_0[3]
     elif freq < 0:
         pos_time, pos_phase = ddi_1[1:3]
         neg_time, neg_phase = ddi_0[1:3]
         freq *= -1
         fields = ddi_1[0]
+        scans = ddi_1[3]
     else:
         msg = "The two DDIs must have different frequencies"
         logger.error(msg)
@@ -239,33 +256,39 @@ def _delays_from_phase_differences(ddi_0, ddi_1):
         time = []
         field_id = []
         phase = []
+        out_scans = []
         for i_pol in range(len(fields)):
-            this_time, this_field_id, this_phase = _match_times_and_phase_difference(
-                pos_time[i_pol],
-                neg_time[i_pol],
-                pos_phase[i_pol],
-                neg_phase[i_pol],
-                fields[i_pol],
+            this_time, this_field_id, this_phase, this_scan = (
+                _match_times_and_phase_difference(
+                    pos_time[i_pol],
+                    neg_time[i_pol],
+                    pos_phase[i_pol],
+                    neg_phase[i_pol],
+                    fields[i_pol],
+                    scans[i_pol],
+                )
             )
             time.append(this_time)
             field_id.append(this_field_id)
             phase.append(this_phase)
+            out_scans.append(this_scan)
 
         time = np.concatenate(time)
         field_id = np.concatenate(field_id)
         phase = np.concatenate(phase)
+        out_scans = np.concatenate(out_scans)
 
     else:
-        time, field_id, phase = _match_times_and_phase_difference(
-            pos_time, neg_time, pos_phase, neg_phase, fields
+        time, field_id, phase, out_scans = _match_times_and_phase_difference(
+            pos_time, neg_time, pos_phase, neg_phase, fields, scans
         )
 
     delays = phase / twopi / freq
-    return time, field_id, delays, freq
+    return time, field_id, delays, freq, out_scans
 
 
 def _match_times_and_phase_difference(
-    pos_time, neg_time, pos_phase, neg_phase, fields, tolerance=1e-8
+    pos_time, neg_time, pos_phase, neg_phase, fields, scans, tolerance=1e-8
 ):
     """
     match times and compute the phase differences for the simple case, calls _different_times for the complicated case
@@ -275,28 +298,31 @@ def _match_times_and_phase_difference(
         pos_phase: Positive phase
         neg_phase: Negative phase
         fields: Field ids
+        scans: Scan ids
         tolerance: Tolerance in time to match time arrays
 
     Returns:
-    Matched times, matched field ids, -pi, pi wrapped matched phase difference
+    Matched times, matched field ids, -pi, pi wrapped matched phase difference, matched scans
     """
     n_pos_time, n_neg_time = len(pos_time), len(neg_time)
     if n_pos_time == n_neg_time:
         if np.all(
             np.isclose(pos_time, neg_time, tolerance)
         ):  # this the simplest case times are already matched!
-            return pos_time, fields, phase_wrapping(pos_phase - neg_phase)
+            return pos_time, fields, phase_wrapping(pos_phase - neg_phase), scans
         else:
             return _different_times(
-                pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
+                pos_time, neg_time, pos_phase, neg_phase, fields, scans, tolerance
             )
     else:
         return _different_times(
-            pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
+            pos_time, neg_time, pos_phase, neg_phase, fields, scans, tolerance
         )
 
 
-def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance=1e-8):
+def _different_times(
+    pos_time, neg_time, pos_phase, neg_phase, fields, scans, tolerance=1e-8
+):
     """
     match times and compute the phase differences for the complicated case
     Args:
@@ -305,6 +331,7 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
         pos_phase: Positive phase
         neg_phase: Negative phase
         fields: Field ids
+        scans: Scan ids
         tolerance: Tolerance in time to match time arrays
 
     Returns:
@@ -317,14 +344,16 @@ def _different_times(pos_time, neg_time, pos_phase, neg_phase, fields, tolerance
     ntimes = out_times.shape[0]
     out_phase = np.ndarray(ntimes)
     out_field = np.ndarray(ntimes, dtype=np.int64)
+    out_scans = np.ndarray(ntimes, dtype=np.int64)
 
     for i_time in range(ntimes):
         i_pos = np.absolute(pos_time - out_times[i_time]).argmin()
         i_neg = np.absolute(neg_time - out_times[i_time]).argmin()
         out_phase[i_time] = pos_phase[i_pos] - neg_phase[i_neg]
         out_field[i_time] = fields[i_pos]
+        out_scans[i_time] = scans[i_pos]
 
-    return out_times, out_field, phase_wrapping(out_phase)
+    return out_times, out_field, phase_wrapping(out_phase), out_scans
 
 
 def _has_valid_data(field_id, time, delays, antenna, ddi=None):
@@ -348,9 +377,9 @@ def _has_valid_data(field_id, time, delays, antenna, ddi=None):
         return True
 
 
-def _elevation_ok(nin, antenna, ddi=None):
+def _selection_leaves_data(nin, antenna, ddi=None):
     """
-    Determine if elevation limit takes out all the data.
+    Determine if elevation limit and bad scans take out all the data.
     :param nin: Number of filtered points
     :param antenna: antenna key
     :param ddi: ddi key
@@ -359,7 +388,7 @@ def _elevation_ok(nin, antenna, ddi=None):
     msg = f"Antenna {get_data_name(antenna)} "
     if ddi is not None:
         msg += f"DDI {get_data_name(ddi)} "
-    msg += "has no valid data, try decreasing the elevation limit."
+    msg += "selection excludes all data, try decreasing the elevation limit or changing excluded scans."
     if nin > 0:
         return True
     else:
@@ -383,6 +412,7 @@ def _get_data_from_locit_xds(
         the field ids
         the time in mjd
         The delays in seconds or phases in radians
+        scans for delays
         Xds frequency
 
     """
@@ -403,21 +433,25 @@ def _get_data_from_locit_xds(
         ]
         field_id = [xds_data["P0_FIELD_ID"].values, xds_data["P1_FIELD_ID"].values]
         time = [xds_data.p0_time.values, xds_data.p1_time.values]
+        scans = [xds_data["P0_SCANS"].values, xds_data["P1_SCANS"].values]
         if not split_pols:
             phases = np.concatenate(phases)
             field_id = np.concatenate(field_id)
             time = np.concatenate(time)
+            scans = np.concatenate(scans)
     else:
         sel_pol_list = [*pol_selection]
         phases = []
         time = []
         field_id = []
+        scans = []
         for pol_item in sel_pol_list:
             if pol_item in pol:
                 i_pol = np.where(np.array(pol) == pol_item)[0][0]
                 phases.append(xds_data[f"P{i_pol}_PHASE_GAINS"].values)
                 time.append(xds_data[f"p{i_pol}_time"].values)
                 field_id.append(xds_data[f"P{i_pol}_FIELD_ID"].values)
+                scans.append(xds_data[f"P{i_pol}_SCANS"].values)
             else:
                 msg = f"Polarization {pol_selection} is not found in data"
                 logger.warning(msg)
@@ -431,14 +465,16 @@ def _get_data_from_locit_xds(
             phases = np.concatenate(phases)
             field_id = np.concatenate(field_id)
             time = np.concatenate(time)
+            scans = np.concatenate(scans)
 
     if get_phases:
-        return field_id, time, phases, freq  # field_id, time, phases, frequency
+        return field_id, time, phases, scans, freq  # field_id, time, phases, frequency
     else:
         return (
             field_id,
             time,
             phases / twopi / freq,
+            scans,
             freq,
         )  # field_id, time, delays, frequency
 
@@ -447,6 +483,7 @@ def _create_output_xds(
     coordinates,
     lst,
     delays,
+    scans,
     fit,
     variance,
     chi_squared,
@@ -502,6 +539,7 @@ def _create_output_xds(
 
     coords = {"time": coordinates[3, :]}
     output_xds["DELAYS"] = xr.DataArray(delays, dims=["time"])
+    output_xds["SCANS"] = xr.DataArray(scans, dims=["time"])
     output_xds["MODEL"] = xr.DataArray(model, dims=["time"])
     output_xds["HOUR_ANGLE"] = xr.DataArray(coordinates[0, :], dims=["time"])
     output_xds["DECLINATION"] = xr.DataArray(coordinates[1, :], dims=["time"])
@@ -584,7 +622,7 @@ def _compute_chi_squared(delays, fit, coordinates, fit_kterm, fit_rate):
 
 
 def _build_filtered_arrays(
-    field_id, time, delays, locit_parms, antenna_info, source_dict
+    field_id, time, delays, scans, locit_parms, antenna_info, source_dict
 ):
     """Build the coordinate arrays (ha, dec, elevation, time) for use in the fitting and filters data below the \
     elevation limit
@@ -593,10 +631,13 @@ def _build_filtered_arrays(
         field_id: Array with the observed field per delay
         time: Time array with the time of each delay
         delays: The delay array
+        scans: The scan array
         locit_parms: Locit main function parameters
+        antenna_info: Antenna info
+        source_dict: Dictionary with the source name and coordinates
 
     Returns:
-    coordinates (ha, dec, ele, time), delays, local sidereal time all filtered by elevation limit and the \
+    coordinates (ha, dec, ele, time), delays, scans, local sidereal time all filtered by elevation limit and the \
     elevation_limit
     """
     elevation_limit = locit_parms["elevation_limit"] * convert_unit(
@@ -627,13 +668,19 @@ def _build_filtered_arrays(
     )
 
     # Filter data below elevation limit
-    selection = coordinates[2, :] > elevation_limit
-    delays = delays[selection]
-    coordinates = coordinates[:, selection]
-    lst = lst[selection]
-    nin = np.sum(selection)
+    el_selection = coordinates[2, :] > elevation_limit
+    scan_selection = np.full_like(el_selection, True)
+    for bad_scan in locit_parms["exclude_scans"]:
+        scan_selection = np.logical_and(scan_selection, scans != bad_scan)
+    final_selection = np.logical_and(el_selection, scan_selection)
 
-    return coordinates, delays, lst, elevation_limit, nin
+    delays = delays[final_selection]
+    coordinates = coordinates[:, final_selection]
+    lst = lst[final_selection]
+    nin = np.sum(final_selection)
+    scans = scans[final_selection]
+
+    return coordinates, delays, scans, lst, elevation_limit, nin
 
 
 def _geometrical_coeffs(coordinates):

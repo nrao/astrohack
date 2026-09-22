@@ -15,7 +15,11 @@ from astrohack.utils.text import (
     lnbr,
     undscr,
 )
-from astrohack.utils.algorithms import rotate_to_gmt, compute_antenna_relative_off
+from astrohack.utils.algorithms import (
+    rotate_to_gmt,
+    compute_antenna_relative_off,
+    data_statistics,
+)
 from astrohack.utils.conversion import convert_unit
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.io.locit_mds import AstrohackLocitFile
@@ -601,6 +605,37 @@ def _plot_sky_coverage_chunk(parm_dict):
     return
 
 
+def _add_scans_to_plot(ax, x_axis, scans, residuals, sigma_clip=3):
+    """
+    Add Scan information to an axes object that has time as the X axis.
+    Args:
+        ax: axes object to add Scan information to
+        x_axis: X axis values for scans
+        scans: Scan IDs
+        residuals: residual values for times and scans
+        sigma_clip: Level for sigma clipping, default is 3
+
+    Returns:
+        None
+    """
+    residual_stats = data_statistics(residuals)
+    bad_scan_selection = np.abs(residuals) > sigma_clip * residual_stats["rms"]
+    tick_positions = []
+    tick_labels = []
+    for i_x, x_point in enumerate(x_axis):
+        if bad_scan_selection[i_x]:
+            tick_positions.append(x_point)
+            tick_labels.append(str(scans[i_x]))
+
+    if len(tick_positions) > 0:
+        bad_scan_fontsize = 8
+        sec_x_ax = ax.secondary_xaxis("top")
+        sec_x_ax.set_xticks(tick_positions)
+        sec_x_ax.set_xticklabels(tick_labels, fontsize=bad_scan_fontsize)
+        sec_x_ax.set_xlabel("Bad Scans", fontsize=bad_scan_fontsize)
+    return
+
+
 def _plot_delays_chunk(parm_dict):
     """
     Plot the delays and optionally the delay model for a XDS
@@ -640,6 +675,7 @@ def _plot_delays_chunk(parm_dict):
     dec = ant_xdt["DECLINATION"] * angle_fact
     ele = ant_xdt["ELEVATION"] * angle_fact
     delays = ant_xdt["DELAYS"].values * delay_fact
+    scans = ant_xdt["SCANS"].values
 
     elelim, elelines, declim, declines, halim = _compute_plot_borders(
         angle_fact, antenna_info["latitude"], ant_xdt.attrs["elevation_limit"]
@@ -668,6 +704,8 @@ def _plot_delays_chunk(parm_dict):
         ylim=delaylim,
         model=model,
     )
+    _add_scans_to_plot(axes[0, 0], time, scans, delays - model)
+
     scatter_plot(
         axes[0, 1],
         ele,

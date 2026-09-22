@@ -11,7 +11,9 @@ from astrohack.utils.text import get_default_file_name
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.io.position_mds import AstrohackPositionFile
 
-from typing import Union, List
+from typing import Union, List, Tuple
+
+from astrohack.utils.tools import build_bad_scan_list
 
 
 @toolviper.utils.parameter.validate()
@@ -26,6 +28,7 @@ def locit(
     ant: Union[str, List[str]] = "all",
     ddi: Union[str, int, List[int]] = "all",
     combine_ddis: str = "simple",
+    exclude_scans: Union[int, List[int], Tuple[int]] | None = None,
     parallel: bool = False,
     overwrite: bool = False,
 ):
@@ -62,6 +65,9 @@ def locit(
 
     :param combine_ddis: Type of DDI combination, if desired, defaults to simple
     :type combine_ddis: str, optional
+
+    :param exclude_scans: List of scans in the fringefit cal table to be excluded from fitting, defaults to None
+    :type exclude_scans: list, or int, optional
 
     :param parallel: Run in parallel. Defaults to False.
     :type parallel: bool, optional
@@ -146,7 +152,7 @@ def locit(
 
     # Doing this here allows it to get captured by locals()
     position_name = get_default_file_name(locit_name, ".position.zarr", position_name)
-
+    exclude_scans = build_bad_scan_list(exclude_scans)
     locit_params = locals()
 
     input_params = locit_params.copy()

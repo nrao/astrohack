@@ -10,8 +10,10 @@ from astropy.time import Time
 
 from astrohack.io.position_mds import AstrohackPositionFile
 from astrohack.io.locit_mds import AstrohackLocitFile
+from astrohack.utils.algorithms import data_statistics
 from astrohack.utils.conversion import convert_unit, casa_time_to_mjd
 from astrohack.utils.constants import twopi
+from astrohack.utils.text import statistics_to_text
 
 
 def _get_caltable_name(extract_locit_parms):
@@ -138,6 +140,9 @@ def extract_spectral_info(extract_locit_parms):
 
     ddi_dict = {}
     for i_ddi in ddi_list:
+        if i_ddi >= len(n_chan):
+            logger.warning(f"DDI {i_ddi} not present in the cal table")
+            continue
         if n_chan[i_ddi] != 1:
             error = True
             msg = f"DDI {i_ddi} has {n_chan[i_ddi]}, which is not supported"
@@ -245,8 +250,9 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
     fields = main_table.getcol("FIELD_ID")
     spw_id = main_table.getcol("SPECTRAL_WINDOW_ID")
     flagged = main_table.getcol("FLAG")
-
+    scans = main_table.getcol("SCAN_NUMBER")
     main_table.close()
+
     n_gains = len(gains)
 
     # Ref ant determination and data exclusion based on best refant
@@ -274,6 +280,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
                 fields = fields[sel_refant]
                 spw_id = spw_id[sel_refant]
                 flagged = flagged[sel_refant]
+                scans = scans[sel_refant]
         ref_antenna = ref_antennas[i_best_ant]
     else:
         # No data to discard we can go on and compute the phase gains
@@ -308,6 +315,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
         ant_phase_gains = phase_gains[ant_sel]
         ant_spw_id = spw_id[ant_sel]
         ant_flagged = flagged[ant_sel]
+        ant_scans = scans[ant_sel]
         if ant_id == ref_antenna:
             ant_xdtree.attrs["antenna_info"]["reference"] = True
         else:
@@ -319,6 +327,7 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
             ddi_gains = ant_phase_gains[ddi_sel]
             ddi_time = ant_time[ddi_sel]
             ddi_field = ant_field[ddi_sel]
+            ddi_scans = ant_scans[ddi_sel]
             ddi_not_flagged = np.invert(ant_flagged[ddi_sel])
 
             coords = {}
@@ -332,6 +341,9 @@ def extract_antenna_phase_gains(extract_locit_parms, ddi_dict, locit_mds):
                     ddi_field[ddi_not_flagged[:, 0, i_pol]], dims=time_key
                 )
                 used_sources.extend(ddi_field[ddi_not_flagged[:, 0, i_pol]])
+                this_ddi_xds[f"P{i_pol}_SCANS"] = xr.DataArray(
+                    ddi_scans[ddi_not_flagged[:, 0, i_pol]], dims=time_key
+                )
 
             this_ddi_xds.attrs["frequency"] = float(ddi["frequency"])
             this_ddi_xds.attrs["bandwidth"] = ddi["bandwidth"].tolist()

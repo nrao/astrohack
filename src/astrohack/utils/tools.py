@@ -3,6 +3,24 @@ import numpy as np
 from toolviper.utils import logger as logger
 
 
+def build_bad_scan_list(bad_scans_parameter):
+    """
+    Process a user input of bad scans and produce a list of bad scans.
+    Args:
+        bad_scans_parameter: user bad scan input, either an int, None, or a list of ints.
+
+    Returns:
+        an empty list if input is None, or an iterable of ints.
+    """
+    if bad_scans_parameter is None:
+        return []
+    elif isinstance(bad_scans_parameter, int):
+        return [bad_scans_parameter]
+    else:
+        # Exclude scans is already iterable
+        return bad_scans_parameter
+
+
 def get_valid_state_ids(
     obs_modes,
     desired_intent="MAP_ANTENNA_SURFACE",

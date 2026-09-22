@@ -140,6 +140,25 @@ def run_casatask(
     return True
 
 
+def parse_list_or_none(
+    param_dict: dict,
+    param_key: str,
+    list_type: type = int,
+    max_size: int = None,
+) -> list:
+    parameter_value = param_dict[param_key]
+    if parameter_value is None:
+        return None
+    else:
+        wrd_list = parameter_value.split(",")
+        if list_type is not str:
+            wrd_list = [list_type(wrd) for wrd in wrd_list]
+        if max_size is not None:
+            if len(wrd_list) > max_size:
+                raise ValueError(f"List {param_key} must be at most of size {max_size}")
+        return wrd_list
+
+
 def parse_list_or_all(
     parameter_dict: dict,
     param_key: str,

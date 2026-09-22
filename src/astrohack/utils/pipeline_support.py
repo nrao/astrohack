@@ -494,7 +494,7 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
     spw_list = msmd.spwsforintent("*MAP*")
     beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
-    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+    spw_nchan = [msmd.nchan(i_spw) for i_spw in spw_list]
     all_fields = msmd.fieldnames()
     msmd.done()
     field_key = f"{pipeline_type}_field"
@@ -515,21 +515,24 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
             if param_dict[field_key] not in all_fields:
                 raise RuntimeError(f"{param_dict[field_key]} not present in the ms")
 
-    if nchan.size > 1:
-        raise RuntimeError(
-            "Spectral windows have different nchans, don't know how to proceed automatically"
-        )
+    fchan = param_dict["quack_nchan"]
+    if np.unique(spw_nchan).size > 1:
+        quacked_list = []
+        for i_spw, i_nchan in enumerate(spw_nchan):
+            quacked_list.append(f"{i_spw}:{fchan}~{i_nchan-fchan}")
+
+        param_dict["quacked_spw_selection"] = ",".join(quacked_list)
+    else:
+        lchan = spw_nchan[0] - param_dict["quack_nchan"]
+        minspw = f"{round(np.min(spw_list)):d}"
+        maxspw = f"{round(np.max(spw_list)):d}"
+        spwrange = f"{minspw}~{maxspw}"
+        param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
 
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
     param_dict[f"{pipeline_type}_scans"] = ",".join(map(str, beamcut_scans))
 
-    fchan = param_dict["quack_nchan"]
-    lchan = nchan[0] - param_dict["quack_nchan"]
-    minspw = f"{round(np.min(spw_list)):d}"
-    maxspw = f"{round(np.max(spw_list)):d}"
-    spwrange = f"{minspw}~{maxspw}"
-    param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
     return param_dict
 
 

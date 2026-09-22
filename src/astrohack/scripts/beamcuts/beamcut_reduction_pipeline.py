@@ -16,6 +16,7 @@ from astrohack.utils.pipeline_support import (
     add_basic_info_and_parameters_to_report,
     basic_holography_parser,
     common_parameter_initialization_for_holography,
+    open_astrohack_file,
 )
 from astrohack.utils.text import (
     create_html_file_from_body,
@@ -180,12 +181,8 @@ def run_astrohack_reduction(param_dict, msger):
 
 def run_astrohack_exports(param_dict, msger):
     param_dict["destination"] = param_dict["exports_name"]
-    pnt_mds = open_pointing(param_dict["point_name"])
-    if pnt_mds is None:
-        raise RuntimeError(f"{param_dict['point_name']} not found")
-    bmc_mds = open_beamcut(param_dict["beamcut_name"])
-    if bmc_mds is None:
-        raise RuntimeError(f"{param_dict['beamcut_name']} not found")
+    pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
+    bmc_mds = open_astrohack_file(open_beamcut, param_dict["beamcut_name"])
 
     plotting_methods = [
         pnt_mds.plot_array_configuration,

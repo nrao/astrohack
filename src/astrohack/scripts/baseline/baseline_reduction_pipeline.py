@@ -19,6 +19,7 @@ from astrohack.utils.pipeline_support import (
     asdm_test_and_import,
     add_basic_info_and_parameters_to_report,
     create_parser_with_base_options,
+    open_astrohack_file,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -366,7 +367,7 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         "dpi": param_dict["dpi"],
         "delay_limits": param_dict["delay_limits"],
     }
-    position_mds = open_position(param_dict["position_name"])
+    position_mds = open_astrohack_file(open_position, param_dict["position_name"])
     plotting_methods = [
         position_mds.plot_source_positions,
         position_mds.plot_array_configuration,

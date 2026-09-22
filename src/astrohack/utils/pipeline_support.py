@@ -563,3 +563,10 @@ def common_parameter_initialization_for_holography(
     param_dict["parallel"] = param_dict["ncores"] >= 2
 
     return param_dict
+
+
+def open_astrohack_file(open_function, file_name):
+    mds_obj = open_function(file_name)
+    if mds_obj is None:
+        raise RuntimeError(f"{file_name} not found")
+    return mds_obj

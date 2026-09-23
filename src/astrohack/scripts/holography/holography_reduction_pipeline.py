@@ -1,5 +1,6 @@
 import glob
 import time
+from pathlib import Path
 
 from toolviper.dask.client import local_client
 
@@ -28,6 +29,8 @@ from astrohack.utils.text import (
     add_heading_to_html,
     create_single_html_image_with_header,
     create_html_file_from_body,
+    make_collapsible_block,
+    add_preformatted_text_file_to_html,
 )
 
 
@@ -124,8 +127,6 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
                     combine,
                     msger,
                 )
-                if status:
-                    param_dict["image_name"] = param_dict["combine_name"]
             if status:
                 param_dict["processing_stage"] = next_stage
 
@@ -139,7 +140,10 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
 
 def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     param_dict["destination"] = param_dict["exports_name"]
+    # This key forces pnl_mds.plot_antennas to do all aperture plots
+    param_dict["plot_type"] = "all"
     pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
+    # Should we include any holog plots? also what to do in case of combine? combine philosophy seems to be wrong...
     # hlg_mds = open_astrohack_file(open_holog, param_dict["holog_name"])
     img_mds = open_astrohack_file(open_image, param_dict["image_name"])
     pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
@@ -171,7 +175,6 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
 
 
 def prepare_html_report(param_dict: dict, msger: MessageBoard):
-    pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
     msger.one_liner("Preparing report...")
     start = time.time()
     exports_name = param_dict["exports_name"]
@@ -185,8 +188,17 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     )
     html_body += f"{lnbr}<br>{lnbr}"
 
+    pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
     for ant_key, ant_xds in pnl_mds.items():
         ant_name = ant_key.split("_")[1]
+        ant_html = ""
+        if param_dict["plot_pointing"]:
+            ant_html += create_single_html_image_with_header(
+                f"{exports_name}/point_directional_cosines_{ant_key}.png",
+                "Pointing over time:",
+                heading_level=3,
+            )
+
         for ddi_key in ant_xds.keys():
             ddi_name = ddi_key.split("_")[1]
             # summary to be done here per antenna/ddi
@@ -198,6 +210,106 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
                 parallel=False,
                 print_summary=False,
             )
+
+            spw_html = add_preformatted_text_file_to_html(
+                summ_name, "Observation Summary", 3
+            )
+            spw_html += add_preformatted_text_file_to_html(
+                f"{exports_name}/image_phase_fit_{ant_key}_{ddi_key}.txt",
+                "Phase fitting results",
+                3,
+            )
+            spw_html += add_preformatted_text_file_to_html(
+                f"{exports_name}/panel_gains_{ant_key}_{ddi_key}.txt",
+                "Predicted antenna gains",
+                3,
+            )
+
+            ### Beam part
+            beam_block = ""
+            for stokes_par in ["I", "Q", "U", "V"]:
+                beam_block += create_single_html_image_with_header(
+                    f"{exports_name}/image_beam_polar_{ant_key}_{ddi_key}_pol_{stokes_par}.png",
+                    f"Beam for Stokes {stokes_par}",
+                    heading_level=3,
+                )
+
+            spw_html += make_collapsible_block(
+                beam_block,
+                "Beam plots",
+                f"{ant_key}_spw_{ddi_name}_beam",
+            )
+
+            ### Zernike part
+            zernike_block = add_preformatted_text_file_to_html(
+                f"{exports_name}/image_zernike_fit_{ant_key}_{ddi_key}.txt",
+                "Zernike fit results",
+                heading_level=3,
+            )
+            for correlation in ["RR", "RL", "LR", "LL"]:
+                zernike_block += create_single_html_image_with_header(
+                    f"{exports_name}/image_zernike_model_{ant_key}_{ddi_key}_corr_{correlation}.png",
+                    f"Zernike model for {correlation} correlation",
+                    heading_level=3,
+                )
+
+            spw_html += make_collapsible_block(
+                zernike_block,
+                "Zernike fitting results",
+                f"{ant_key}_spw_{ddi_name}_zernike",
+            )
+
+            ### Aperture part
+            aperture_block = ""
+            for plot_type in [
+                "amplitude",
+                "mask",
+                "phase_original",
+                "deviation_original",
+                "deviation_correction",
+                "deviation_residual",
+            ]:
+                aperture_block += create_single_html_image_with_header(
+                    f"{exports_name}/panel_{plot_type}_{ant_key}_{ddi_key}.png",
+                    f"Aperture {plot_type.capitalize().replace('_', ' ')}",
+                    heading_level=3,
+                )
+
+            spw_html += make_collapsible_block(
+                aperture_block,
+                "Aperture plots",
+                f"{ant_key}_spw_{ddi_name}_aperture",
+            )
+
+            ### Screw part
+            screw_block = create_single_html_image_with_header(
+                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}.png",
+                "Screw adjustment map",
+                heading_level=3,
+            )
+            screw_block += add_preformatted_text_file_to_html(
+                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}.txt",
+                "Full list of screw corrections",
+                heading_level=3,
+            )
+
+            spw_html += make_collapsible_block(
+                screw_block,
+                "Proposed screw adjustments",
+                f"{ant_key}_spw_{ddi_name}_screws",
+            )
+
+            ant_html += make_collapsible_block(
+                spw_html,
+                add_heading_to_html(f"\t{ant_name} spectral window {ddi_name}:", 3),
+                f"{ant_key}_spw_{ddi_name}",
+            )
+
+        html_body += make_collapsible_block(
+            ant_html,
+            add_heading_to_html(f"Holography data for {ant_name}:", 2),
+            ant_key,
+        )
 
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()
@@ -234,6 +346,10 @@ def main():
 
     if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
         run_astrohack_reduction(main_param_dict, msger)
+
+    # This is a patch to the image_name in the case there was a combine so that plots are combined.
+    if Path(main_param_dict["combine_name"]).is_dir():
+        main_param_dict["image_name"] = main_param_dict["combine_name"]
 
     if main_param_dict["processing_stage"] == astrohack_stages[-1]:
         run_astrohack_exports(main_param_dict, msger)

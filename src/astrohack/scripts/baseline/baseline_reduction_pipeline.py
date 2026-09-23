@@ -22,6 +22,7 @@ from astrohack.utils.pipeline_support import (
     open_astrohack_file,
     client_initialization,
     parse_list_or_none,
+    list_input_tooltip,
 )
 from astrohack.utils.text import (
     format_duration,

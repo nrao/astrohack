@@ -603,7 +603,7 @@ def client_initialization(
         "log_file": "client_worker.log",
     }
 
-    if param_dict["parallel"] and param_dict["processing_stage"] in astrohack_stages:
+    if param_dict["ncores"] > 0 and param_dict["processing_stage"] in astrohack_stages:
         client = local_client(
             cores=param_dict["ncores"],
             memory_limit=param_dict["memory_per_core"],

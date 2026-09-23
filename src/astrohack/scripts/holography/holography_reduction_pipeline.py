@@ -110,6 +110,11 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
     param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
     param_dict["ms_name"] = param_dict["msname"]
+    if param_dict["use_zernike_phase_fitting"]:
+        param_dict["phase_fit_engine"] = "zernike"
+    else:
+        param_dict["phase_fit_engine"] = "perturbations"
+    bckp_img_name = param_dict["image_name"]
 
     status = True
     exec_exception = None
@@ -134,9 +139,10 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
                     combine,
                     msger,
                 )
+                param_dict["image_name"] = param_dict["combine_name"]
             if status:
                 param_dict["processing_stage"] = next_stage
-
+    param_dict["image_name"] = bckp_img_name
     if not status:
         raise RuntimeError(
             f"{param_dict['processing_stage']} failed, see above for details."
@@ -152,8 +158,14 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
     # Should we include any holog plots? also what to do in case of combine? combine philosophy seems to be wrong...
     # hlg_mds = open_astrohack_file(open_holog, param_dict["holog_name"])
-    img_mds = open_astrohack_file(open_image, param_dict["image_name"])
     pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
+
+    # This is a patch to the image_name in the case there was a combine so that plots are combined.
+    first_ddi_key = list(next(iter(pnl_mds.values()), None).keys())[0]
+    if first_ddi_key == "ddi_99":
+        img_mds = open_astrohack_file(open_image, param_dict["combine_name"])
+    else:
+        img_mds = open_astrohack_file(open_image, param_dict["image_name"])
 
     export_methods = [
         pnt_mds.plot_array_configuration,
@@ -229,11 +241,13 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
             spw_html = add_preformatted_text_file_to_html(
                 summ_name, "Observation Summary", 3
             )
-            spw_html += add_preformatted_text_file_to_html(
-                f"{exports_name}/image_phase_fit_{ant_key}_{ddi_key}.txt",
-                "Phase fitting results",
-                3,
-            )
+            phase_fit_file = f"{exports_name}/image_phase_fit_{ant_key}_{ddi_key}.txt"
+            if Path(phase_fit_file).is_file():
+                spw_html += add_preformatted_text_file_to_html(
+                    phase_fit_file,
+                    "Phase fitting results",
+                    3,
+                )
             spw_html += add_preformatted_text_file_to_html(
                 f"{exports_name}/panel_gains_{ant_key}_{ddi_key}.txt",
                 "Predicted antenna gains",
@@ -361,10 +375,6 @@ def main():
 
     if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
         run_astrohack_reduction(main_param_dict, msger)
-
-    # This is a patch to the image_name in the case there was a combine so that plots are combined.
-    if Path(main_param_dict["combine_name"]).is_dir():
-        main_param_dict["image_name"] = main_param_dict["combine_name"]
 
     if main_param_dict["processing_stage"] == astrohack_stages[-1]:
         run_astrohack_exports(main_param_dict, msger)

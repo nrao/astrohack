@@ -372,19 +372,14 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     }
     position_mds = open_astrohack_file(open_position, param_dict["position_name"])
     plotting_methods = [
-        position_mds.plot_source_positions,
         position_mds.plot_array_configuration,
+        position_mds.plot_source_positions,
         position_mds.plot_delays,
         position_mds.plot_position_corrections,
         position_mds.export_locit_fit_results,
         position_mds.export_results_to_parminator,
     ]
-    position_mds.print_source_table(
-        save_to=f"{param_dict['exports_name']}/source_table.txt"
-    )
-    position_mds.print_array_configuration(
-        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
-    )
+
     for plot_method in plotting_methods:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, plot_method, msger
@@ -394,6 +389,12 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
                 f"{plot_method.__name__} failed see above for details."
             ) from exec_exception
 
+    position_mds.print_source_table(
+        save_to=f"{param_dict['exports_name']}/source_table.txt"
+    )
+    position_mds.print_array_configuration(
+        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
+    )
     return
 
 

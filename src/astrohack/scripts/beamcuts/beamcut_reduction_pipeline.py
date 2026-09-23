@@ -17,6 +17,7 @@ from astrohack.utils.pipeline_support import (
     basic_holography_parser,
     common_parameter_initialization_for_holography,
     open_astrohack_file,
+    client_initialization,
 )
 from astrohack.utils.text import (
     create_html_file_from_body,
@@ -296,16 +297,7 @@ def main():
         run_casa_calibration(main_param_dict, msger)
         main_param_dict["processing_stage"] = astrohack_stages[0]
 
-    if (
-        main_param_dict["parallel"]
-        and main_param_dict["processing_stage"] in astrohack_stages
-    ):
-        client = local_client(
-            cores=main_param_dict["ncores"],
-            memory_limit=main_param_dict["memory_per_core"],
-        )
-    else:
-        client = None
+    client = client_initialization(main_param_dict, astrohack_stages)
 
     if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
         run_astrohack_reduction(main_param_dict, msger)

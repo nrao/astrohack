@@ -1,4 +1,3 @@
-import glob
 import time
 from pathlib import Path
 
@@ -11,7 +10,6 @@ from astrohack import (
     combine,
     panel,
     open_pointing,
-    open_holog,
     open_image,
     open_panel,
 )
@@ -23,6 +21,7 @@ from astrohack.utils.pipeline_support import (
     run_astrohack_function,
     open_astrohack_file,
     add_basic_info_and_parameters_to_report,
+    client_initialization,
 )
 from astrohack.utils.text import (
     lnbr,
@@ -362,16 +361,7 @@ def main():
         run_casa_calibration(main_param_dict, msger)
         main_param_dict["processing_stage"] = astrohack_stages[0]
 
-    if (
-        main_param_dict["parallel"]
-        and main_param_dict["processing_stage"] in astrohack_stages
-    ):
-        client = local_client(
-            cores=main_param_dict["ncores"],
-            memory_limit=main_param_dict["memory_per_core"],
-        )
-    else:
-        client = None
+    client = client_initialization(main_param_dict, astrohack_stages)
 
     if main_param_dict["processing_stage"] in astrohack_stages[:-1]:
         run_astrohack_reduction(main_param_dict, msger)

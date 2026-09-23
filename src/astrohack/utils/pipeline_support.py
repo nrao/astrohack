@@ -405,6 +405,14 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
     )
 
     parser.add_argument(
+        "--log-level",
+        type=str,
+        default="WARNING",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level to use, default is %(default)s",
+    )
+
+    parser.add_argument(
         "-o",
         "--overwrite",
         action="store_true",
@@ -570,3 +578,39 @@ def open_astrohack_file(open_function, file_name):
     if mds_obj is None:
         raise RuntimeError(f"{file_name} not found")
     return mds_obj
+
+
+def client_initialization(
+    param_dict,
+    astrohack_stages,
+):
+    from toolviper.dask.client import local_client
+
+    log_level = param_dict["log_level"]
+    client_log_params = {
+        "logger_name": "client",
+        "log_to_term": True,
+        "log_level": log_level,
+        "log_to_file": False,
+        "log_file": "client.log",
+    }
+
+    worker_log_params = {
+        "logger_name": "worker",
+        "log_to_term": True,
+        "log_level": log_level,
+        "log_to_file": False,
+        "log_file": "client_worker.log",
+    }
+
+    if param_dict["parallel"] and param_dict["processing_stage"] in astrohack_stages:
+        client = local_client(
+            cores=param_dict["ncores"],
+            memory_limit=param_dict["memory_per_core"],
+            worker_log_params=worker_log_params,
+            log_params=client_log_params,
+        )
+    else:
+        client = None
+
+    return client

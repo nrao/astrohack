@@ -20,6 +20,8 @@ from astrohack.utils.pipeline_support import (
     add_basic_info_and_parameters_to_report,
     create_parser_with_base_options,
     open_astrohack_file,
+    client_initialization,
+    parse_list_or_none,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -135,6 +137,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["position_name"] = f"{base_name}.position.zarr"
     param_dict["exports_name"] = f"{base_name}.exports"
     param_dict["report_name"] = f"{base_name}-report.html"
+    param_dict["parallel"] = param_dict["ncores"] > 1
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
@@ -342,7 +345,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "polarization": param_dict["polarization"],
         "combine_ddis": param_dict["combination"],
         "exclude_scans": param_dict["exclude_scans"],
-        "parallel": False,
+        "parallel": param_dict["parallel"],
     }
     if param_dict["use_fringefit_locit"]:
         locit_functions = [fringefit_locit]
@@ -705,6 +708,8 @@ def main():
         run_casa_pre_locit_steps(param_dict, msger)
         processing_stage = stages[1]
 
+    client = client_initialization(param_dict, stages[1:3])
+
     if processing_stage == stages[1]:
         run_astrohack_locit(param_dict, msger)
         processing_stage = stages[2]
@@ -714,6 +719,9 @@ def main():
         if not param_dict["use_fringefit_locit"]:
             run_post_locit_plots(param_dict, msger)
         processing_stage = stages[3]
+
+    if client is not None:
+        client.shutdown()
 
     if processing_stage == stages[3]:
         prepare_html_report(param_dict, msger)

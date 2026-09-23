@@ -1,3 +1,4 @@
+import glob
 import time
 
 from toolviper.dask.client import local_client
@@ -20,6 +21,13 @@ from astrohack.utils.pipeline_support import (
     common_parameter_initialization_for_holography,
     run_astrohack_function,
     open_astrohack_file,
+    add_basic_info_and_parameters_to_report,
+)
+from astrohack.utils.text import (
+    lnbr,
+    add_heading_to_html,
+    create_single_html_image_with_header,
+    create_html_file_from_body,
 )
 
 
@@ -32,6 +40,16 @@ def parse(pipeline_type: str, stages: list):
         "--combine",
         action="store_true",
         help="Combine SPWs to improve SNR (all selected SPWs will be combined)",
+    )
+
+    parser.add_argument(
+        "-z",
+        "--use-zernike-phase-fitting",
+        action="store_true",
+        help=(
+            "Use zernike phase fitting instead of regular perturbation phase fitting "
+            "(ngVLA uses this even when option is not given)."
+        ),
     )
 
     return vars(parser.parse_args())
@@ -122,13 +140,19 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
 def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     param_dict["destination"] = param_dict["exports_name"]
     pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
-    hlg_mds = open_astrohack_file(open_holog, param_dict["holog_name"])
+    # hlg_mds = open_astrohack_file(open_holog, param_dict["holog_name"])
     img_mds = open_astrohack_file(open_image, param_dict["image_name"])
     pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
 
     export_methods = [
         pnt_mds.plot_array_configuration,
-        pnl_mds.observation_summary,  # this one needs extra care...
+        img_mds.plot_beams,
+        img_mds.export_phase_fit_results,
+        img_mds.export_zernike_fit_results,
+        img_mds.plot_zernike_model,
+        pnl_mds.plot_antennas,
+        pnl_mds.export_screws,
+        pnl_mds.export_gain_tables,
     ]
     if param_dict["plot_pointing"]:
         param_dict["plot_antennas_separately"] = True
@@ -142,12 +166,42 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
             raise RuntimeError(
                 f"{export_method.__name__} failed see above for details."
             ) from exec_exception
-    msger.heading("Exports will come here!")
+
     return
 
 
 def prepare_html_report(param_dict: dict, msger: MessageBoard):
-    msger.heading("Report will come here!")
+    pnl_mds = open_astrohack_file(open_panel, param_dict["panel_name"])
+    msger.one_liner("Preparing report...")
+    start = time.time()
+    exports_name = param_dict["exports_name"]
+    report_title = f"Holography report for {param_dict['filename']}"
+    html_body = add_heading_to_html(report_title, 1)
+    html_body += add_basic_info_and_parameters_to_report(param_dict)
+    html_body += create_single_html_image_with_header(
+        f"{exports_name}/point_array_configuration.png",
+        "Array configuration during observation",
+        heading_level=2,
+    )
+    html_body += f"{lnbr}<br>{lnbr}"
+
+    for ant_key, ant_xds in pnl_mds.items():
+        ant_name = ant_key.split("_")[1]
+        for ddi_key in ant_xds.keys():
+            ddi_name = ddi_key.split("_")[1]
+            # summary to be done here per antenna/ddi
+            summ_name = f"{exports_name}/obs_summary_{ant_key}_{ddi_key}.txt"
+            pnl_mds.observation_summary(
+                summary_file=summ_name,
+                ant=ant_name,
+                ddi=ddi_name,
+                parallel=False,
+                print_summary=False,
+            )
+
+    create_html_file_from_body(html_body, report_title, param_dict["report_name"])
+    stop = time.time()
+    msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
     return
 
 

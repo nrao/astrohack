@@ -710,6 +710,7 @@ def main():
         run_casa_pre_locit_steps(param_dict, msger)
         processing_stage = stages[1]
 
+    param_dict["processing_stage"] = processing_stage
     client = client_initialization(param_dict, stages[1:3])
 
     if processing_stage == stages[1]:

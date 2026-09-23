@@ -55,6 +55,13 @@ def parse(pipeline_type: str, stages: list):
         ),
     )
 
+    parser.add_argument(
+        "-u",
+        "--screw-unit",
+        default="mils",
+        help="Unit to present screw adjustments (default is %(default)s)",
+    )
+
     return vars(parser.parse_args())
 
 
@@ -155,7 +162,6 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         img_mds.export_zernike_fit_results,
         img_mds.plot_zernike_model,
         pnl_mds.plot_antennas,
-        pnl_mds.export_screws,
         pnl_mds.export_gain_tables,
     ]
     if param_dict["plot_pointing"]:
@@ -171,6 +177,15 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
                 f"{export_method.__name__} failed see above for details."
             ) from exec_exception
 
+    # export_screws is called separately to avoid changing units in other plotting routines.œ
+    param_dict["unit"] = param_dict["screw_unit"]
+    status, exec_exception = run_astrohack_function(
+        param_dict, pnl_mds.export_screws, msger
+    )
+    if not status:
+        raise RuntimeError(
+            f"{pnl_mds.export_screws.__name__} failed see above for details."
+        ) from exec_exception
     return
 
 

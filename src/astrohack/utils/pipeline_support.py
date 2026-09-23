@@ -489,6 +489,13 @@ def basic_holography_parser(pipeline_type: str, stage_choices: list):
         help=f"Field Id or name containing {pipeline_type} data (default is to determine it from data)",
     )
 
+    parser.add_argument(
+        "--baseline-average-nearest",
+        default=1,
+        type=int,
+        help="Number of baselines to average for each mapping antenna (default is %(default)s)",
+    )
+
     return parser
 
 

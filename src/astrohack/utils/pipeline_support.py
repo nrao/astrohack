@@ -496,6 +496,14 @@ def basic_holography_parser(pipeline_type: str, stage_choices: list):
         help="Number of baselines to average for each mapping antenna (default is %(default)s)",
     )
 
+    parser.add_argument(
+        "--pointing-interpolation-method",
+        default="linear",
+        type=str,
+        choices=["linear", "gaussian"],
+        help="Interpolation method to use for matching pointing and visibilities, default is %(default)s",
+    )
+
     return parser
 
 

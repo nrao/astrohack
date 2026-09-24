@@ -1,8 +1,6 @@
 import time
 from pathlib import Path
 
-from toolviper.dask.client import local_client
-
 from astrohack import (
     extract_pointing,
     extract_holog,
@@ -13,6 +11,7 @@ from astrohack import (
     open_image,
     open_panel,
 )
+from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     initialization_check,
@@ -38,10 +37,38 @@ def parse(pipeline_type: str, stages: list):
 
     # Extra holography options come here
     parser.add_argument(
-        "-c",
-        "--combine",
-        action="store_true",
-        help="Combine SPWs to improve SNR (all selected SPWs will be combined)",
+        "--grid-size",
+        default=None,
+        type=int,
+        help="Choose grid size for beam image, the default is to guess it from the data.",
+    )
+
+    parser.add_argument(
+        "--cell-size",
+        default=None,
+        type=float,
+        help="Choose cell size for beam image, the default is to guess it from the data.",
+    )
+
+    parser.add_argument(
+        "--grid-interpolation-mode",
+        default="gaussian",
+        type=str,
+        help="Choose interpolation mode for beam image (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--padding-factor",
+        default=10,
+        type=int,
+        help="Padding factor applied to the beam image before the FFT to produce the apertures (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--zernike-n-order",
+        default=4,
+        type=int,
+        help="Zernike N polynomial order to be fitted to the apertures (default is %(default)s)",
     )
 
     parser.add_argument(
@@ -55,11 +82,50 @@ def parse(pipeline_type: str, stages: list):
     )
 
     parser.add_argument(
+        "-c",
+        "--combine",
+        action="store_true",
+        help="Combine SPWs to improve SNR (all selected SPWs will be combined)",
+    )
+
+    parser.add_argument(
+        "--clip-type",
+        default="sigma",
+        type=str,
+        choices=["sigma", "none", "absolute", "relative", "noise_threshold"],
+        help="Choose the type of clipping algorithm to use in the apertures before fitting panels (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--clip-level",
+        default=3,
+        type=float,
+        help="Choose the level for the chosen clipping algorithm (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--panel-model",
+        default="flexible",
+        type=str,
+        choices=list(PANEL_MODEL_DICT.keys()),
+        help="Choose the panel model to use (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--panel-margins",
+        default=0.05,
+        type=float,
+        help="Define the fraction of the edge of the panels to be excluded from fitting (default is %(default)s)",
+    )
+
+    parser.add_argument(
         "-u",
         "--screw-unit",
         default="mils",
         help="Unit to present screw adjustments (default is %(default)s)",
     )
+
+    parser.add_argument("")
 
     return vars(parser.parse_args())
 

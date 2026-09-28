@@ -542,9 +542,9 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     base_band0 = []
     base_band1 = []
     for j_spw, spw_name in enumerate(mapping_spw_names):
-        if "A0C0" in spw_name:
+        if "A0C0" in spw_name[0]:
             base_band0.append(mapping_spw_list[j_spw])
-        elif "B0D0" in spw_name:
+        elif "B0D0" in spw_name[0]:
             base_band1.append(mapping_spw_list[j_spw])
     print(base_band0)
     print(base_band1)

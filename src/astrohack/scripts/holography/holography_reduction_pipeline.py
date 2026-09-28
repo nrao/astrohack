@@ -21,6 +21,7 @@ from astrohack.utils.pipeline_support import (
     open_astrohack_file,
     add_basic_info_and_parameters_to_report,
     client_initialization,
+    run_casatask,
 )
 from astrohack.utils.text import (
     lnbr,
@@ -164,6 +165,72 @@ def param_init(pipeline_type: str, msger: MessageBoard):
 
 def run_casa_calibration(param_dict: dict, msger: MessageBoard):
     msger.heading("Calibration will come here!")
+    base_0_del_ok = run_casatask(
+        "gaincal",
+        {
+            "vis": param_dict["msname"],
+            "caltable": param_dict["delay_cal_name"],
+            "refant": param_dict["refant"],
+            "solint": "10s",
+            "spw": param_dict["quacked_base_band_0_selection"],
+            "scan": param_dict["calibration_scans"],
+            "minblperant": 3,
+            "gaintype": "K",
+            "append": False,
+            "calmode": "p",
+            "combine": "spw",
+        },
+        msger,
+        intended_output=param_dict["delay_cal_name"],
+        overwrite=param_dict["overwrite"],
+    )
+
+    base_1_del_ok = run_casatask(
+        "gaincal",
+        {
+            "vis": param_dict["msname"],
+            "caltable": param_dict["delay_cal_name"],
+            "refant": param_dict["refant"],
+            "solint": "10s",
+            "spw": param_dict["quacked_base_band_1_selection"],
+            "scan": param_dict["calibration_scans"],
+            "minblperant": 3,
+            "gaintype": "K",
+            "append": True,
+            "calmode": "p",
+            "combine": "spw",
+        },
+        msger,
+        # Setting intended output to None skips the overwrite heuristics but will make check not robust.
+        intended_output=None,
+        overwrite=False,
+    )
+    gaintable = []
+    spwmap = []
+    delay_ok = base_0_del_ok and base_1_del_ok
+    if delay_ok:
+        gaintable.append(param_dict["delay_cal_name"])
+        spwmap.append(param_dict["delay_spwmap"])
+        bandpass_ok = run_casatask(
+            "bandpass",
+            {
+                "vis": param_dict["msname"],
+                "caltable": param_dict["bandpass_cal_name"],
+                "refant": param_dict["refant"],
+                "solint": "inf",
+                "spw": param_dict["quacked_spw_selection"],
+                "scan": param_dict["calibration_scans"],
+                "solnorm": True,
+                "gaintable": gaintable,
+                "spwmap": spwmap,
+            },
+            msger,
+            intended_output=param_dict["bandpass_cal_name"],
+            overwrite=param_dict["overwrite"],
+        )
+    else:
+        bandpass_ok = False
+
     return
 
 

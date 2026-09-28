@@ -153,7 +153,7 @@ def param_init(pipeline_type: str, msger: MessageBoard):
         "report",
     ]
     param_dict = common_parameter_initialization_for_holography(
-        pipeline_type, stages, extensions, parse, msger
+        pipeline_type, stages, extensions, parse, msger, for_holograpy=True
     )
 
     # extra parameter initialization comes here

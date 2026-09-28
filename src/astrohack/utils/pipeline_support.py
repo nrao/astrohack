@@ -267,7 +267,9 @@ def base_name_determination(param_dict: dict):
     return base_name
 
 
-def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
+def asdm_test_and_import(
+    param_dict: dict, base_name: str, msger: MessageBoard, for_holography: bool = False
+):
     param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
 
     if param_dict["is_asdm"]:
@@ -278,13 +280,26 @@ def asdm_test_and_import(param_dict: dict, base_name, msger: MessageBoard):
             execute_import = True
         if execute_import:
             msger.one_liner("Input is an ASDM, importing it...")
+            base_param_dict = {
+                "asdm": param_dict["filename"],
+                "vis": param_dict["msname"],
+                "overwrite": param_dict["overwrite"],
+            }
+            if for_holography:
+                base_param_dict.update(
+                    {
+                        "ocorr_mode": "co",
+                        "asis": "Receiver CalAtmosphere",
+                        "savecmds": True,
+                        "outfile": f"{param_dict['msname']}.online-flags.txt",
+                        "with_pointing_correction": True,
+                        "applyflags": True,
+                    }
+                )
+
             run_casatask(
                 "importasdm",
-                {
-                    "asdm": param_dict["filename"],
-                    "vis": param_dict["msname"],
-                    "overwrite": param_dict["overwrite"],
-                },
+                base_param_dict,
                 msger,
             )
         else:
@@ -565,11 +580,12 @@ def common_parameter_initialization_for_holography(
     extensions: dict,
     parse_function: Callable,
     msger: MessageBoard,
+    for_holograpy: bool = False,
 ):
     param_dict = parse_function(pipeline_type, stages)
 
     base_name = base_name_determination(param_dict)
-    param_dict = asdm_test_and_import(param_dict, base_name, msger)
+    param_dict = asdm_test_and_import(param_dict, base_name, msger, for_holograpy)
 
     for identifier, extension in extensions.items():
         param_dict[f"{identifier}_name"] = base_name + extension

@@ -538,7 +538,6 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     all_fields = msmd.fieldnames()
     msmd.done()
 
-    print(mapping_spw_names)
     base_band0 = []
     base_band1 = []
     for j_spw, spw_name in enumerate(mapping_spw_names):
@@ -546,8 +545,6 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
             base_band0.append(mapping_spw_list[j_spw])
         elif "B0D0" in spw_name[0]:
             base_band1.append(mapping_spw_list[j_spw])
-    print(base_band0)
-    print(base_band1)
 
     base_band0_str = f"{np.min(base_band0)}~{np.max(base_band0)}"
     base_band1_str = f"{np.min(base_band1)}~{np.max(base_band1)}"

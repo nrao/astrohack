@@ -208,6 +208,7 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
     gaintable = []
     spwmap = []
     delay_ok = base_0_del_ok and base_1_del_ok
+
     if delay_ok:
         gaintable.append(param_dict["delay_cal_name"])
         spwmap.append(param_dict["delay_spwmap"])
@@ -230,6 +231,47 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
         )
     else:
         bandpass_ok = False
+
+    if bandpass_ok:
+        gaintable.append(param_dict["bandpass_cal_name"])
+        spwmap.append(param_dict["full_spwmap"])
+        gaincal_ok = run_casatask(
+            "gaincal",
+            {
+                "vis": param_dict["msname"],
+                "caltable": param_dict["gain_cal_name"],
+                "refant": param_dict["refant"],
+                "calmode": "ap",
+                "solint": "inf",
+                "spw": param_dict["quacked_spw_selection"],
+                "minsnr": 2,
+                "minblperant": 2,
+                "scan": param_dict["calibration_scans"],
+                "gaintable": gaintable,
+                "spwmap": spwmap,
+            },
+            msger,
+            intended_output=param_dict["gain_cal_name"],
+            overwrite=param_dict["overwrite"],
+        )
+    else:
+        gaincal_ok = False
+
+    if gaincal_ok:
+        gaintable.append(param_dict["gain_cal_name"])
+        spwmap.append(param_dict["full_spwmap"])
+        run_casatask(
+            "applycal",
+            {
+                "vis": param_dict["msname"],
+                "field": f"{param_dict['holography_field']}",
+                "spw": param_dict["quacked_spw_selection"],
+                "applymode": "calonly",
+                "gaintable": gaintable,
+                "spwmap": spwmap,
+            },
+            msger,
+        )
 
     return
 

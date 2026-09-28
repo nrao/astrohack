@@ -643,8 +643,13 @@ def _build_coordinate_array(ant_info, delay_time, field_ids, source_dict):
     )
     n_times = len(field_ids)
     j2000_radec = np.zeros((n_times, 2))
+    keys_are_str = isinstance(list(source_dict.keys())[0], str)
     for row, field_id in enumerate(field_ids):
-        j2000_radec[row, :] = source_dict[str(field_id)]["fk5"]
+        if keys_are_str:
+            src_key = str(field_id)
+        else:
+            src_key = field_id
+        j2000_radec[row, :] = source_dict[src_key]["fk5"]
     astropy_times = Time(delay_time, format="mjd", scale="utc", location=ant_location)
     skycoords = SkyCoord(
         ra=j2000_radec[:, 0] * u.rad, dec=j2000_radec[:, 1] * u.rad, frame="icrs"

@@ -529,31 +529,32 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     msmd = casatools.msmetadata()
     msmd.open(param_dict["msname"])
     cal_scans = msmd.scansforintent("*PHASE*")
-    beamcut_scans = msmd.scansforintent("*MAP*ON_SOURCE")
-    spw_list = msmd.spwsforintent("*MAP*")
-    beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
-    spw_nchan = [msmd.nchan(i_spw) for i_spw in spw_list]
-    spw_names = [msmd.namesforspws(i_spw) for i_spw in spw_list]
+    mapping_scans = msmd.scansforintent("*MAP*ON_SOURCE")
+    mapping_spw_list = msmd.spwsforintent("*MAP*")
+    all_spw_list = msmd.spwsforintent("*")
+    mapping_fields = np.unique(msmd.fieldsforscans(mapping_scans))
+    mapping_spw_nchan = [msmd.nchan(i_spw) for i_spw in mapping_spw_list]
+    mapping_spw_names = [msmd.namesforspws(i_spw) for i_spw in mapping_spw_list]
     all_fields = msmd.fieldnames()
     msmd.done()
 
     base_band0 = []
     base_band1 = []
-    for j_spw, spw_name in enumerate(spw_names):
+    for j_spw, spw_name in enumerate(mapping_spw_names):
         if "A0C0" in spw_name:
-            base_band0.append(spw_list[j_spw])
+            base_band0.append(mapping_spw_list[j_spw])
         elif "B0D0" in spw_name:
-            base_band1.append(spw_list[j_spw])
+            base_band1.append(mapping_spw_list[j_spw])
     base_band0_str = f"{np.min(base_band0)}~{np.max(base_band0)}"
     base_band1_str = f"{np.min(base_band1)}~{np.max(base_band1)}"
 
     field_key = f"{pipeline_type}_field"
     if param_dict[field_key] is None:
-        if beamcut_fields.size > 1:
+        if mapping_fields.size > 1:
             raise RuntimeError(
                 f"More than 1 {pipeline_type} field, try splitting the ms"
             )
-        param_dict[field_key] = beamcut_fields[0]
+        param_dict[field_key] = mapping_fields[0]
     else:
         try:
             field_id = int(param_dict[field_key])
@@ -566,12 +567,12 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
                 raise RuntimeError(f"{param_dict[field_key]} not present in the ms")
 
     fchan = param_dict["quack_nchan"]
-    if np.unique(spw_nchan).size > 1:
+    if np.unique(mapping_spw_nchan).size > 1:
         quacked_list = []
         quacked_base0_list = []
         quacked_base1_list = []
-        for j_spw, i_nchan in enumerate(spw_nchan):
-            i_spw = spw_list[j_spw]
+        for j_spw, i_nchan in enumerate(mapping_spw_nchan):
+            i_spw = mapping_spw_list[j_spw]
             quacked_spw = f"{i_spw}:{fchan}~{i_nchan - fchan}"
             quacked_list.append(quacked_spw)
             if i_spw in base_band0:
@@ -585,9 +586,9 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
         param_dict["quacked_base_band_0_selection"] = ",".join(quacked_base0_list)
         param_dict["quacked_base_band_1_selection"] = ",".join(quacked_base1_list)
     else:
-        lchan = spw_nchan[0] - param_dict["quack_nchan"]
-        minspw = f"{round(np.min(spw_list)):d}"
-        maxspw = f"{round(np.max(spw_list)):d}"
+        lchan = mapping_spw_nchan[0] - param_dict["quack_nchan"]
+        minspw = f"{round(np.min(mapping_spw_list)):d}"
+        maxspw = f"{round(np.max(mapping_spw_list)):d}"
         spwrange = f"{minspw}~{maxspw}"
         param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
         param_dict["quacked_base_band_0_selection"] = (
@@ -597,9 +598,22 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
             f"{base_band1_str}:{fchan}~{lchan}"
         )
 
+    delay_spwmap = []
+    full_spwmap = []
+    for i_spw in all_spw_list:
+        if i_spw in base_band0:
+            delay_spwmap.append(np.min(base_band0))
+        elif i_spw in base_band1:
+            delay_spwmap.append(np.min(base_band1))
+        else:
+            delay_spwmap.append(np.min((np.min(base_band0), np.min(base_band1))))
+        full_spwmap.append(i_spw)
+    param_dict["delay_spwmap"] = delay_spwmap
+    param_dict["full_spwmap"] = full_spwmap
+
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
-    param_dict[f"{pipeline_type}_scans"] = ",".join(map(str, beamcut_scans))
+    param_dict[f"{pipeline_type}_scans"] = ",".join(map(str, mapping_scans))
 
     return param_dict
 

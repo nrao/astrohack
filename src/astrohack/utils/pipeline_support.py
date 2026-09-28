@@ -533,8 +533,20 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     spw_list = msmd.spwsforintent("*MAP*")
     beamcut_fields = np.unique(msmd.fieldsforscans(beamcut_scans))
     spw_nchan = [msmd.nchan(i_spw) for i_spw in spw_list]
+    spw_names = [msmd.namesforspws(i_spw) for i_spw in spw_list]
     all_fields = msmd.fieldnames()
     msmd.done()
+
+    base_band0 = []
+    base_band1 = []
+    for j_spw, spw_name in enumerate(spw_names):
+        if "A0C0" in spw_name:
+            base_band0.append(spw_list[j_spw])
+        elif "B0D0" in spw_name:
+            base_band1.append(spw_list[j_spw])
+    base_band0_str = f"{np.min(base_band0)}~{np.max(base_band0)}"
+    base_band1_str = f"{np.min(base_band1)}~{np.max(base_band1)}"
+
     field_key = f"{pipeline_type}_field"
     if param_dict[field_key] is None:
         if beamcut_fields.size > 1:
@@ -556,16 +568,34 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
     fchan = param_dict["quack_nchan"]
     if np.unique(spw_nchan).size > 1:
         quacked_list = []
-        for i_spw, i_nchan in enumerate(spw_nchan):
-            quacked_list.append(f"{i_spw}:{fchan}~{i_nchan-fchan}")
+        quacked_base0_list = []
+        quacked_base1_list = []
+        for j_spw, i_nchan in enumerate(spw_nchan):
+            i_spw = spw_list[j_spw]
+            quacked_spw = f"{i_spw}:{fchan}~{i_nchan - fchan}"
+            quacked_list.append(quacked_spw)
+            if i_spw in base_band0:
+                quacked_base0_list.append(quacked_spw)
+            elif i_spw in base_band1:
+                quacked_base1_list.append(quacked_spw)
+            else:
+                pass
 
         param_dict["quacked_spw_selection"] = ",".join(quacked_list)
+        param_dict["quacked_base_band_0_selection"] = ",".join(quacked_base0_list)
+        param_dict["quacked_base_band_1_selection"] = ",".join(quacked_base1_list)
     else:
         lchan = spw_nchan[0] - param_dict["quack_nchan"]
         minspw = f"{round(np.min(spw_list)):d}"
         maxspw = f"{round(np.max(spw_list)):d}"
         spwrange = f"{minspw}~{maxspw}"
         param_dict["quacked_spw_selection"] = f"{spwrange}:{fchan}~{lchan}"
+        param_dict["quacked_base_band_0_selection"] = (
+            f"{base_band0_str}:{fchan}~{lchan}"
+        )
+        param_dict["quacked_base_band_1_selection"] = (
+            f"{base_band1_str}:{fchan}~{lchan}"
+        )
 
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))

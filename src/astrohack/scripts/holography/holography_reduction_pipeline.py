@@ -125,8 +125,6 @@ def parse(pipeline_type: str, stages: list):
         help="Unit to present screw adjustments (default is %(default)s)",
     )
 
-    parser.add_argument("")
-
     return vars(parser.parse_args())
 
 

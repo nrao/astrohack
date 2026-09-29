@@ -377,7 +377,13 @@ def create_parser_with_base_options(pipeline_type: str, stage_choices: list):
         "filename", type=str, help="Path to the input dataset to process."
     )
 
-    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
+    parser.add_argument(
+        "refant",
+        type=str,
+        default=None,
+        nargs="?",
+        help="Reference antenna for calibration",
+    )
 
     parser.add_argument(
         "-r",
@@ -636,6 +642,10 @@ def common_parameter_initialization_for_holography(
         param_dict[f"{identifier}_name"] = base_name + extension
 
     if param_dict["starting_stage"] == "calibration":
+        if param_dict["refant"] is None:
+            raise RuntimeError(
+                "Reference antenna must be specified when starting from calibration"
+            )
         param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")

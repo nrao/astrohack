@@ -148,31 +148,40 @@ def param_init(param_dict: dict, msger: MessageBoard):
     ]
     param_dict["exclude_scans"] = parse_list_or_none(param_dict, "exclude_scans")
 
-    # Ms data fetching and some consistency checks
-    pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
-    msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
-    ant_names = msmd.antennanames()
-    field_names = msmd.fieldnames()
-    spw_list = msmd.spwsforintent(pnt_intent)
-    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
-    msmd.done()
+    if param_dict["starting_stage"] == "calibration":
+        # Ms data fetching and some consistency checks
+        pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
+        msmd = casatools.msmetadata()
+        msmd.open(param_dict["msname"])
+        ant_names = msmd.antennanames()
+        field_names = msmd.fieldnames()
+        spw_list = msmd.spwsforintent(pnt_intent)
+        nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+        msmd.done()
 
-    param_dict["n_chan"] = nchan[0]
+        param_dict["n_chan"] = nchan[0]
 
-    error_msgs = []
-    if param_dict["refant"] not in ant_names:
-        error_msgs.append(f"Chosen refant ({param_dict['refant']}) not present in ms.")
-    if param_dict["fringefit_source"] not in field_names:
-        error_msgs.append(
-            f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
-        )
-    if nchan.size != 1:
-        error_msgs.append(
-            "Spectral windows are not consistent with each other, is this really a pointing ms?"
-        )
-    if len(error_msgs) > 0:
-        raise RuntimeError("\n".join(error_msgs))
+        error_msgs = []
+
+        if param_dict["refant"] is None:
+            error_msgs.append(
+                "Reference antenna must be specified when starting from calibration"
+            )
+        else:
+            if param_dict["refant"] not in ant_names:
+                error_msgs.append(
+                    f"Chosen refant ({param_dict['refant']}) not present in ms."
+                )
+        if param_dict["fringefit_source"] not in field_names:
+            error_msgs.append(
+                f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
+            )
+        if nchan.size != 1:
+            error_msgs.append(
+                "Spectral windows are not consistent with each other, is this really a pointing ms?"
+            )
+        if len(error_msgs) > 0:
+            raise RuntimeError("\n".join(error_msgs))
 
     initialization_check(param_dict, "Baseline determination parameters")
     if param_dict["use_fringefit_locit"] and param_dict["antenna"] == "all":

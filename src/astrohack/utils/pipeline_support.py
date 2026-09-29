@@ -635,7 +635,8 @@ def common_parameter_initialization_for_holography(
     for identifier, extension in extensions.items():
         param_dict[f"{identifier}_name"] = base_name + extension
 
-    param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
+    if param_dict["starting_stage"] == "calibration":
+        param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)

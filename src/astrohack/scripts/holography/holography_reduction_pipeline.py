@@ -300,6 +300,9 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
 
     for next_stage, function in exec_list:
         if status and param_dict["processing_stage"] == function.__name__:
+            if param_dict["processing_stage"] == "panel" and param_dict["combine"]:
+                param_dict["image_name"] = param_dict["combine_name"]
+
             status, exec_exception = run_astrohack_function(
                 param_dict,
                 function,
@@ -311,7 +314,7 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
                     combine,
                     msger,
                 )
-                param_dict["image_name"] = param_dict["combine_name"]
+
             if status:
                 param_dict["processing_stage"] = next_stage
     param_dict["image_name"] = bckp_img_name

@@ -1,6 +1,5 @@
 import time
 
-from toolviper.dask.client import local_client
 from astrohack import (
     extract_pointing,
     extract_holog,

@@ -1,4 +1,3 @@
-import argparse
 import os
 import time
 import numpy as np
@@ -14,13 +13,16 @@ from astrohack.utils.pipeline_support import (
     initialization_check,
     run_casatask,
     proceed_check,
-    list_input_tooltip,
     run_astrohack_function,
     parse_list_or_all,
     base_name_determination,
     asdm_test_and_import,
     add_basic_info_and_parameters_to_report,
+    create_parser_with_base_options,
+    open_astrohack_file,
+    client_initialization,
     parse_list_or_none,
+    list_input_tooltip,
 )
 from astrohack.utils.text import (
     format_duration,
@@ -38,24 +40,8 @@ from astrohack.visualization.plot_tools import (
 )
 
 
-def parse():
-    desc = "CASA baseline pipeline"
-
-    parser = argparse.ArgumentParser(
-        description=f"{desc}", formatter_class=argparse.RawTextHelpFormatter
-    )
-
-    parser.add_argument("filename", type=str, help="Path to the input MS/ASDM file")
-
-    parser.add_argument("refant", type=str, help="Reference antenna for calibration")
-
-    parser.add_argument(
-        "-r",
-        "--root-name",
-        type=str,
-        default=None,
-        help="Root name for the calibration tables, default is filename without extension",
-    )
+def parse(pipelie_type, stages):
+    parser = create_parser_with_base_options(pipelie_type, stages)
 
     parser.add_argument(
         "-f",
@@ -70,22 +56,6 @@ def parse():
         default="CALIBRATE_POINTING#ON_SOURCE",
         type=str,
         help="Intent for pointing observations.",
-    )
-
-    parser.add_argument(
-        "-s",
-        "--spw",
-        type=str,
-        default="all",
-        help=f"Select SPWs for locit processing, {list_input_tooltip('0,1,2')}, default is %(default)s",
-    )
-
-    parser.add_argument(
-        "-a",
-        "--antenna",
-        default="all",
-        help="Select antennas for which to produce antenna position corrections, "
-        f"{list_input_tooltip('ea01,ea02')}, default is %(default)s",
     )
 
     parser.add_argument(
@@ -139,41 +109,6 @@ def parse():
     )
 
     parser.add_argument(
-        "-d",
-        "--dpi",
-        type=int,
-        default=300,
-        help="DPI for png figures (default: %(default)s)",
-    )
-
-    parser.add_argument(
-        "-o",
-        "--overwrite",
-        default=False,
-        action="store_true",
-        help="Overwrite existing files (MSes, caltables, locit files, plots)",
-    )
-
-    parser.add_argument(
-        "--starting-stage",
-        type=str,
-        default="calibration",
-        choices=["calibration", "locit", "exports", "report"],
-        help="Starting stage in which to start processing (default: %(default)s).",
-    )
-
-    parser.add_argument(
-        "--reimport-asdm",
-        action="store_true",
-        default=False,
-        help="Forcefully re-import the asdm file is the ms already exists (default: %(default)s)",
-    )
-
-    parser.add_argument(
-        "-y", "--assume-yes", action="store_true", help="Assume yes on proceed."
-    )
-
-    parser.add_argument(
         "--use-fringefit-locit",
         action="store_true",
         default=False,
@@ -203,6 +138,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["position_name"] = f"{base_name}.position.zarr"
     param_dict["exports_name"] = f"{base_name}.exports"
     param_dict["report_name"] = f"{base_name}-report.html"
+    param_dict["parallel"] = param_dict["ncores"] > 1
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)
@@ -212,31 +148,40 @@ def param_init(param_dict: dict, msger: MessageBoard):
     ]
     param_dict["exclude_scans"] = parse_list_or_none(param_dict, "exclude_scans")
 
-    # Ms data fetching and some consistency checks
-    pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
-    msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
-    ant_names = msmd.antennanames()
-    field_names = msmd.fieldnames()
-    spw_list = msmd.spwsforintent(pnt_intent)
-    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
-    msmd.done()
+    if param_dict["starting_stage"] == "calibration":
+        # Ms data fetching and some consistency checks
+        pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
+        msmd = casatools.msmetadata()
+        msmd.open(param_dict["msname"])
+        ant_names = msmd.antennanames()
+        field_names = msmd.fieldnames()
+        spw_list = msmd.spwsforintent(pnt_intent)
+        nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+        msmd.done()
 
-    param_dict["n_chan"] = nchan[0]
+        param_dict["n_chan"] = nchan[0]
 
-    error_msgs = []
-    if param_dict["refant"] not in ant_names:
-        error_msgs.append(f"Chosen refant ({param_dict['refant']}) not present in ms.")
-    if param_dict["fringefit_source"] not in field_names:
-        error_msgs.append(
-            f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
-        )
-    if nchan.size != 1:
-        error_msgs.append(
-            "Spectral windows are not consistent with each other, is this really a pointing ms?"
-        )
-    if len(error_msgs) > 0:
-        raise RuntimeError("\n".join(error_msgs))
+        error_msgs = []
+
+        if param_dict["refant"] is None:
+            error_msgs.append(
+                "Reference antenna must be specified when starting from calibration"
+            )
+        else:
+            if param_dict["refant"] not in ant_names:
+                error_msgs.append(
+                    f"Chosen refant ({param_dict['refant']}) not present in ms."
+                )
+        if param_dict["fringefit_source"] not in field_names:
+            error_msgs.append(
+                f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
+            )
+        if nchan.size != 1:
+            error_msgs.append(
+                "Spectral windows are not consistent with each other, is this really a pointing ms?"
+            )
+        if len(error_msgs) > 0:
+            raise RuntimeError("\n".join(error_msgs))
 
     initialization_check(param_dict, "Baseline determination parameters")
     if param_dict["use_fringefit_locit"] and param_dict["antenna"] == "all":
@@ -410,7 +355,7 @@ def run_astrohack_locit(param_dict: dict, msger: MessageBoard):
         "polarization": param_dict["polarization"],
         "combine_ddis": param_dict["combination"],
         "exclude_scans": param_dict["exclude_scans"],
-        "parallel": False,
+        "parallel": param_dict["parallel"],
     }
     if param_dict["use_fringefit_locit"]:
         locit_functions = [fringefit_locit]
@@ -435,21 +380,16 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         "dpi": param_dict["dpi"],
         "delay_limits": param_dict["delay_limits"],
     }
-    position_mds = open_position(param_dict["position_name"])
+    position_mds = open_astrohack_file(open_position, param_dict["position_name"])
     plotting_methods = [
-        position_mds.plot_source_positions,
         position_mds.plot_array_configuration,
+        position_mds.plot_source_positions,
         position_mds.plot_delays,
         position_mds.plot_position_corrections,
         position_mds.export_locit_fit_results,
         position_mds.export_results_to_parminator,
     ]
-    position_mds.print_source_table(
-        save_to=f"{param_dict['exports_name']}/source_table.txt"
-    )
-    position_mds.print_array_configuration(
-        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
-    )
+
     for plot_method in plotting_methods:
         status, exec_exception = run_astrohack_function(
             astrohack_param_dict, plot_method, msger
@@ -459,6 +399,12 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
                 f"{plot_method.__name__} failed see above for details."
             ) from exec_exception
 
+    position_mds.print_source_table(
+        save_to=f"{param_dict['exports_name']}/source_table.txt"
+    )
+    position_mds.print_array_configuration(
+        save_to=f"{param_dict['exports_name']}/array_configuration.txt"
+    )
     return
 
 
@@ -759,35 +705,39 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
 
 
 def main():
+    pipeline_type = "baseline"
     pipeline_start = time.time()
     msger = MessageBoard()
     print()
-    msger.heading("Welcome to the AstroHACK baseline pipeline for the VLA")
+    stages = ["calibration", "locit", "exports", "report"]
+    msger.welcome_message(pipeline_type)
 
-    param_dict = param_init(parse(), msger)
+    param_dict = param_init(parse(pipeline_type, stages), msger)
     processing_stage = param_dict["starting_stage"]
 
-    if processing_stage == "calibration":
+    if processing_stage == stages[0]:
         run_casa_pre_locit_steps(param_dict, msger)
-        processing_stage = "locit"
+        processing_stage = stages[1]
 
-    if processing_stage == "locit":
+    param_dict["processing_stage"] = processing_stage
+    client = client_initialization(param_dict, stages[1:3])
+
+    if processing_stage == stages[1]:
         run_astrohack_locit(param_dict, msger)
-        processing_stage = "exports"
+        processing_stage = stages[2]
 
-    if processing_stage == "exports":
+    if processing_stage == stages[2]:
         run_astrohack_exports(param_dict, msger)
         if not param_dict["use_fringefit_locit"]:
             run_post_locit_plots(param_dict, msger)
-        processing_stage = "report"
+        processing_stage = stages[3]
 
-    if processing_stage == "report":
+    if client is not None:
+        client.shutdown()
+
+    if processing_stage == stages[3]:
         prepare_html_report(param_dict, msger)
 
     pipeline_end = time.time()
-    msger.heading(
-        f"Baseline processing finished in {format_duration(pipeline_end-pipeline_start)}, "
-        + f"locit results (including parminator file) saved at: {param_dict['exports_name']}."
-        + f" Checkout the HTML report at: {param_dict['report_name']}."
-    )
+    msger.goodbye_message(pipeline_type, param_dict, pipeline_end - pipeline_start)
     return

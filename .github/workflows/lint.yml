@@ -1,0 +1,12 @@
+# Lint and format check with ruff (configuration: [tool.ruff] in
+# pyproject.toml), through the shared template. Replaces black.yml; runs on
+# the same events (every push and pull request).
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  call-ruff:
+    uses: nrao/gh-actions-templates-public/.github/workflows/ruff-template.yml@17-ci-python-312-314-push-pr-split
+    with:
+      ruff-version: "0.16.10"

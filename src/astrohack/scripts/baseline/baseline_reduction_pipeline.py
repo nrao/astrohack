@@ -1,40 +1,40 @@
 import argparse
 import os
 import time
-import numpy as np
 
 import casatools
+import numpy as np
 
-from astrohack import extract_locit, locit, open_position, fringefit_locit
-from astrohack.utils.algorithms import rotate_to_gmt, data_statistics
+from astrohack import extract_locit, fringefit_locit, locit, open_position
+from astrohack.utils.algorithms import data_statistics, rotate_to_gmt
 from astrohack.utils.constants import clight, pol_str
 from astrohack.utils.conversion import convert_unit
 from astrohack.utils.pipeline_support import (
     MessageBoard,
-    initialization_check,
-    run_casatask,
-    proceed_check,
-    list_input_tooltip,
-    run_astrohack_function,
-    parse_list_or_all,
-    base_name_determination,
-    asdm_test_and_import,
     add_basic_info_and_parameters_to_report,
+    asdm_test_and_import,
+    base_name_determination,
+    initialization_check,
+    list_input_tooltip,
+    parse_list_or_all,
     parse_list_or_none,
+    proceed_check,
+    run_astrohack_function,
+    run_casatask,
 )
 from astrohack.utils.text import (
-    format_duration,
-    create_html_file_from_body,
-    lnbr,
-    create_single_html_image_with_header,
-    add_preformatted_text_file_to_html,
     add_heading_to_html,
+    add_preformatted_text_file_to_html,
+    create_html_file_from_body,
+    create_single_html_image_with_header,
+    format_duration,
+    lnbr,
     make_collapsible_block,
 )
 from astrohack.visualization.plot_tools import (
-    filter_duplicates_in_legend,
-    create_figure_and_axes,
     close_figure,
+    create_figure_and_axes,
+    filter_duplicates_in_legend,
 )
 
 
@@ -755,7 +755,7 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
             )
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()
-    msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
+    msger.one_liner(f"Report finished in {stop - start:.2f} seconds")
 
 
 def main():
@@ -786,7 +786,7 @@ def main():
 
     pipeline_end = time.time()
     msger.heading(
-        f"Baseline processing finished in {format_duration(pipeline_end-pipeline_start)}, "
+        f"Baseline processing finished in {format_duration(pipeline_end - pipeline_start)}, "
         + f"locit results (including parminator file) saved at: {param_dict['exports_name']}."
         + f" Checkout the HTML report at: {param_dict['report_name']}."
     )

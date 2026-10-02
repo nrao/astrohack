@@ -1,15 +1,13 @@
 import shutil
 
-import numpy as np
-from astropy.coordinates import EarthLocation, SkyCoord, CIRS, AltAz
-from casacoretables import tables as ctables
-from astropy.time import Time
 import astropy.units as u
-from dask.array import logical_and
+import numpy as np
+import toolviper.utils.logger as logger
+from astropy.coordinates import CIRS, AltAz, EarthLocation, SkyCoord
+from astropy.time import Time
+from casacoretables import tables as ctables
 
 from astrohack import AstrohackPositionFile
-import toolviper.utils.logger as logger
-
 from astrohack.utils.conversion import convert_unit
 
 
@@ -217,10 +215,10 @@ def fringefit_locit_chunk(locit_parms: dict, output_mds: AstrohackPositionFile):
         Antenna xds saved to disk.
     """
     from astrohack.core.locit import (
-        _solve_linear_algebra,
-        _solve_scipy_optimize_curve_fit,
         _compute_chi_squared,
         _create_output_xds,
+        _solve_linear_algebra,
+        _solve_scipy_optimize_curve_fit,
     )
 
     ddi_dict = locit_parms["ddi_dict"]

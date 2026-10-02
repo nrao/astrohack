@@ -1,36 +1,37 @@
 import argparse
 import time
-import casatools
 
+import casatools
 import numpy as np
 from toolviper.dask.client import local_client
+
 from astrohack import (
-    extract_pointing,
-    extract_holog,
     beamcut,
-    open_pointing,
+    extract_holog,
+    extract_pointing,
     open_beamcut,
+    open_pointing,
 )
 from astrohack.utils.pipeline_support import (
-    initialization_check,
     MessageBoard,
-    list_input_tooltip,
-    base_name_determination,
-    asdm_test_and_import,
-    parse_list_or_all,
-    run_casatask,
-    run_astrohack_function,
     add_basic_info_and_parameters_to_report,
+    asdm_test_and_import,
+    base_name_determination,
+    initialization_check,
+    list_input_tooltip,
+    parse_list_or_all,
     parse_list_or_none,
+    run_astrohack_function,
+    run_casatask,
 )
 from astrohack.utils.text import (
-    format_duration,
-    create_html_file_from_body,
     add_heading_to_html,
-    create_single_html_image_with_header,
-    make_collapsible_block,
     add_preformatted_text_file_to_html,
+    create_html_file_from_body,
+    create_single_html_image_with_header,
+    format_duration,
     lnbr,
+    make_collapsible_block,
 )
 
 
@@ -455,7 +456,7 @@ def prepare_html_report(param_dict, msger):
 
     create_html_file_from_body(html_body, report_title, param_dict["report_name"])
     stop = time.time()
-    msger.one_liner("Report finished in {:.2f} seconds".format(stop - start))
+    msger.one_liner(f"Report finished in {stop - start:.2f} seconds")
     return
 
 

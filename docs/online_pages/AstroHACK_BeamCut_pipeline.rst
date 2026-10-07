@@ -1,13 +1,13 @@
 Beam cut data reduction pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Astrohack provides an executable script for the data reduction of beam cuts, which is installed by pip somewhere in the PATH. This script has 5 main stages:
+AstroHACK provides an executable script for the data reduction of beam cuts, which is installed by pip somewhere in the PATH. This script has 5 main stages:
 
 #. ASDM import to ms (if data set has not yet been imported to an MS).
 
 #. Calibration of the beam cut data using CASA tasks (delay, bandpass and phase).
 
-#. Beam cut processing with astrohack (extract_pointing, extract_holog, beamcut).
+#. Beam cut processing with AstroHACK (extract_pointing, extract_holog, beamcut).
 
 #. Data exports generation (plots in amplitude, db, phase, etc).
 
@@ -18,23 +18,25 @@ This pipeline has been written under the assumption that the user will be runnin
 Pipeline interface
 ##################
 
-The pipeline has been written with a simple command line interface that expects two mandatory arguments from the user, the name of the dataset to be processed (be it an MS or an ASDM) and a reference antenna for the calibration stage, several execution customization options are also available a simple help can be accessed with the ``-h`` flag:
+The pipeline has been written with a simple command line interface that expects one mandatory argument from the user, the name of the dataset to be processed (be it an MS or an ASDM) and a second mandatory argument, a reference antenna, if starting from the calibration stage. Several execution customization options are also available, a simple help can be accessed with the ``-h`` flag:
 
 .. code-block::
 
     CASA <1>: !beamcut-reduction-pipeline -h
 
     #####################################################################################################################################
-    ###  Welcome to the AstroHACK BeamCut reduction pipeline                                                                          ###
+    ###  Welcome to the AstroHACK beamcut reduction pipeline                                                                          ###
     #####################################################################################################################################
 
-    usage: beamcut-reduction-pipeline [-h] [-r ROOT_NAME] [-q QUACK_NCHAN] [-f BEAMCUT_FIELD] [-s SPW] [-a ANTENNA] [-n NCORES]
-                                      [-m MEMORY_PER_CORE] [-o] [-d DATA_COLUMN] [-y]
+    usage: beamcut-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE]
+                                      [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y] [--reimport-asdm]
                                       [--starting-stage {calibration,extract_pointing,extract_holog,beamcut,exports,report}]
-                                      [--dpi DPI] [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS] [--reimport-asdm]
-                                      filename refant
+                                      [--dpi DPI] [-d DATA_COLUMN] [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS]
+                                      [-q QUACK_NCHAN] [-f BEAMCUT_FIELD] [--baseline-average-nearest BASELINE_AVERAGE_NEAREST]
+                                      [--pointing-interpolation-method {linear,gaussian}]
+                                      filename [refant]
 
-    Beam cut reduction pipeline
+    Beamcut reduction pipeline
 
     positional arguments:
       filename              Path to the input dataset to process.
@@ -44,32 +46,37 @@ The pipeline has been written with a simple command line interface that expects 
       -h, --help            show this help message and exit
       -r ROOT_NAME, --root-name ROOT_NAME
                             Root name for the products of the pipeline, default is ms_name without extension
-      -q QUACK_NCHAN, --quack-nchan QUACK_NCHAN
-                            Number of channels to quack at the edge of the spectral window (default is 4)
-      -f BEAMCUT_FIELD, --beamcut-field BEAMCUT_FIELD
-                            Field Id or name of the beam cut data (default is to determine it from data)
-      -s SPW, --spw SPW     Select SPWs for which to produce beam cuts, for a list use comma separated values with no spaces, e.g.:
-                            '0,1,2', default is all
+      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is
+                            all
       -a ANTENNA, --antenna ANTENNA
-                            Select antennas for which to produce beam cuts, for a list use comma separated values with no spaces, e.g.:
-                            'ea01,ea02', default is all
+                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02',
+                            default is all
       -n NCORES, --ncores NCORES
                             Number of cores to use, default is 4
       -m MEMORY_PER_CORE, --memory-per-core MEMORY_PER_CORE
                             Memory per core to use, default is 10GB
+      --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                            Logging level to use, default is WARNING
       -o, --overwrite       Overwrite existing files if found
-      -d DATA_COLUMN, --data-column DATA_COLUMN
-                            Data column to be extracted from MS, default is CORRECTED_DATA
       -y, --assume-yes      Assume yes on proceed.
+      --reimport-asdm       Forcefully re-import the asdm file is the ms already exists (default: False)
       --starting-stage {calibration,extract_pointing,extract_holog,beamcut,exports,report}
                             Starting stage in which to start processing (default: calibration).
       --dpi DPI             Dots Per Inch for plotting, default is 300
+      -d DATA_COLUMN, --data-column DATA_COLUMN
+                            Data column to be extracted from MS, default is CORRECTED_DATA
       --plot-pointing       Plot antenna pointing, default is False
       --exclude-bad-antennas EXCLUDE_BAD_ANTENNAS
                             Exclude antennas with bad data, for a list use comma separated values with no spaces, e.g.: 'ea18,ea01',
                             default is None.
-      --reimport-asdm       Forcefully re-import the asdm file is the ms already exists (default: False)
-
+      -q QUACK_NCHAN, --quack-nchan QUACK_NCHAN
+                            Number of channels to quack at the edge of the spectral window (default is 4)
+      -f BEAMCUT_FIELD, --beamcut-field BEAMCUT_FIELD
+                            Field Id or name containing beamcut data (default is to determine it from data)
+      --baseline-average-nearest BASELINE_AVERAGE_NEAREST
+                            Number of baselines to average for each mapping antenna (default is 1)
+      --pointing-interpolation-method {linear,gaussian}
+                            Interpolation method to use for matching pointing and visibilities, default is linear
 
 
 Calibration stage
@@ -80,57 +87,63 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
 .. code-block::
 
-    CASA <4>: !beamcut-reduction-pipeline X002.ms ea05
+    CASA <3>: !beamcut-reduction-pipeline u-band.ms ea23
 
     #####################################################################################################################################
-    ###  Welcome to the AstroHACK BeamCut reduction pipeline                                                                          ###
+    ###  Welcome to the AstroHACK beamcut reduction pipeline                                                                          ###
     #####################################################################################################################################
 
-    2026-07-20 16:06:28	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on X002.ms...
-    2026-07-20 16:06:28	INFO	MSMetaData::_computeScanAndSubScanProperties 	Computing scan and subscan properties...
+    2026-10-07 17:30:11	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on u-band.ms...
+    2026-10-07 17:30:11	INFO	MSMetaData::_computeScanAndSubScanProperties 	Computing scan and subscan properties...
 
     Beam cut reduction parameters:
-        filename              => X002.ms
-        refant                => ea05
-        root_name             => None
-        quack_nchan           => 4
-        beamcut_field         => 3
-        spw                   => all
-        antenna               => all
-        ncores                => 4
-        memory_per_core       => 10GB
-        overwrite             => False
-        data_column           => CORRECTED_DATA
-        assume_yes            => False
-        starting_stage        => calibration
-        dpi                   => 300
-        plot_pointing         => False
-        exclude_bad_antennas  => None
-        reimport_asdm         => False
-        is_asdm               => False
-        msname                => X002.ms
-        delay_cal_name        => X002.dcal
-        bandpass_cal_name     => X002.bcal
-        gain_cal_name         => X002.gcal
-        point_name            => X002.point.zarr
-        holog_name            => X002.holog.zarr
-        beamcut_name          => X002.beamcut.zarr
-        exports_name          => X002.exports
-        report_name           => X002-report.html
-        calibration_scans     => 2,11
-        beamcut_scans         => 5,9
-        quacked_spw_selection => 0~7:4~60
-        parallel              => True
+        filename                      => u-band.ms
+        refant                        => ea23
+        root_name                     => None
+        spw                           => all
+        antenna                       => all
+        ncores                        => 4
+        memory_per_core               => 10GB
+        log_level                     => WARNING
+        overwrite                     => False
+        assume_yes                    => False
+        reimport_asdm                 => False
+        starting_stage                => calibration
+        dpi                           => 300
+        data_column                   => CORRECTED_DATA
+        plot_pointing                 => False
+        exclude_bad_antennas          => None
+        quack_nchan                   => 4
+        beamcut_field                 => 3
+        baseline_average_nearest      => 1
+        pointing_interpolation_method => linear
+        is_asdm                       => False
+        msname                        => u-band.ms
+        delay_cal_name                => u-band.dcal
+        bandpass_cal_name             => u-band.bcal
+        gain_cal_name                 => u-band.gcal
+        point_name                    => u-band.point.zarr
+        holog_name                    => u-band.holog.zarr
+        beamcut_name                  => u-band.beamcut.zarr
+        exports_name                  => u-band.exports
+        report_name                   => u-band-report.html
+        quacked_spw_selection         => 0~7:4~60
+        quacked_base_band_0_selection => 0~3:4~60
+        quacked_base_band_1_selection => 4~7:4~60
+        delay_spwmap                  => [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(4), np.int64(4), np.int64(4), np.int64(4), np.int64(0), np.int64(0)]
+        full_spwmap                   => [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9)]
+        calibration_scans             => 2,5,10,15
+        beamcut_scans                 => 8,13
+        parallel                      => True
 
 
     Proceed? <(Y)es/(N)o>:
-
 
 The check before proceeding can be suppressed by adding the ``-y`` option to the call, e.g.:
 
 .. code-block::
 
-    CASA <4>: !beamcut-reduction-pipeline X002.ms ea05 -y
+    CASA <4>: !beamcut-reduction-pipeline u-band.ms ea23 -y
 
 The code will then proceed through the calibration steps:
 
@@ -145,7 +158,7 @@ The code will then proceed through the calibration steps:
 Beam cut processing
 ###################
 
-After the beam cut data has been calibrated the pipeline then proceeds to run Astrohack's functions:
+After the beam cut data has been calibrated the pipeline then proceeds to run AstroHACK's functions:
 
 #. `extract_pointing <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/extract_pointing/index.html>`_: Extract pointing data from the MS onto a ``.point.zarr`` file that is arranged in a convenient way for further processing.
 
@@ -153,13 +166,13 @@ After the beam cut data has been calibrated the pipeline then proceeds to run As
 
 #. `beamcut <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/beamcut/index.html>`_: Separate the visibility data onto the different beam cuts present in the data, determine the direction of the beam cuts, fit multiple gaussians to the beam cut to try to determine the beam parameters like Primary beam offset and FWHM & first side lobe ratio.
 
-By default the astrohack stages are run in parallel, (ncores =4), this can be changed by explicitly giving a number of cores e.g. ``--ncores 5``. For a serial run, one should use ``--ncores 0`` or ``--ncores 1``. In case of failures or there is a desire to re run the pipeline from a particular stage, the user can then use option ``--starting-stage``.
+By default the AstroHACK stages are run in parallel, (ncores =4), this can be changed by explicitly giving a number of cores e.g. ``--ncores 5``. For a serial run, one should use ``--ncores 0`` or ``--ncores 1``. In case of failures or there is a desire to re run the pipeline from a particular stage, the user can then use option ``--starting-stage``.
 For more details on the beam cut processing stages there is the more detailed `beamcut tutorial <https://astrohack.readthedocs.io/en/stable/tutorials/beamcut_tutorial.html>`_.
 
 Exports and Report stages
 #########################
 
-After the astrohack data files are created, the pipeline then proceeds to execute the exporting functions from the associated Python classes:
+After the AstroHACK data files are created, the pipeline then proceeds to execute the exporting functions from the associated Python classes:
 
 #. `AstrohackPointFile.plot_array_configuration <https://astrohack.readthedocs.io/en/stable/_api/autoapi/astrohack/io/point_mds/index.html#plot_array_configuration>`_: Single plot displaying the array configuration at observation time.
 

@@ -339,31 +339,38 @@ def get_lst_string_from_time_str(time_str):
 
 
 def add_basic_info_and_parameters_to_report(param_dict: dict):
-    import casatools
+    try:
+        import casatools
 
-    msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
-    timerange = msmd.timerangeforobs(0)
-    start_time = timerange["begin"]
-    end_time = timerange["end"]
-    msmd.done()
-    qa = casatools.quanta()
+        casatools_available = True
+    except ModuleNotFoundError:
+        casatools_available = False
 
-    start_time = get_time_string_from_dict(start_time, qa)
-    end_time = get_time_string_from_dict(end_time, qa)
-    times_dict = {
-        "Observation start (UTC)": start_time,
-        "Starting LST": get_lst_string_from_time_str(start_time),
-        "Observation end (UTC)": end_time,
-        "End LST": get_lst_string_from_time_str(end_time),
-    }
     html_str = add_preformatted_text_file_to_html(
         make_dict_str_simple(param_dict), "Pipeline parameters:"
     )
 
-    html_str += add_preformatted_text_file_to_html(
-        make_dict_str_simple(times_dict), "Basic Time information:"
-    )
+    if casatools_available:
+        msmd = casatools.msmetadata()
+        msmd.open(param_dict["msname"])
+        timerange = msmd.timerangeforobs(0)
+        start_time = timerange["begin"]
+        end_time = timerange["end"]
+        msmd.done()
+        qa = casatools.quanta()
+
+        start_time = get_time_string_from_dict(start_time, qa)
+        end_time = get_time_string_from_dict(end_time, qa)
+        times_dict = {
+            "Observation start (UTC)": start_time,
+            "Starting LST": get_lst_string_from_time_str(start_time),
+            "Observation end (UTC)": end_time,
+            "End LST": get_lst_string_from_time_str(end_time),
+        }
+
+        html_str += add_preformatted_text_file_to_html(
+            make_dict_str_simple(times_dict), "Basic Time information:"
+        )
 
     return html_str
 

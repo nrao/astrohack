@@ -603,32 +603,43 @@ def run_post_locit_plots(param_dict: dict, msger: MessageBoard):
         pos_corrections.extend(clight * geo_delays)
         ant_names.append(attributes["antenna_info"]["name"])
 
-    gencal_was_run = run_casatask(
-        "gencal",
-        {
-            "vis": param_dict["freq_averaged_ms"],
-            "caltable": param_dict["antpos_caltable"],
-            "caltype": "antpos",
-            "antenna": ",".join(ant_names),
-            "parameter": pos_corrections,
-        },
-        msger,
-        intended_output=param_dict["antpos_caltable"],
-        overwrite=param_dict["overwrite"],
-    )
-    if gencal_was_run:
-        run_casatask(
-            "applycal",
-            {
-                "vis": param_dict["freq_averaged_ms"],
-                "gaintable": [param_dict["antpos_caltable"]],
-                "interp": ["nearest"],
-                "parang": False,
-            },
-            msger,
+    try:
+        import casatasks
+
+        param_dict["casatasks_found"] = True
+    except ModuleNotFoundError:
+        param_dict["casatasks_found"] = False
+        msger.one_liner(
+            "casatasks not available, skipping evaluation of phases after antenna position corrections..."
         )
 
-    make_all_antenna_phases_plot(param_dict, ant_names, msger)
+    if param_dict["casatasks_found"]:
+        gencal_was_run = run_casatask(
+            "gencal",
+            {
+                "vis": param_dict["freq_averaged_ms"],
+                "caltable": param_dict["antpos_caltable"],
+                "caltype": "antpos",
+                "antenna": ",".join(ant_names),
+                "parameter": pos_corrections,
+            },
+            msger,
+            intended_output=param_dict["antpos_caltable"],
+            overwrite=param_dict["overwrite"],
+        )
+        if gencal_was_run:
+            run_casatask(
+                "applycal",
+                {
+                    "vis": param_dict["freq_averaged_ms"],
+                    "gaintable": [param_dict["antpos_caltable"]],
+                    "interp": ["nearest"],
+                    "parang": False,
+                },
+                msger,
+            )
+
+        make_all_antenna_phases_plot(param_dict, ant_names, msger)
     return
 
 
@@ -695,7 +706,9 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
                     "Measured and fitted delays",
                     heading_level=3,
                 )
-                if not param_dict["use_fringefit_locit"]:
+                if (not param_dict["use_fringefit_locit"]) and param_dict[
+                    "casatasks_found"
+                ]:
                     ant_html += create_single_html_image_with_header(
                         f"{exports_name}/phases-antpos-{ant_name}.png",
                         "Phase before and after correction",

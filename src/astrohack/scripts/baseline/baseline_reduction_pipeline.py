@@ -1,8 +1,7 @@
 import os
 import time
 import numpy as np
-
-import casatools
+from astropy.utils import data as astropy_data
 
 from astrohack import extract_locit, locit, open_position, fringefit_locit
 from astrohack.utils.algorithms import rotate_to_gmt, data_statistics
@@ -38,6 +37,9 @@ from astrohack.visualization.plot_tools import (
     create_figure_and_axes,
     close_figure,
 )
+
+# This should hide the messages of downloading new IERS data by astropy
+astropy_data.conf.show_progress = False
 
 
 def parse(pipelie_type, stages):
@@ -125,7 +127,48 @@ def parse(pipelie_type, stages):
     return vars(parser.parse_args())
 
 
+def fetch_ms_data(param_dict):
+    import casatools
+
+    # Ms data fetching and some consistency checks
+    pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
+    msmd = casatools.msmetadata()
+    msmd.open(param_dict["msname"])
+    ant_names = msmd.antennanames()
+    field_names = msmd.fieldnames()
+    spw_list = msmd.spwsforintent(pnt_intent)
+    nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
+    msmd.done()
+
+    param_dict["n_chan"] = nchan[0]
+
+    error_msgs = []
+
+    if param_dict["refant"] is None:
+        error_msgs.append(
+            "Reference antenna must be specified when starting from calibration"
+        )
+    else:
+        if param_dict["refant"] not in ant_names:
+            error_msgs.append(
+                f"Chosen refant ({param_dict['refant']}) not present in ms."
+            )
+    if param_dict["fringefit_source"] not in field_names:
+        error_msgs.append(
+            f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
+        )
+    if nchan.size != 1:
+        error_msgs.append(
+            "Spectral windows are not consistent with each other, is this really a pointing ms?"
+        )
+    if len(error_msgs) > 0:
+        raise RuntimeError("\n".join(error_msgs))
+
+    return param_dict
+
+
 def param_init(param_dict: dict, msger: MessageBoard):
+
     base_name = base_name_determination(param_dict)
     param_dict = asdm_test_and_import(param_dict, base_name, msger)
 
@@ -149,39 +192,7 @@ def param_init(param_dict: dict, msger: MessageBoard):
     param_dict["exclude_scans"] = parse_list_or_none(param_dict, "exclude_scans")
 
     if param_dict["starting_stage"] == "calibration":
-        # Ms data fetching and some consistency checks
-        pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
-        msmd = casatools.msmetadata()
-        msmd.open(param_dict["msname"])
-        ant_names = msmd.antennanames()
-        field_names = msmd.fieldnames()
-        spw_list = msmd.spwsforintent(pnt_intent)
-        nchan = np.unique([msmd.nchan(i_spw) for i_spw in spw_list])
-        msmd.done()
-
-        param_dict["n_chan"] = nchan[0]
-
-        error_msgs = []
-
-        if param_dict["refant"] is None:
-            error_msgs.append(
-                "Reference antenna must be specified when starting from calibration"
-            )
-        else:
-            if param_dict["refant"] not in ant_names:
-                error_msgs.append(
-                    f"Chosen refant ({param_dict['refant']}) not present in ms."
-                )
-        if param_dict["fringefit_source"] not in field_names:
-            error_msgs.append(
-                f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
-            )
-        if nchan.size != 1:
-            error_msgs.append(
-                "Spectral windows are not consistent with each other, is this really a pointing ms?"
-            )
-        if len(error_msgs) > 0:
-            raise RuntimeError("\n".join(error_msgs))
+        param_dict = fetch_ms_data(param_dict)
 
     initialization_check(param_dict, "Baseline determination parameters")
     if param_dict["use_fringefit_locit"] and param_dict["antenna"] == "all":

@@ -1,9 +1,11 @@
 import glob
 import pathlib
 
+import numcodecs.abc
 import toolviper.utils.logger as logger
 import xarray as xr
 import zarr
+from zarr.abc.codec import ArrayArrayCodec, ArrayBytesCodec, BytesBytesCodec
 
 from astrohack.utils.file import add_caller_and_version_to_dict
 from astrohack.utils.text import (
@@ -190,7 +192,7 @@ class AstrohackBaseFile:
         :param mode: File mode
         :type mode: str
         """
-        self.root.to_zarr(
+        _drop_incompatible_codecs(self.root, self.zarr_format).to_zarr(
             self.filename, mode=mode, consolidated=True, zarr_format=self.zarr_format
         )
 
@@ -256,12 +258,15 @@ class AstrohackBaseFile:
         new_node_path = "/".join([self.filename, *key_list])
 
         if isinstance(xarray_data, xr.Dataset):
-            xr.DataTree(dataset=xarray_data, name=final_key).to_zarr(
-                new_node_path, mode="w", zarr_format=self.zarr_format
-            )
+            xr.DataTree(
+                dataset=_drop_incompatible_codecs(xarray_data, self.zarr_format),
+                name=final_key,
+            ).to_zarr(new_node_path, mode="w", zarr_format=self.zarr_format)
         elif isinstance(xarray_data, xr.DataTree):
             xarray_data.name = final_key
-            xarray_data.to_zarr(new_node_path, mode="w", zarr_format=self.zarr_format)
+            _drop_incompatible_codecs(xarray_data, self.zarr_format).to_zarr(
+                new_node_path, mode="w", zarr_format=self.zarr_format
+            )
         else:
             raise NotImplementedError(
                 f"Don't know how to handle nodes of type {type(xarray_data)}"
@@ -369,6 +374,54 @@ class AstrohackBaseFile:
         return xr.open_zarr(subset_path)
 
 
+def _drop_incompatible_codecs(
+    xarray_data: xr.Dataset | xr.DataTree, zarr_format: int
+) -> xr.Dataset | xr.DataTree:
+    """
+    Shallow copy of xarray_data without the codec encodings a zarr_format store cannot use, e.g. the numcodecs \
+    compressors of data read from a format 2 file, when writing format 3.
+
+    :param xarray_data: XDS or XDT to be written
+    :type xarray_data: xr.Dataset, xr.DataTree
+
+    :param zarr_format: Zarr format of the store to be written, 2 or 3
+    :type zarr_format: int
+
+    :return: Shallow copy of xarray_data
+    :rtype: xr.Dataset, xr.DataTree
+    """
+    xarray_data = xarray_data.copy()
+    if isinstance(xarray_data, xr.DataTree):
+        nodes = xarray_data.subtree
+    else:
+        nodes = [xarray_data]
+
+    v3_codec_types = {
+        "compressors": BytesBytesCodec,
+        "filters": ArrayArrayCodec,
+        "serializer": ArrayBytesCodec,
+    }
+    for node in nodes:
+        for variable in node.variables.values():
+            for key in ("compressor", "compressors", "filters", "serializer"):
+                value = variable.encoding.get(key)
+                if value is None or isinstance(value, str):
+                    continue
+                codecs = value if isinstance(value, list | tuple) else (value,)
+                if zarr_format == 2:
+                    compatible = key != "serializer" and all(
+                        isinstance(codec, numcodecs.abc.Codec) for codec in codecs
+                    )
+                else:
+                    codec_type = v3_codec_types.get(key)
+                    compatible = codec_type is not None and all(
+                        isinstance(codec, codec_type) for codec in codecs
+                    )
+                if not compatible:
+                    del variable.encoding[key]
+    return xarray_data
+
+
 def _consolidate_a_level(key_path: str, zarr_format: int):
     """
     Consolidate a level containing data trees onto a single unified data tree entity.
@@ -388,7 +441,7 @@ def _consolidate_a_level(key_path: str, zarr_format: int):
             this_lvl_xdt = xr.open_datatree(key_path, mode="r+", engine="zarr")
         except FileNotFoundError:
             this_lvl_xdt = xr.DataTree(name=key)
-            this_lvl_xdt.to_zarr(key_path, zarr_format=zarr_format)
+            this_lvl_xdt.to_zarr(key_path, mode="a", zarr_format=zarr_format)
 
         del this_lvl_xdt
         this_zarr_group = zarr.open(key_path, mode="r+")

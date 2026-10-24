@@ -4,9 +4,9 @@ import astropy
 import numpy as np
 import toolviper.utils.logger as logger
 import xarray as xr
-from casacoretables import tables as ctables
 from numba import njit
 from numba.core import types
+from xradio._utils._casacore.backend import tables as ctables
 
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.core.holog_obs_dict import HologObsDict
@@ -69,7 +69,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
         ack=False,
     )
     # Scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
-    obs_modes = ctb.getcol("OBS_MODE")
+    obs_modes = ctb.getcol("OBS_MODE").tolist()
     ctb.close()
 
     state_ids = get_valid_state_ids(obs_modes)
@@ -728,7 +728,7 @@ def _get_general_summary(ms_name, field_ids):
         ack=False,
     )
     i_src = int(unq_ids[0])
-    src_name = field_tbl.getcol("NAME")
+    src_name = field_tbl.getcol("NAME").tolist()
     phase_center_fk5 = field_tbl.getcol("PHASE_DIR")[:, 0, :]
     field_tbl.close()
 

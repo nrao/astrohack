@@ -533,17 +533,24 @@ class FITSImage:
         xds = xds.assign_coords(coords)
         return xds
 
-    def to_zarr(self, zarr_filename):
+    def to_zarr(self, zarr_filename, zarr_format=3):
         """
         Saves a xds representation of self on disk using the zarr format.
         Args:
             zarr_filename: Name for the zarr container on disk
+            zarr_format: Zarr format of the container, 2 or 3
 
         Returns:
             None
         """
         xds = self.export_as_xds()
-        xds.to_zarr(zarr_filename, mode="w", compute=True, consolidated=True)
+        xds.to_zarr(
+            zarr_filename,
+            mode="w",
+            compute=True,
+            consolidated=True,
+            zarr_format=zarr_format,
+        )
 
     def __repr__(self):
         """

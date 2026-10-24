@@ -92,7 +92,9 @@ def extract_antenna_data(
                 }
                 ant_xdtree.attrs["antenna_info"] = ant_info
                 ant_xdt_name = "/".join([locit_mds.filename, ant_key])
-                ant_xdtree.to_zarr(ant_xdt_name, mode="w")
+                ant_xdtree.to_zarr(
+                    ant_xdt_name, mode="w", zarr_format=locit_mds.zarr_format
+                )
 
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:

@@ -1,4 +1,5 @@
 import os
+import warnings
 from importlib.metadata import version
 
 __version__ = version("astrohack")
@@ -53,6 +54,13 @@ from astrohack.locit import locit as locit
 from astrohack.panel import panel as panel
 
 install(show_locals=False)
+
+# astrohack writes consolidated metadata on purpose; the Zarr format 3
+# specification does not cover it yet.
+warnings.filterwarnings(
+    "ignore",
+    message="Consolidated metadata is currently not part in the Zarr format 3 specification",
+)
 
 if not os.getenv("LOGGER_NAME"):
     os.environ["LOGGER_NAME"] = "astrohack"

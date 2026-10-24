@@ -17,6 +17,7 @@ def combine(
     weighted: bool = False,
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackImageFile | None:
     """Combine DDIs in a Holography image to increase SNR
 
@@ -41,6 +42,9 @@ def combine(
 
     :param overwrite: Overwrite files on disk. Defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Holography image object.
     :rtype: AstrohackImageFile
@@ -91,7 +95,7 @@ def combine(
     image_mds = open_image(image_name)
 
     combine_mds = AstrohackImageFile.create_from_input_parameters(
-        combine_name, combine_params
+        combine_name, combine_params, zarr_format
     )
 
     executed_graph = create_and_execute_graph_from_dict(

@@ -204,8 +204,11 @@ def _locit_common_flow(
                     antenna_info,
                 )
                 if ddi_key is not None:
+                    ant_attrs_file = (
+                        ".zattrs" if output_mds.zarr_format == 2 else "zarr.json"
+                    )
                     if not pathlib.Path(
-                        f"{output_mds.filename}/{ant_key}/.zattrs"
+                        f"{output_mds.filename}/{ant_key}/{ant_attrs_file}"
                     ).exists():
                         ant_xdt = xr.DataTree(name=f"{ant_key}")
                         ant_xdt.attrs["antenna_info"] = antenna_info

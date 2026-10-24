@@ -29,6 +29,7 @@ def holog(
     to_stokes: bool = True,
     overwrite: bool = False,
     parallel: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackImageFile | None:
     """ Process holography data and derive aperture illumination pattern.
 
@@ -111,6 +112,9 @@ def holog(
     :param overwrite: Overwrite existing files on disk, defaults to False
     :type overwrite: bool, optional
 
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
+
     :return: Holography image object.
     :rtype: AstrohackImageFile
 
@@ -160,7 +164,7 @@ def holog(
 
     overwrite_file(image_name, overwrite)
     image_mds = AstrohackImageFile.create_from_input_parameters(
-        image_name, holog_params
+        image_name, holog_params, zarr_format
     )
 
     executed_graph = create_and_execute_graph_from_dict(

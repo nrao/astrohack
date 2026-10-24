@@ -29,6 +29,7 @@ def beamcut(
     display: bool = False,
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """
     Process beamcut data from a .holog.zarr file to produce reports and plots.
@@ -74,6 +75,9 @@ def beamcut(
 
     :param overwrite: Overwrite previously existing beamcut file of same name, defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Beamcut mds object
     :rtype: AstrohackBeamcutFile
@@ -128,7 +132,7 @@ def beamcut(
     overwrite_file(beamcut_name, overwrite)
 
     beamcut_mds = AstrohackBeamcutFile.create_from_input_parameters(
-        beamcut_params["beamcut_name"], beamcut_params
+        beamcut_params["beamcut_name"], beamcut_params, zarr_format
     )
 
     holog_mds = open_holog(holog_name)

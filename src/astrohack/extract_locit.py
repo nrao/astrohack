@@ -21,6 +21,7 @@ def extract_locit(
     ant: str | list[str] = "all",
     ddi: str | int | list[int] = "all",
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """
     Extract phases from a gaincal cal table and stores it in a locit output file.
@@ -40,6 +41,9 @@ def extract_locit(
 
     :param overwrite: Boolean for whether to overwrite current locit.zarr file, defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Antenna position locit object.
     :rtype: AstrohackLocitFile
@@ -91,7 +95,7 @@ def extract_locit(
     ddi_dict = extract_spectral_info(extract_locit_params)
 
     locit_mds = AstrohackLocitFile.create_from_input_parameters(
-        extract_locit_params["locit_name"], extract_locit_params
+        extract_locit_params["locit_name"], extract_locit_params, zarr_format
     )
     extract_antenna_data(extract_locit_params, locit_mds)
     extract_source_and_telescope(extract_locit_params, locit_mds)

@@ -118,6 +118,10 @@
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
         }
     },
     "plot_2d_maps_from_rt_xds":{

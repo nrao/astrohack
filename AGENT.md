@@ -122,6 +122,17 @@ Packaging notes / pre-existing quirks (not introduced by the casacore work):
 For quick iteration without installing, `PYTHONPATH=src python -m pytest …`
 works (the package imports cleanly from `src/`).
 
+**Lint/format: pre-commit.** `.pre-commit-config.yaml` is xradio's: hygiene
+checks, pyupgrade (`--py311-plus`; v2.38.2 has no 3.12 flag, ruff's `UP` rules
+cover it), absolufy-imports, and ruff 0.16.10 check + format (config in
+`ruff.toml`). `.github/workflows/pre-commit.yml` runs the same hooks on every
+push and PR. Run them before committing:
+
+```bash
+pip install pre-commit && pre-commit install   # hooks on every git commit
+pre-commit run --all-files
+```
+
 ---
 
 ## 5. Tests
@@ -171,6 +182,10 @@ template's separate python-casacore install step is no longer needed.
   `utils/constants.py`) hold the hot loops (e.g. `_extract_holog_chunk_jit`).
   Type changes to the arrays they receive can trigger recompiles or reflected-
   list warnings.
+- **No `from astrohack import X` inside the package.** `__init__.py` imports
+  are absolute and ruff-sorted, so a module it imports cannot rely on another
+  name already being bound in the package namespace (circular import). Import
+  from the defining module, e.g. `from astrohack.io.position_mds import ...`.
 
 ---
 
@@ -190,6 +205,9 @@ PYTHONPATH=src python -m pytest tests/unit/user_facing_functions/test_extract_po
 
 # full unit suite
 PYTHONPATH=src python -m pytest tests/unit -q
+
+# lint/format (same hooks as CI)
+pre-commit run --all-files
 ```
 
 Sibling package using the same backend: **xradio**

@@ -125,7 +125,7 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
         aperture_grid, u_axis, v_axis, _, used_wavelength = (
             calculate_near_field_aperture(
                 grid=beam_grid,
-                sky_cell_size=holog_chunk_params["cell_size"],
+                sky_cell_size=cell_size,
                 distance=distance,
                 freq=freq_axis,
                 padding_factor=holog_chunk_params["padding_factor"],

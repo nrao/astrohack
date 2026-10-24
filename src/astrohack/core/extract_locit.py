@@ -177,7 +177,7 @@ def extract_source_and_telescope(
         ack=False,
     )
     src_ids = src_table.getcol("SOURCE_ID")
-    phase_center_fk5 = src_table.getcol("PHASE_DIR")[:, 0, :]
+    phase_center_fk5 = src_table.getcol("PHASE_DIR")[:, 0, :].copy()
     src_name = src_table.getcol("NAME").tolist()
     src_table.close()
     n_src = len(src_ids)

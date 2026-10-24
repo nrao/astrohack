@@ -13,4 +13,3 @@ rm *_out.ipynb
 rm -r .ipynb_checkpoints
 rm -r beamcut_exports
 rm elastic.model
-

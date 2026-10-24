@@ -111,9 +111,9 @@ class PolygonPanel(BasePanel):
             verbose: Include more information in print
         """
         print("########################################")
-        print("{0:20s}={1:8d}".format("label", self.label))
-        print("{0:20s}={1:8s}".format("model", spc + self.model_name))
-        print("{0:20s}={1:8d}".format("nsamp", len(self.samples)))
+        print("{:20s}={:8d}".format("label", self.label))
+        print("{:20s}={:8s}".format("model", spc + self.model_name))
+        print("{:20s}={:8d}".format("nsamp", len(self.samples)))
         if verbose:
             for sample in self.samples:
                 print(sample)

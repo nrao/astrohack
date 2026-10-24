@@ -98,15 +98,15 @@ Below is an example of a call to the convenience script where we ask
 the filler to print ou all the processing messages:
 
 #+BEGIN_EXAMPLE
-$ python import-nf-asdm.py ALMA_holography/uid___A002_Xad52b4_X3 X3 -v 
+$ python import-nf-asdm.py ALMA_holography/uid___A002_Xad52b4_X3 X3 -v
 Processing ALMA_holography/uid___A002_Xad52b4_X3 to X3.holog.zarr...
 
 Total number of pointing samples:  65355
-Total number of valid pointing samples:  55905 
+Total number of valid pointing samples:  55905
 
 Retrieving Total Power Table...
 Done retrieving Total Power Table, took 25.58 seconds
-Total number of Total power samples:  261420 
+Total number of Total power samples:  261420
 
 Calibrating Amplitude
 Amplitude calibration took: 0.0055 seconds
@@ -165,14 +165,14 @@ names = ['X3', 'X4', 'X5', 'X6']
 base = 'ALMA_holography/uid___A002_Xad52b4_'
 
 for name in names:
-    asdm_to_holog(asdm_name=base+name, 
-                  holog_name=name, 
-		  integ_time=None, 
-		  verbose=True, 
+    asdm_to_holog(asdm_name=base+name,
+                  holog_name=name,
+		  integ_time=None,
+		  verbose=True,
 		  fake_corr=False,
-                  cal_amp='linterp', 
-		  cal_pha='linterp', 
-		  cal_cycle=3, 
-		  plot_cal=True, 
+                  cal_amp='linterp',
+		  cal_pha='linterp',
+		  cal_cycle=3,
+		  plot_cal=True,
 		  save_cal=False)
 #+END_SRC

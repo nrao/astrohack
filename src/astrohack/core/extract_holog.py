@@ -729,7 +729,7 @@ def _get_general_summary(ms_name, field_ids):
     )
     i_src = int(unq_ids[0])
     src_name = field_tbl.getcol("NAME").tolist()
-    phase_center_fk5 = field_tbl.getcol("PHASE_DIR")[:, 0, :]
+    phase_center_fk5 = field_tbl.getcol("PHASE_DIR")[:, 0, :].copy()
     field_tbl.close()
 
     obs_table = ctables.table(

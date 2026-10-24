@@ -28,8 +28,9 @@ use numpy/scipy/scikit-image/numba.
 src/astrohack/
 ├── __init__.py                # exports the user-facing pipeline functions
 ├── <task>.py                  # USER-FACING api: param validation + dask graph build
-│     extract_pointing, extract_holog, holog, panel, locit, extract_locit,
-│     combine, beamcut, cassegrain_ray_tracing, image_comparison_tool
+│     extract_pointing, extract_holog, extract_alma_nf_holog, holog, panel,
+│     locit, extract_locit, combine, beamcut, cassegrain_ray_tracing,
+│     image_comparison_tool
 ├── core/                      # COMPUTE: the per-chunk work the dask graph runs
 │     extract_pointing.py, extract_holog.py, extract_locit.py,  ← casacore lives here
 │     holog.py, panel.py, combine.py, beamcut.py, ...
@@ -95,6 +96,24 @@ done with **astropy** (already a core dependency; see `utils/conversion.py`,
 `from casacore import tables`. These are **standalone helper scripts meant to be
 run inside a CASA session** (where casatools / python-casacore exist), not part
 of the installed package or the test suite. Leave them on casatools/casacore.
+
+### ASDM reading — pyasdm
+
+`extract_alma_nf_holog` converts ALMA near field holography ASDMs; the ASDM is
+read with [pyasdm](https://github.com/casangi/pyasdm) only in
+`core/extract_alma_nf_holog.py` (Holography, SpectralWindow, Antenna, Field,
+Flag, Pointing and TotalPower tables).
+
+- pyasdm (0.0.7, 0.0.8) converts the midpoint of a **binary** ArrayTimeInterval
+  to its start as `(midpoint - duration) / 2`, which halves the Pointing times.
+  `_get_pnt_from_asdm` therefore reads the Pointing table with
+  `ArrayTimeInterval.setReadStartTimeDurationInBin(True)` (restored afterwards)
+  and subtracts half the duration itself. The XML tables are not affected.
+- The output is one antenna, DDI and map with `near_field=True` and the
+  polarization axis `["I", "R2"]`: `holog` needs `to_stokes=False`.
+- The unit tests download the ASDM `uid___A002_Xad52b4_X3`, which is not in
+  the ToolVIPER registry yet (casangi/toolviper#80). To run them before that,
+  copy the ASDM into the test's data folder: `download()` skips existing files.
 
 ---
 

@@ -8,21 +8,30 @@ adjustments from them.
 
 
 
-ALMA near field ASDM to .holog.zarr filler
-==========================================
+Extracting the holography data from the ASDM
+============================================
 
-Information on the usage of the ALMA NF ASDM filler can be found in
-the `etc section of our github page <https://github.com/nrao/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_.
+ALMA near field holographies are stored in ASDMs. The function
+extract_alma_nf_holog reads them with `pyasdm
+<https://github.com/casangi/pyasdm>`_, which is installed with
+astrohack. It calibrates the total power data against the calibration
+subscans, matches it to the pointing data and creates a .holog.zarr
+file that contains the data necessary to produce the gridded beam
+image and the apertures.
 
-In case of pip install you have to visit the `etc section of our github
-page <https://github.com/nrao/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_ and download the .py files from there.
+.. code:: python
 
-In case of instalation from source the .py files can be found in
-\`<astrohackdir>/etc/alma-nf-filler'.
+    from astrohack import extract_alma_nf_holog
 
-After using the filler you will be left with a .holog.zarr file that
-contains the data necessary to produce the gridded beam image and the
-apertures.
+    holog_mds = extract_alma_nf_holog(asdm_name='uid___A002_Xad52b4_X3',
+                                      holog_name='almanf.holog.zarr',
+                                      overwrite=True # depending on your preferences
+                                      )
+
+The calibration fits, the length of the calibration cycle and the
+time averaging interval can be chosen, and the calibrations can be
+plotted to png files; see the `API
+<https://astrohack.readthedocs.io/en/stable/api.html>`_.
 
 Producing apertures
 ===================
@@ -40,7 +49,9 @@ python script. In this script we call holog with the parameter
 **alma_osf_pad** set to the pad on which the antenna was positioned
 during the holography measurement. We set to parallel to False as
 holog parallelizes holographies per antenna and ALMA nf holographies
-contain a single antenna.
+contain a single antenna. **to_stokes** must be False: the
+polarization axis of near field data holds the signal (I) and the
+reference power (R2), which cannot be converted to Stokes parameters.
 
 After the call to holog we are left with an object that contains the
 gridded beam images as well as the apertures. This object is reflect
@@ -55,6 +66,7 @@ apertures.
     image_mds = holog(holog_name='almanf.holog.zarr',
     		  image_name='almanf.image.zarr',
     		  alma_osf_pad='TF03',
+    		  to_stokes=False,
     		  parallel=False,
     		  overwrite=True # denpending on your preferences
     		  )

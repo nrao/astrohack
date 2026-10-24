@@ -8,6 +8,7 @@ classes created by astrohack's user facing functions.
    :maxdepth: 2
 
    ../_api/autoapi/astrohack/extract_holog/index
+   ../_api/autoapi/astrohack/extract_alma_nf_holog/index
    ../_api/autoapi/astrohack/extract_pointing/index
    ../_api/autoapi/astrohack/holog/index
    ../_api/autoapi/astrohack/panel/index

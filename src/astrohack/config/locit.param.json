@@ -56,6 +56,10 @@
         },
         "overwrite":{
             "type":["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
         }
     }
 }

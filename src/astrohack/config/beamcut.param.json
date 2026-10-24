@@ -95,6 +95,10 @@
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
         }
     }
 }

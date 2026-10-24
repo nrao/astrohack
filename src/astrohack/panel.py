@@ -23,6 +23,7 @@ def panel(
     ddi: str | int | list[str] = "all",
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """Analyze holography images to derive panel adjustments
 
@@ -69,6 +70,9 @@ def panel(
 
     :param overwrite: Overwrite files on disk. Defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Holography panel object.
     :rtype: AstrohackPanelFile
@@ -204,7 +208,7 @@ def panel(
 
     overwrite_file(panel_name, overwrite)
     panel_mds = AstrohackPanelFile.create_from_input_parameters(
-        panel_name, panel_params
+        panel_name, panel_params, zarr_format
     )
 
     executed_graph = create_and_execute_graph_from_dict(

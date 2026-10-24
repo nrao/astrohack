@@ -33,6 +33,7 @@ def extract_holog(
     parallel: bool = False,
     overwrite: bool = False,
     append: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackHologFile | None:
     """
     Extract holography and optionally pointing data, from measurement set. Creates holography output file.
@@ -98,6 +99,10 @@ def extract_holog(
     :param append: Should data be appended to an existing holog file on disk, append and overwrite cannot be both true\
     defaults to False.
     :type append: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3. When appending, the format of the \
+    existing file is kept.
+    :type zarr_format: int, optional
 
     :return: Holography holog object.
     :rtype: AstrohackHologFile
@@ -215,7 +220,7 @@ def extract_holog(
             extract_holog_params["holog_name"], extract_holog_params["overwrite"]
         )
         holog_mds = AstrohackHologFile.create_from_input_parameters(
-            holog_name, extract_holog_params.copy()
+            holog_name, extract_holog_params.copy(), zarr_format
         )
 
     extract_holog_params["pnt_mds"] = pnt_mds

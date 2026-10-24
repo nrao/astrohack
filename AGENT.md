@@ -53,38 +53,45 @@ actually read.
 
 ---
 
-## 3. The casacore boundary — now **casacoretables**
+## 3. The casacore boundary — **arcae**, through xradio
 
 **MS / cal-table reading is the ONLY use of casacore in the package, and it is
-confined to exactly three files:**
+confined to five files:**
 
 - `src/astrohack/core/extract_holog.py`
 - `src/astrohack/core/extract_pointing.py`
 - `src/astrohack/core/extract_locit.py`
+- `src/astrohack/core/fringefit_locit.py`
+- `src/astrohack/scripts/baseline/baseline_reduction_pipeline.py` (import
+  inside `make_all_antenna_phases_plot`)
 
-Each does `from casacoretables import tables as ctables` and uses only:
+Each does `from xradio._utils._casacore.backend import tables as ctables` and
+uses only:
 - `ctables.table(path, readonly=True, lockoptions={"option": "usernoread"}, ack=False)`
 - `ctables.taql("select ... from $table_obj where ...")` (`$var` substitution)
 - `.getcol(col[, startrow=, nrow=])`, `.close()`
 - the `path::SUBTABLE` and `path/SUBTABLE` ways of opening MS subtables.
 
-### Why casacoretables (not python-casacore / casatools)
+### Why arcae, and why through xradio
 
-`casacoretables` (`/Users/jsteeb/Dropbox/viper_dev/casacoretables`) is a
-standalone, minimal build of casacore's **tables** layer with a pybind11 API
-that mirrors `python-casacore`'s `casacore.tables`. It pulls in **no Boost** and
-**no other casacore modules**, builds cleanly on **Linux and macOS**, and hides
-its symbols so it can coexist in-process with CASA's `casatools`. This removes
-AstroHACK's old macOS pain point (python-casacore had to be conda-installed
-separately and was excluded from the wheel on darwin).
+[arcae](https://github.com/ska-sa/arcae) ships self-contained wheels for Linux
+and macOS (cp311–cp314) with casacore linked in statically and none of its
+symbols exported, so it coexists in-process with CASA's `casatools`. Checked
+on macOS arm64 and Linux x86_64 with casatools 6.7.6: both import orders,
+reads identical to casatools'.
 
-The migration was a **drop-in import swap** — the table API AstroHACK uses
-(`table`, `taql`, `getcol`, `::` subtables, dict `lockoptions`) is identical, so
-no call sites changed beyond the import line. casacoretables ships **only**
-tables, but AstroHACK never needed `images`/`ms`/`measures`/`quanta`, so nothing
-is missing. Coordinate conversions that *would* have used casacore measures are
-done with **astropy** (already a core dependency; see `utils/conversion.py`,
-`utils/fits.py`).
+xradio's private `xradio._utils._casacore` package emulates the python-casacore
+`tables` API on arcae (`casacore_from_arcae.py`; `backend.py` picks it, env
+`XRADIO_CASACORE_BACKEND`, default `arcae`). astrohack depends on
+`xradio[casacore]>=1.3.0`, the first release with arcae, and imports that
+private module, so changes to it in xradio can break astrohack. Coordinate
+conversions are done with **astropy** (`utils/conversion.py`, `utils/fits.py`),
+not casacore measures.
+
+Where the shim differs from python-casacore:
+- string columns come back as numpy arrays (see §6);
+- `getcol` of an array column on an empty selection raises `RuntimeError`
+  instead of returning an empty array.
 
 `utils/constants.py` has a casacore **URL in a comment** only — not an import.
 
@@ -101,12 +108,12 @@ of the installed package or the test suite. Leave them on casatools/casacore.
 ## 4. Build / install / environment
 
 **Use the conda `zinc` environment** (`conda activate zinc`) — it has
-casacoretables and the scientific stack installed.
+xradio, arcae and the scientific stack installed.
 
 ```bash
 conda activate zinc
 cd astrohack
-pip install -e .          # setuptools src-layout; deps incl. casacoretables, toolviper, dask, numba, astropy, zarr>=3
+pip install -e .          # setuptools src-layout; deps incl. xradio[casacore] (arcae), toolviper, dask, numba, astropy, zarr>=3
 ```
 
 Packaging notes / pre-existing quirks (not introduced by the casacore work):
@@ -153,19 +160,17 @@ PYTHONPATH=src python -m pytest tests/stakeholder -q   # heavier, downloads bigg
 - Test data is **downloaded on demand** via `toolviper.utils.data.download(...)`
   in each test's `setup_class` (so the unit suite needs network the first time;
   it caches under a per-test `*_data/` folder and `teardown_class` removes it).
-- The casacoretables boundary is exercised end-to-end by
-  `tests/unit/user_facing_functions/test_extract_{pointing,holog,locit}.py` —
-  run those first when changing anything in the three `core/extract_*.py` files.
+- The arcae boundary is exercised end-to-end by
+  `tests/unit/user_facing_functions/test_extract_{pointing,holog,locit}.py` and
+  `test_fringefit_locit.py` — run those first when changing anything in the
+  `core/` modules that open CASA tables.
 - A pre-existing `NumbaPendingDeprecationWarning` (reflected list) is harmless.
 
 CI (`.github/workflows/python-testing-{linux,macos}.yml`) calls the shared
 `nrao/gh-actions-templates-public` reusable workflows, so the build/test steps
-are defined **outside this repo**. With casacoretables now an ordinary
-dependency, `pip install .` resolves it from PyPI on every supported
-interpreter: `casacoretables>=0.0.3` ships cp311/cp312/cp313 wheels for
-`manylinux_2_28 x86_64` and `macosx_11_0 arm64` (plus an sdist that needs
-bison≥3/flex to build, e.g. on Intel macOS or Linux aarch64). The macOS
-template's separate python-casacore install step is no longer needed.
+are defined **outside this repo**. `pip install .` resolves arcae from PyPI on
+every supported interpreter: arcae 0.5.8 ships cp311–cp314 wheels for
+`manylinux_2_28` x86_64/aarch64, `macosx_14_0 arm64` and `macosx_15_0 x86_64`.
 
 ---
 
@@ -179,11 +184,12 @@ template's separate python-casacore install step is no longer needed.
 - **`conda activate` in non-interactive shells** may not actually switch the
   `python` on `PATH`. Verify with `which python` / use the absolute interpreter
   `/Users/jsteeb/miniforge3/envs/zinc/bin/python` when in doubt.
-- **String vs numeric columns.** `getcol` on a string MS column returns a Python
-  `list` (so `.index()`/`.pop()` are used on names/stations), while numeric
-  columns return numpy arrays (`.tolist()` is called explicitly). This matches
-  python-casacore and is what casacoretables reproduces — don't "normalize" one
-  into the other.
+- **String vs numeric columns.** The code expects string columns as Python
+  lists (`.index()`/`.pop()` are used on names/stations, as with
+  python-casacore), but xradio's arcae shim returns them as numpy arrays, so
+  every whole-column string read calls `.tolist()` — keep that when adding
+  string reads. Numeric columns are numpy arrays (`.tolist()` is called
+  explicitly where a list is needed).
 - **Numba `@njit(cache=...)` functions** (`njit_caching` in
   `utils/constants.py`) hold the hot loops (e.g. `_extract_holog_chunk_jit`).
   Type changes to the arrays they receive can trigger recompiles or reflected-
@@ -200,14 +206,15 @@ template's separate python-casacore install step is no longer needed.
 ```bash
 conda activate zinc
 
-# install (editable) and import-check the casacore boundary
+# install (editable) and import-check the arcae boundary
 pip install -e .
 python -c "import astrohack.core.extract_holog, astrohack.core.extract_pointing, astrohack.core.extract_locit; print('ok')"
 
-# the three tests that exercise casacoretables end-to-end
+# the tests that exercise the arcae boundary end-to-end
 PYTHONPATH=src python -m pytest tests/unit/user_facing_functions/test_extract_pointing.py \
     tests/unit/user_facing_functions/test_extract_holog.py \
-    tests/unit/user_facing_functions/test_extract_locit.py -q
+    tests/unit/user_facing_functions/test_extract_locit.py \
+    tests/unit/user_facing_functions/test_fringefit_locit.py -q
 
 # full unit suite
 PYTHONPATH=src python -m pytest tests/unit -q
@@ -216,6 +223,5 @@ PYTHONPATH=src python -m pytest tests/unit -q
 pre-commit run --all-files
 ```
 
-Sibling package using the same backend: **xradio**
-(`/Users/jsteeb/Dropbox/viper_dev/xradio`) — also migrated to casacoretables.
-Backend repo + its own AGENTS.md: `/Users/jsteeb/Dropbox/viper_dev/casacoretables`.
+The table backend lives in **xradio** (`/Users/jsteeb/Dropbox/viper_dev/xradio`,
+`src/xradio/_utils/_casacore/`); xradio's AGENT.md documents the arcae shim.

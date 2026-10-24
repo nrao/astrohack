@@ -134,22 +134,22 @@ def cassegrain_ray_tracing_pipeline(
 
     :param x_pointing_offset: X Pointing offset in pointing_offset_unit.
     :type x_pointing_offset: float, int, optional
-    
+
     :param y_pointing_offset: Y Pointing offset in pointing_offset_unit.
     :type y_pointing_offset: float, int, optional
-    
+
     :param pointing_offset_unit: Angle unit for pointing offsets, default is "asec".
     :type pointing_offset_unit: str, optional
-    
+
     :param x_focus_offset: X offset of the secondary in focus_offset_unit.
     :type x_focus_offset: float, int, optional
-    
+
     :param y_focus_offset: Y offset of the secondary in focus_offset_unit.
     :type y_focus_offset: float, int, optional
-    
+
     :param z_focus_offset: Z offset of the secondary in focus_offset_unit, what is usually refered to as simply focus.
     :type z_focus_offset: float, int, optional
-    
+
     :param focus_offset_unit: Length unit for focus offsets, default is "mm".
     :type focus_offset_unit: str, optional
 

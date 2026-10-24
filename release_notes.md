@@ -101,7 +101,7 @@
 	
   - Improved title card that appears on holography and beamcut plots
     to now include observation frequency.
-	 
+	
   - Added tool to filter out duplicated names in legend in
     plot_tools.py.
 	
@@ -124,20 +124,20 @@
     building process uses python 3.13.
 	
   - Updated documentation dependence list.
-  
+
 
 - Miscellanious
 
   - Fixed circular imports present in code.
-  
+
   - Removed several unused and obsolete example scripts and notebooks.
-  
+
   - Removed some unused and obsolete code from active files.'
-  
+
   - Used ruff to fix some code problems such as nested quotes in f
     strings.
-  
-  
+
+
 - Testing:
 
   - Implemented factorized tool to determine if test is to cleanup
@@ -178,13 +178,13 @@
 - Changed the names of `beamcut_mds` methods:
 
   - `plot_beamcut_in_attenuation` -> `plot_in_db`.
-  
+
   - `plot_beamcut_in_amplitude` -> `plot_in_amplitude`.
-  
+
   - `plot_beamcut_in_phase` -> `plot_in_phase`.
-  
+
   - `plot_beam_cuts_over_sky` -> `plot_lm_offsets`.
-  
+
   - `create_beam_fit_report` -> `export_report`.
 
 
@@ -225,10 +225,10 @@
 	   a. Delay calibration using `gaincal`.
 	   b. Bandpass calibration using `bandpass`.
 	   c. Amplitude and phase calibration using `gaincal`.
-	   
+	
 	2. "Holographic extraction", i.e. Running `extract_pointing` and
        `extract_holog` to extract beamcut data from ms.
-	   
+	
 	3. Run `beamcut`.
 	
 	4. Produce plots and export products from astrohack data files.
@@ -299,16 +299,16 @@
 	
 	3. Run `fringefit` in all sources present in the pointing ms to
        obtain delays towards all of them.
-	   
+	
 	4. Run `fringefit_locit` on the caltable produced in the previous
        step.
-	   
+	
 	5. Produce plots and export products from the `position_mds` file.
 	
 	6. Create a standalone HTML report with all the plots and reports.
-	   
+	
   - The processing steps using regular `locit` are:
-  
+
     0. If input file is a SDM import it with `importasdm`.
 	
 	1. Separate pointing data from the remainder of the ms using
@@ -319,17 +319,17 @@
 	3. Run `fringefit` in a strong source to estimate the overall
        dominant delay and allow for channel average inside a spectral
        window.
-	   
+	
 	4. Apply the `fringefit` caltable to the pointing ms.
-	   
+	
 	5. Average channels in each spectral window using `split`.
 	
 	6. Compute phase corrections for each antenna based on the channel
        averaged ms using gaincal.
-	   
+	
 	7. Apply the phase corrections to the channel averaged ms to check
        if they are successfull.
-	   
+	
 	8. Plot phase corrections with plotms for user inspection (optional).
 	
 	9. Run astrohack functions `extract_locit` and `locit`.
@@ -363,7 +363,7 @@
 - Scatter plot improvements
 
   - Add new methods for linear regression.
-  
+
   - Added possibility to force square aspect for plots.
 
 - Bug fixes:
@@ -375,19 +375,19 @@
       the overwrite checking and execution.
 
   - `extract_pointing`:
-  
+
     - The expected time interval is now chosen to be the most common
       unique interval in the pointing data.
-  
+
   - `extract_holog`:
-  
+
     - holog_obs_dict is now copied when passed to extract_holog to
       ensure that the user space object is not modified.
-  
+
   - `image_comparison_tool`:
-  
+
     - Scatter plot of images is now square.
-  
+
     - now properly treat the cases where a fits_filename is given with a
       path.
 
@@ -400,28 +400,28 @@
 
 - `AstrohackBaseFile`:
   - New base class for all astrohack data files.
-  
+
   - Uses `xarray` Data Trees as its backbone.
-  
+
   - All IO: reading, writting, appending, concatenation handled by
     this class.
 	
   - Factorized summary creation.
-  
+
   - Factorized data file creation.
-  
+
   - New tests on most of its functionality
-  
+
   - mds objects can now be compared using the `.is_close_to`
     method implemented in `AstrohackBaseFile`.
 	
 - `plot_array_configuration` methods now have a dynamically sized
   inner array box with 20% of the linear size of the full array
   configuration.
-  
+
 - Revised types of exceptions raised so that no bare exceptions are
   raised..
-  
+
 - Testing:
 
   - New module `utils/verification_tools.py` containing:
@@ -437,16 +437,16 @@
 	- Data Tree closeness comparison.
 	
   - Test coverage increased from 49% to 70%.
-  
+
   - uploaded reference data files to cloudflare for numerical
     comparison.
-  
+
 - Cleanup:
 
   - Removed unused module `gauss_fitter.py`.
-  
+
   - Removed obsolete modules: `visualization/fits.py`; `utils/data.py`
-  
+
   - Trimmed down and renamed modules: `visualization/diagnostics.py`
     becomes `visualization/array_cfg_plot.py`;
     `visualization/textual_data.py` becomes
@@ -454,7 +454,7 @@
 	
   - Trimmed down modules: `utils/conversion.py`; `utils/fits.py`;
     `utils/file.py`; `utils/text.py`; `utils/tools.py`; `utils/veritas.py`.
-  
+
 - Documentation:
 
   - Updated and added new functionality to tutorials.
@@ -463,11 +463,11 @@
 
 - `AstrohackPointFile`, `AstrohackHologFile`, `AstrohackImageFile` and
   `AstrohackPanelFile` rewritten to be based on `AstrohackBaseFile`.
-  
+
 - Added tests on the products of `AstrohackPointFile`,
   `AstrohackHologFile`, `AstrohackImageFile` and `AstrohackPanelFile`
   methods.
-  
+
 - `extract_pointing`:
   - Baseline distance matrix is now computed at this step and stored
     in the `AstrohackPointFile`.
@@ -485,7 +485,7 @@
 - `extract_holog`:
   - `holog_obs_dict`:
 	- Code split into is own module `core/holog_obs_dict.py`.
-  
+
     - Class re-implemented in a more concise manner.
 	
 	- Creation now only depends on a point_mds file.
@@ -494,7 +494,7 @@
       of `AstrohackHologFile`'s root.
 	
   - Added selection by antenna to `extract_holog` parameters.
-  
+
   - New parameter `append` to add data to a previously created
     `AstrohackHologFile`
 	
@@ -528,16 +528,16 @@
 
 - `AstrohackLocitFile` and `AstrohackPositionFile` rewritten to be
   based on `AstrohackBaseFile`.
-  
+
 - Added tests on the products of `AstrohackLocitFile` and
   `AstrohackPositionFile` methods.
-  
+
 - `extract_locit` habe `locit` been re-factorised during the porting to
   the new file structure.
-  
+
 - Obsolete code related to the IO of the old .locit.zarr and
   .position.zarr files has been removed.
-  
+
 
 
 # v0.10.0
@@ -554,7 +554,7 @@ very cheap to obtain in terms of time.
     docs pages.
   - Remaining pages are now all found in one directory inside the docs
     root.
-    
+
 - A script for cloudflare file uploading has been added to
   astrohack/etc/test_data_upload, it relies on the user setting
   cloudflare account info and tokens as environment variables
@@ -617,36 +617,36 @@ below.
 ## General:
 
 - Telescope objects:
-  
+
   - The telescope class has been split up.
-    
+
   - Cassegrain telescopes are now supported by the `RingedCassegrain`
     class.
-      
+
   - The ngvla prototype is supported by the `NgvlaPrototype` class.
-    
+
   - Telescope objects may now be initialized with the
     global function `get_proper_telescope`.
-      
+
 - Changed import scopes:
-  
+
   - Now only user intended functions are available at the package
     level.
-    
+
 - Increased test coverage:
-  
+
   - Now 2D gridding and 1D interpolation functions are tested during
 	continuous integration.
 
   - Opening routines for all `AstrohackDataFiles` are now tested during
     continuous integration.
-    
+
 - Bug fixes:
 
   - The creation of file names based on input files now uses
     str.removesuffix as .rstrip has behaviors that were leading to
     weirdness in output file names.
-    
+
   - `check_if_file_can_be_opened` now checks if path exists before doing
     anything.
 
@@ -658,16 +658,16 @@ below.
     AntennaSurface class has now be ported to the new telescope
     classes as some of the processing differs between Cassegrain and
     the ngVLA due to their different optics.
-    
+
   - Improved `PolygonPanel` class has been brought to production, this
     class is used to represent panels that are represented by
     polygons, such as the ngVLA panels.
-    
+
   - Phase to deviation correction for the ngVLA is computed using a
     Quintic Pseudo Spline (QPS) representation of the surface to
     compute the cosine of the surface normal to the direction of
     boresight.
-    
+
   - Aperture plot orientation and panel sample coordinates reference
     frames have been reconciled yeilding cohesive coordinate frames
     between panel points and the points in aperture plots.
@@ -686,7 +686,7 @@ below.
 
   - `extract_pointing` now raises a warning when the pointing tables
     have irregular sampling times.
-  
+
 
 # v0.8.0
 
@@ -696,10 +696,10 @@ This release includes the following changes:
 
 - There is now a observation summary attached to each holography
   xarray dataset inside a mds (holog.zarr, image.zarr and panel.zarr).
-  
+
 - This summary can be printed and exported to an ASCII file through a
   method called .observation_summary of the respective mdses.
-  
+
 - This allows for the decoupling of automatically defined beam
   gridding characteristics between DDIs.
 
@@ -762,7 +762,7 @@ This release includes some features for astrohack.
     fitting residuals by using the `image_mds` method `plot_zernike_model`.
 	
   - Both phase fitting engines are now almost fully covered by tests.
-  
+
   - Perturbation phase fitting (classic AIPS like algorithm) can now
     handle non-square pixels or images.
 
@@ -782,7 +782,7 @@ This release includes some features for astrohack.
 
 - Added new types of plot: Reference image plot and unresampled data
   plot.
-  
+
 - Added statistics to the headers of all plots.
 
 - Created a function to extract RMS values from an FITSImage obj:
@@ -800,7 +800,7 @@ This release includes some features for astrohack.
 
 - Dropped support for Python 3.9 as the latest release of xarray drops
   support for this python version
-  
+
 - Added support for Python 3.12, this python version was not supported
   by python-casacore for a long time but that is no longer the case.
 
@@ -809,7 +809,7 @@ This release includes some features for astrohack.
 - Panel:
 
   - Introduced a new parameter called `exclude_shadows`.
-  
+
   - This parameter activates using a mask which also excludes the
     shadows caused by the secondary support structures.
 
@@ -880,7 +880,7 @@ installing astrohack in NRAO machines.
 
   - Delay plots with the fitted delay model now display the delay
     model residuals.
-  
+
   - Improved selection of X and Y limits on delay, and sky coverage
     plots.
 	
@@ -912,7 +912,7 @@ This release contains a miscellany of minor changes and a few bug fixes.
 
 ## Bug fixes:
 
-- `extract_holog`: 
+- `extract_holog`:
 
   - Corrected the time interpolation of pointing for the case in which
     the pointing table is sampled less frequently than the
@@ -939,7 +939,7 @@ This release contains a miscellany of minor changes and a few bug fixes.
 	
 ## Holography:
 
-- `extract_holog`: 
+- `extract_holog`:
 
   - Changed the default of `baseline_average_nearest` parameter from
     'all' to 1.
@@ -959,10 +959,10 @@ This release contains a series of minor improvements.
 - `panel`:
   - New amplitude cutoff method based on noise maximum and a threshold
     for excluding data.
-  
+
   - RMS in screws file is now always quoted in mm as well as the unit
     chosen.
-  
+
   - Antenna gain is now computed using the expected FWHM of the
     primary beam.
 
@@ -1034,7 +1034,7 @@ This release contains the following changes.
 
 - `holog`:
   - gaussian convolution is now the default gridding method in `holog`.
-  
+
   - New method for `image_mds` file that export phase fitting results:
     `export_phase_fit_results`.
 
@@ -1097,11 +1097,11 @@ This release contains the following changes.
     `2^(ceiling(log2((original_size*padding_factor)))`.
 	
   - `image_mds.plot_apertures` can now choose polarization state.
-  
+
   - `image_mds.plot_beams` plots are now split by polarization state.
-  
+
   - Beam gridding using a gaussian kernel.
-  
+
 - ALMA Near field support (Alpha):
   - ALMA NF ASDM filler to the .holog.zarr format at etc/alma-nf-filler/.
 
@@ -1109,21 +1109,21 @@ This release contains the following changes.
     defocusing.
 	
   - Beam apodization.
-  
+
   - Non-fresnel terms in aperture generation (Not fully correct).
-  
+
   - Phase near field corrections (Not fully correct).
-  
+
   - GILDAS\CLIC like phase fitting including astigmatism.
-  
+
 
 - `panel`:
-  
+
   - Screw adjustments file now contains the method used to fit the
     panel and if it was a fallback.
 	
   - Polarization state selection with I being the default.
-  
+
 
 
 
@@ -1133,9 +1133,9 @@ This release contains the following changes.
 
 - `extract_holog`:
   - Fixed issue with dropping antenna messing with antenna indexing.
-  
+
   - Updated default calculation for grid and cell size.
-  
+
   - Filter out SYSTEM_CONFIGURATION scans.
 
 ## Holography:
@@ -1169,7 +1169,7 @@ This release contains the following changes.
 
 - `extract_point`:
   - `extract_point(...)` now includes an option to drop a given
-    antenna(s). 
+    antenna(s).
   - The changes have been propagated into `extract_holog(...)` as
     well. The new input parameter to `extract_point(...)` is `exclude
     = []` and takes a single or list of antennas.
@@ -1192,4 +1192,3 @@ This release contains the following changes.
 - Parameter checking no longer fails in Github Actions in MacOS.
 
 - Parameter checking validation added to plotting API.
-

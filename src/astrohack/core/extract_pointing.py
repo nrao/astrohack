@@ -208,35 +208,35 @@ def extract_pointing_chunk(pnt_params: dict, output_mds: AstrohackPointFile):
     """
     Notes from ASDM (https://drive.google.com/file/d/16a3g0GQxgcO7N_ZabfdtexQ8r2jRbYIS/view)
     Science Data Model Binary Data Format:    https://drive.google.com/file/d/1PMrZFbkrMVfe57K6AAh1dR1FalS35jP2/view
-        
+
     A - ASDM, MS - MS
-    
-    A_encoder = The values measured from the antenna. They may be however affected by metrology, if applied. Note 
-    that for ALMA this column will contain positions obtained using the AZ POSN RSP and EL POSN RSP monitor points of 
-    the ACU and not the GET AZ ENC and GET EL ENC monitor points (as these do not include the metrology corrections). 
-    It is agreed that the the vendor pointing model will never be applied. AZELNOWAntenna.position 
-    
-    A_pointing_direction : This is the commanded direction of the antenna. It is obtained by adding the target and 
-    offset columns, and then applying the pointing model referenced by PointingModelId. The pointing model can be the 
-    composition of the absolute pointing model and of a local pointing model. In that case their coefficients will 
-    both be in the PointingModel table. A_target : This is the field center direction (as given in the Field Table), 
-    possibly affected by the optional antenna-based sourceOffset. This column is in horizontal coordinates. 
-    
-    AZELNOWAntenna.position A_offset : Additional offsets in horizontal coordinates (usually meant for measuring the 
-    pointing corrections, mapping the antenna beam, ...). AZELNOWAntenna.positiontarget A_sourceOffset : Optionally, 
-    the antenna-based mapping offsets in the field. These are in the equatorial system, and used, for instance, 
+
+    A_encoder = The values measured from the antenna. They may be however affected by metrology, if applied. Note
+    that for ALMA this column will contain positions obtained using the AZ POSN RSP and EL POSN RSP monitor points of
+    the ACU and not the GET AZ ENC and GET EL ENC monitor points (as these do not include the metrology corrections).
+    It is agreed that the the vendor pointing model will never be applied. AZELNOWAntenna.position
+
+    A_pointing_direction : This is the commanded direction of the antenna. It is obtained by adding the target and
+    offset columns, and then applying the pointing model referenced by PointingModelId. The pointing model can be the
+    composition of the absolute pointing model and of a local pointing model. In that case their coefficients will
+    both be in the PointingModel table. A_target : This is the field center direction (as given in the Field Table),
+    possibly affected by the optional antenna-based sourceOffset. This column is in horizontal coordinates.
+
+    AZELNOWAntenna.position A_offset : Additional offsets in horizontal coordinates (usually meant for measuring the
+    pointing corrections, mapping the antenna beam, ...). AZELNOWAntenna.positiontarget A_sourceOffset : Optionally,
+    the antenna-based mapping offsets in the field. These are in the equatorial system, and used, for instance,
     in on-the-fly mapping when the antennas are driven independently across the field.
-                    
-                    
+
+
     M_direction = rotate(A_target,A_offset) #A_target is rotated to by A_offset
     if withPointingCorrection:
         M_direction = rotate(A_target,A_offset) + (A_encoder - A_pointing_direction)
-        
+
     M_target = A_target
     M_pointing_offset = A_offset
     M_encoder = A_encoder
-    
-    From the above description I suspect encoder should be used instead of direction, however for the VLA mapping 
+
+    From the above description I suspect encoder should be used instead of direction, however for the VLA mapping
     antenna data no grid pattern appears (ALMA data does not have this problem)."""
 
     # Detect during which scans an antenna is mapping by averaging the POINTING_OFFSET radius.

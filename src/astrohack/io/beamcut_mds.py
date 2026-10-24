@@ -1,6 +1,7 @@
 import numpy as np
 from toolviper.utils.parameter import validate
 
+from astrohack.io.base_mds import AstrohackBaseFile
 from astrohack.utils.conversion import convert_unit, to_antenna_tapering
 from astrohack.utils.graph import create_and_execute_graphs_for_outputs
 from astrohack.utils.text import (
@@ -20,8 +21,6 @@ from astrohack.visualization.plot_tools import (
     scatter_plot,
     set_y_axis_lims_from_default,
 )
-
-from .base_mds import AstrohackBaseFile
 
 
 class AstrohackBeamcutFile(AstrohackBaseFile):

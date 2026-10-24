@@ -58,7 +58,7 @@ def open_holog(file: str) -> AstrohackHologFile | None:
 
     :param file: Path to holog file.
     :type file: str
-  
+
     :return: Holography holog object; None if file not found.
     :rtype: AstrohackHologFile
 
@@ -99,7 +99,7 @@ def open_image(file: str) -> AstrohackImageFile | None:
 
     :param file: Path to image file.
     :type file: str
-  
+
     :return: Holography image object; None if file not found.
     :rtype: AstrohackImageFile
 
@@ -254,7 +254,7 @@ def open_pointing(file: str) -> AstrohackPointFile | None:
 
     :param file: Path to pointing file.
     :type file: str
-  
+
     :return: Holography pointing object; None if file does not exist.
     :rtype: AstrohackPointFile
 

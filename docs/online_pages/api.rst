@@ -27,4 +27,3 @@ classes created by astrohack's user facing functions.
    ../_api/autoapi/astrohack/io/panel_mds/index
    ../_api/autoapi/astrohack/io/point_mds/index
    ../_api/autoapi/astrohack/io/position_mds/index
-

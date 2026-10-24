@@ -97,9 +97,9 @@ def holog(
 
         Available phase fit controls:
 
-        - [0]: pointing offset; 
-        - [1]: focus xy offsets; 
-        - [2]: focus z offset; 
+        - [0]: pointing offset;
+        - [1]: focus xy offsets;
+        - [2]: focus z offset;
         - [3]: subreflector tilt (off by default except for VLA and VLBA)
         - [4]: cassegrain offset
 
@@ -113,7 +113,7 @@ def holog(
 
     :return: Holography image object.
     :rtype: AstrohackImageFile
-    
+
     .. _Description:
     **AstrohackImageFile**
 
@@ -122,11 +122,11 @@ def holog(
       An outline of the image object structure is show below:
 
     .. parsed-literal::
-        image_mds = 
+        image_mds =
             {
             ant_0:{
                 ddi_0: image_ds,
-                 ⋮               
+                 ⋮
                 ddi_m: image_ds
             },
             ⋮
@@ -134,13 +134,13 @@ def holog(
         }
 
     **Example Usage**
-    
+
     .. parsed-literal::
         from astrohack.holog import holog
 
         holog(
-            holog_name="astrohack_observation.holog.zarr", 
-            padding_factor=50, 
+            holog_name="astrohack_observation.holog.zarr",
+            padding_factor=50,
             grid_interpolation_mode='linear',
             chan_average = True,
             scan_average = True,

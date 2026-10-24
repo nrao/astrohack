@@ -76,7 +76,7 @@ def panel(
     .. _Description:
 
         Each Stokes I aperture image in the input image file is processed in the following steps:
-        
+
         .. rubric:: Code Outline
         - Phase image is converted to a physical surface deviation image.
         - A mask of valid signals is created by using the relative cutoff on the amplitude image.
@@ -161,11 +161,11 @@ def panel(
      An outline of the panel object structure is show below:
 
     .. parsed-literal::
-        panel_mds = 
+        panel_mds =
         {
             ant_0:{
                 ddi_0: panel_ds,
-                 ⋮               
+                 ⋮
                 ddi_m: panel_ds
             },
             ⋮

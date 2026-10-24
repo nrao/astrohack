@@ -215,14 +215,15 @@ def _get_pnt_from_asdm(asdm_object):
     Returns:
     Dictionary with filtered pointing data
     """
-    # pyasdm converts the midpoint of a binary ArrayTimeInterval to its start as (midpoint - duration) / 2, so the
-    # intervals are read as stored (midpoint, duration) and converted in _get_pnt_from_row.
-    read_start_in_bin = ArrayTimeInterval.readStartTimeDurationInBin()
+    # pyasdm converts the midpoint of a binary ArrayTimeInterval to its start as (midpoint - duration) / 2
+    # (casangi/pyasdm#46), so the intervals are read as stored and converted in _get_pnt_from_row. pyasdm's flag
+    # tells whether the ASDM stores the start (startTimeDurationInBin in ASDM.xml) or the midpoint.
+    start_in_bin = ArrayTimeInterval.readStartTimeDurationInBin()
     ArrayTimeInterval.setReadStartTimeDurationInBin(True)
     try:
         pnt_table = asdm_object.getPointing().get()
     finally:
-        ArrayTimeInterval.setReadStartTimeDurationInBin(read_start_in_bin)
+        ArrayTimeInterval.setReadStartTimeDurationInBin(start_in_bin)
 
     num_samples = 0
     pnt_time = np.ndarray((0,))
@@ -234,7 +235,7 @@ def _get_pnt_from_asdm(asdm_object):
 
     for irow, pnt_row in enumerate(pnt_table):
         row_time, row_scan, row_dir, row_enc, row_tgt, row_off, n_samp = (
-            _get_pnt_from_row(pnt_row, irow)
+            _get_pnt_from_row(pnt_row, irow, start_in_bin)
         )
         num_samples += n_samp
 
@@ -303,12 +304,13 @@ def _filter_axes(pnt_dict, tol=0.0001, ref_axis="direction"):
         return _filter_axes(ou_dict, tol=tol, ref_axis=ref_axis)
 
 
-def _get_pnt_from_row(pnt_row, irow):
+def _get_pnt_from_row(pnt_row, irow, start_in_bin):
     """
     get pointing information from an ASDM's pointing row (subscan)
     Args:
-        pnt_row: the ASDM's pointing row, with its time interval read as (midpoint, duration)
+        pnt_row: the ASDM's pointing row, with its time interval read as stored
         irow: rows number
+        start_in_bin: The stored interval is (start, duration), not (midpoint, duration)
 
     Returns:
     numpy arrays for time, scan, direction, encoder, target and offset, also number of samples
@@ -316,7 +318,9 @@ def _get_pnt_from_row(pnt_row, irow):
     time_int = pnt_row.getTimeInterval()
     # Interval durations are in nanoseconds
     duration = time_int.getDuration().get() / 1e9 / DAY2SEC
-    start_MJD = time_int.getStart().getMJD() - duration / 2
+    start_MJD = time_int.getStart().getMJD()
+    if not start_in_bin:
+        start_MJD -= duration / 2
     n_samp = pnt_row.getNumSample()
     time_int = duration / n_samp
     # subtracting a time_int guaranties a correct time step

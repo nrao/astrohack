@@ -105,10 +105,13 @@ read with [pyasdm](https://github.com/casangi/pyasdm) only in
 Flag, Pointing and TotalPower tables).
 
 - pyasdm (0.0.7, 0.0.8) converts the midpoint of a **binary** ArrayTimeInterval
-  to its start as `(midpoint - duration) / 2`, which halves the Pointing times.
-  `_get_pnt_from_asdm` therefore reads the Pointing table with
-  `ArrayTimeInterval.setReadStartTimeDurationInBin(True)` (restored afterwards)
-  and subtracts half the duration itself. The XML tables are not affected.
+  to its start as `(midpoint - duration) / 2`, which halves the Pointing times
+  (casangi/pyasdm#46). `_get_pnt_from_asdm` therefore reads the Pointing table
+  with `ArrayTimeInterval.setReadStartTimeDurationInBin(True)` (restored
+  afterwards) and subtracts half the duration itself, unless pyasdm's flag says
+  the ASDM stores start times (`startTimeDurationInBin` in ASDM.xml; the flag
+  is global and never reset, casangi/pyasdm#49). The XML tables are not
+  affected.
 - The output is one antenna, DDI and map with `near_field=True` and the
   polarization axis `["I", "R2"]`: `holog` needs `to_stokes=False`.
 - The unit tests download the ASDM `uid___A002_Xad52b4_X3`, which is not in

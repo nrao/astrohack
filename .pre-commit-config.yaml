@@ -8,8 +8,6 @@ repos:
       - id: check-ast
       - id: check-case-conflict
       - id: check-docstring-first
-        # A module-level string documents the dict below it.
-        exclude: ^etc/alma-nf-filler/alma_nf_filler_lib\.py$
       - id: check-merge-conflict
       - id: check-json
         # JSON with comments.

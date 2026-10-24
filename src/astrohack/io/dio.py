@@ -84,7 +84,9 @@ def open_holog(file: str) -> AstrohackHologFile | None:
             ant_m: …
             }
     """
-    check_if_file_can_be_opened(file, "extract_holog", minimum_xdtree_version)
+    check_if_file_can_be_opened(
+        file, ["extract_holog", "extract_alma_nf_holog"], minimum_xdtree_version
+    )
     _data_file = AstrohackHologFile(file=file)
 
     if _data_file.open():

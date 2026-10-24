@@ -26,6 +26,9 @@ from astrohack.cassegrain_ray_tracing import (
     plot_radial_projection_from_rt_xds as plot_radial_projection_from_rt_xds,
 )
 from astrohack.combine import combine as combine
+from astrohack.extract_alma_nf_holog import (
+    extract_alma_nf_holog as extract_alma_nf_holog,
+)
 from astrohack.extract_holog import extract_holog as extract_holog
 from astrohack.extract_holog import generate_holog_obs_dict as generate_holog_obs_dict
 from astrohack.extract_locit import extract_locit as extract_locit

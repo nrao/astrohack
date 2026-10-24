@@ -1,0 +1,41 @@
+{
+    "extract_alma_nf_holog":{
+        "asdm_name":{
+            "type":["str"]
+        },
+        "holog_name":{
+            "type":["str"],
+            "nullable": true
+        },
+        "time_smoothing_interval":{
+            "type":["float", "int"],
+            "nullable": true,
+            "min": 1e-15
+        },
+        "amplitude_calibration":{
+            "type":["str"],
+            "allowed": ["linterp", "sqinterp", "spline", "regression", "mean", "none"]
+        },
+        "phase_calibration":{
+            "type":["str"],
+            "allowed": ["linterp", "sqinterp", "spline", "regression", "mean", "none"]
+        },
+        "calibration_cycle":{
+            "type":["int"],
+            "min": 2
+        },
+        "plot_calibration":{
+            "type":["boolean"]
+        },
+        "save_calibration":{
+            "type":["boolean"]
+        },
+        "overwrite":{
+            "type":["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
+        }
+    }
+}

@@ -106,18 +106,24 @@ casacoretables and the scientific stack installed.
 ```bash
 conda activate zinc
 cd astrohack
-pip install -e .          # setuptools src-layout; deps incl. casacoretables, toolviper, dask, numba, astropy, zarr<3
+pip install -e .          # setuptools src-layout; deps incl. casacoretables, toolviper, dask, numba, astropy, zarr>=3
 ```
 
 Packaging notes / pre-existing quirks (not introduced by the casacore work):
 - No `[build-system]` table in `pyproject.toml` → setuptools default backend.
 - `python` 3.12–3.14 (`requires-python >= 3.12, < 3.15`, issue #388).
-- `zarr<3.0.0` is pinned deliberately (zarr 3 migration: issue #300), and
-  therefore `xarray<2026.9.0` (xarray 2026.9 dropped zarr-python 2 support).
-  numpy is not pinned: numba sets its own supported numpy range.
-- zarr 2 needs `numcodecs<0.16`, which has no cp314 wheels, so on Python 3.14
-  pip builds numcodecs 0.15.1 from source (needs GCC <= 14 or
-  `CFLAGS=-std=gnu17`; GCC 15 defaults to C23).
+- zarr-python 3 (`zarr>=3.0.0`, issue #300); xarray and numpy are not pinned
+  (numba sets its own supported numpy range).
+
+**Zarr formats.** Every function that writes a zarr file takes
+`zarr_format` (2 or 3, default 3). Format 2 files — the downloaded unit-test
+reference data and the packaged telescopes in `src/astrohack/data/` — are read
+as before. An mds object keeps the format of its file: `open()` reads it from
+the store and `create_from_input_parameters(..., zarr_format)` sets it, and
+`write`, `add_node` and `consolidate` use it, so a store never mixes formats
+(e.g. `extract_holog(append=True)` on a format 2 file stays format 2).
+Consolidated metadata is written for both formats; `astrohack/__init__.py`
+filters zarr's warning that format 3 does not specify it yet.
 
 For quick iteration without installing, `PYTHONPATH=src python -m pytest …`
 works (the package imports cleanly from `src/`).

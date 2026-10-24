@@ -9,6 +9,7 @@ from scipy import interpolate
 
 from astrohack.antenna.telescope import get_proper_telescope
 from astrohack.io.holog_mds import AstrohackHologFile
+from astrohack.utils.algorithms import phase_wrapping
 from astrohack.utils.constants import clight
 from astrohack.visualization.plot_tools import close_figure, create_figure_and_axes
 
@@ -398,8 +399,8 @@ def _get_tp_from_asdm(asdm_object, holo_info):
     # Amplitude = sqrt(Q2 + S2)
     tp_amp = np.sqrt(tp_s**2 + tp_q**2)
 
-    # Phase = arc-tangent(Q/S)
-    tp_pha = np.arctan(tp_q / tp_s)
+    # Phase = arc-tangent(Q/S), in all four quadrants
+    tp_pha = np.arctan2(tp_q, tp_s)
 
     tp_dict = {
         "time": tp_time,
@@ -696,7 +697,7 @@ def _phase_calibration(cal, data, cal_type, plot_cal, out_base):
     """
     start = timer.time()
     pha_sol = _solve_calibration(
-        cal.time.values, cal["PHASE"].values, data.time.values, cal_type
+        cal.time.values, np.unwrap(cal["PHASE"].values), data.time.values, cal_type
     )
 
     # If pha_sol is None no phase calibration is to be performed
@@ -706,13 +707,7 @@ def _phase_calibration(cal, data, cal_type, plot_cal, out_base):
 
     pha = data["PHASE"].values.copy()
 
-    calibrated_pha = pha - pha_sol
-    calibrated_pha = np.where(
-        calibrated_pha <= -np.pi / 2, calibrated_pha + np.pi, calibrated_pha
-    )
-    calibrated_pha = np.where(
-        calibrated_pha >= np.pi / 2, calibrated_pha - np.pi, calibrated_pha
-    )
+    calibrated_pha = phase_wrapping(pha - pha_sol)
 
     data["CALIBRATED_PHASE"] = xr.DataArray(calibrated_pha, dims=["time"])
     data["PHASE_SOLUTION"] = xr.DataArray(pha_sol, dims=["time"])
@@ -986,7 +981,7 @@ def _match_tp_to_time(tp_info, time_axes, meta_dict):
     the_shape = [time_axes.shape[0]]
 
     tp_amp = np.zeros(the_shape)
-    tp_pha = np.zeros(the_shape)
+    tp_pha = np.zeros(the_shape, dtype=complex)
     tp_ref = np.zeros(the_shape)
     tp_wei = np.zeros(the_shape)
 
@@ -1022,14 +1017,15 @@ def _match_tp_to_time(tp_info, time_axes, meta_dict):
             continue
 
         tp_amp[itime] += amp_values[itp]
-        tp_pha[itime] += pha_values[itp]
+        # Phases are averaged as unit phasors, so that a bin can straddle +-pi
+        tp_pha[itime] += np.exp(1j * pha_values[itp])
         tp_ref[itime] += ref_values[itp]
         tp_wei[itime] += 1.0
 
     with np.errstate(divide="ignore", invalid="ignore"):
         tp_amp /= tp_wei
-        tp_pha /= tp_wei
         tp_ref /= tp_wei
+    tp_pha = np.angle(tp_pha)
 
     new_tp_dict = {
         "time": time_axes[:, 0],

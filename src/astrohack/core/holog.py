@@ -42,7 +42,8 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
     if not test_xdt_for_valid_data(ant_ddi_xdt, datalabel=label):
         return
 
-    summary = deepcopy(ant_ddi_xdt["map_0"].attrs["summary"])
+    first_map_key = list(ant_ddi_xdt.keys())[0]
+    summary = deepcopy(ant_ddi_xdt[first_map_key].attrs["summary"])
 
     convert_to_stokes = holog_chunk_params["to_stokes"]
 
@@ -84,7 +85,7 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
         summary["general"]["telescope name"], summary["general"]["antenna name"]
     )
     try:
-        is_near_field = ant_ddi_xdt["map_0"].attrs["near_field"]
+        is_near_field = ant_ddi_xdt[first_map_key].attrs["near_field"]
     except KeyError:
         is_near_field = False
 

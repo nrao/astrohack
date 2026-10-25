@@ -935,12 +935,12 @@ def _build_astigmatism_matrix(
 
 @njit(cache=njit_caching, nogil=True)
 def _perturbed_fit_jit(matrix, vector, fit_offset):
-    perturbed = np.empty_like(vector)
+    perturbed = vector.copy()
     for i_par in range(fit_offset.shape[0]):
-        perturbed[:] = vector[:] - matrix[:, i_par] * fit_offset[i_par]
+        perturbed -= matrix[:, i_par] * fit_offset[i_par]
     perturbed = np.mod(perturbed + 21 * np.pi, 2 * np.pi) - np.pi
     result, _, _, sigma = least_squares_jit(matrix, perturbed)
-    return result, sigma
+    return result + fit_offset, sigma
 
 
 @njit(cache=njit_caching, nogil=True)
@@ -977,9 +977,9 @@ def _fit_perturbation_loop_jit(
                         result, sigma = _perturbed_fit_jit(
                             solving_matrix, solving_vector, fit_offset
                         )
-                    if sigma < sigmin:
-                        sigmin = sigma
-                        best_fit = result
+                        if sigma < sigmin:
+                            sigmin = sigma
+                            best_fit = result
     return sigmin, best_fit
 
 

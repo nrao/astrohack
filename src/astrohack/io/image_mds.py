@@ -791,6 +791,11 @@ def _export_phase_fit_chunk(parm_dict):
             f"No phase fit results to export for {create_dataset_label(antenna, ddi)}"
         )
         return
+    if not isinstance(phase_fit_results, dict):
+        logger.warning(
+            f"Exporting near field phase fit results is not supported, skipping {create_dataset_label(antenna, ddi)}"
+        )
+        return
 
     angle_unit = parm_dict["angle_unit"]
     length_unit = parm_dict["length_unit"]

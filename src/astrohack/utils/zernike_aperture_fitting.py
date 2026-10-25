@@ -62,9 +62,9 @@ def zernike_order_2(u_ax, v_ax, return_powers=False):
     # M = -2
     matrix[:, 3] = 2 * u_ax * v_ax
     # M = 0
-    matrix[:, 4] = -1 + 2 * u_pow[2] + 2 * v_pow[2] ** 2
+    matrix[:, 4] = -1 + 2 * u_pow[2] + 2 * v_pow[2]
     # M = 2
-    matrix[:, 5] = -(u_pow[2] ** 2) + v_pow[2] ** 2
+    matrix[:, 5] = -u_pow[2] + v_pow[2]
 
     if return_powers:
         return matrix, u_pow, v_pow
@@ -97,7 +97,7 @@ def zernike_order_3(u_ax, v_ax, return_powers=False):
     # M = 1
     matrix[:, 8] = -2 * v_ax + 3 * v_pow[3] + 3 * u_pow[2] * v_ax
     # M = 3
-    matrix[:, 9] = -v_pow[3] + 3 * v_pow[3] + 3 * u_pow[2] * v_ax
+    matrix[:, 9] = v_pow[3] - 3 * u_pow[2] * v_ax
 
     if return_powers:
         return matrix, u_pow, v_pow
@@ -242,7 +242,7 @@ def zernike_order_6(u_ax, v_ax, return_powers=False):
     matrix[:, 22] = 20 * u3v - 20 * uv3 - 24 * u5v + 24 * uv5
     # M = -2
     matrix[:, 23] = (
-        12 * u_ax * v_ax - 40 * u3v - 40 * uv3 + 30 * u5v + 60 * u3v3 - 30 * uv5
+        12 * u_ax * v_ax - 40 * u3v - 40 * uv3 + 30 * u5v + 60 * u3v3 + 30 * uv5
     )
     # M = 0
     matrix[:, 24] = (
@@ -350,7 +350,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         - 60 * u_pow[5]
         - 120 * u3v2
         - 60 * uv4
-        - 35 * u_pow[7]
+        + 35 * u_pow[7]
         + 105 * u5v2
         + 105 * u3v4
         + 35 * uv6
@@ -363,7 +363,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         - 60 * v_pow[5]
         - 120 * u2v3
         - 60 * u4v
-        - 35 * v_pow[7]
+        + 35 * v_pow[7]
         + 105 * u2v5
         + 105 * u4v3
         + 35 * u6v
@@ -379,7 +379,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         + 21 * v_pow[7]
         - 21 * u2v5
         - 105 * u4v3
-        + 63 * u6v
+        - 63 * u6v
     )
     # M = 5
     matrix[:, 34] = (
@@ -451,7 +451,7 @@ def zernike_order_8(u_ax, v_ax, return_powers=False):
         + 120 * (u3v + uv3)
         - 210 * (u5v + uv5)
         - 420 * u3v3
-        + 112 * (uv7 - u7v)
+        + 112 * (uv7 + u7v)
         + 336 * (u5v3 + u3v5)
     )
     # M 0
@@ -469,7 +469,7 @@ def zernike_order_8(u_ax, v_ax, return_powers=False):
     # M 2
     matrix[:, 41] = (
         10 * (u_pow[2] - v_pow[2])
-        - 60 * (v_pow[4] - u_pow[4])
+        + 60 * (v_pow[4] - u_pow[4])
         + 105 * (u4v2 - u2v4)
         + 105 * (u_pow[6] - v_pow[6])
         + 56 * (v_pow[8] - u_pow[8])
@@ -600,7 +600,8 @@ def zernike_order_9(u_ax, v_ax, return_powers=False):
         + 126 * u_pow[9]
         + 504 * u7v2
         + 756 * u5v4
-        + 128 * uv8
+        + 504 * u3v6
+        + 126 * uv8
     )
     # M = 1
     matrix[:, 50] = (
@@ -617,7 +618,8 @@ def zernike_order_9(u_ax, v_ax, return_powers=False):
         + 126 * v_pow[9]
         + 504 * u2v7
         + 756 * u4v5
-        + 128 * u8v
+        + 504 * u6v3
+        + 126 * u8v
     )
     # M = 3
     matrix[:, 51] = (

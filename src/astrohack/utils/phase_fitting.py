@@ -889,7 +889,7 @@ def _build_astigmatism_matrix(
 ):
     cz = 1.0 / 2.0 / focus**2
     defocus_ratio = defocus / focus
-    u_mesh, v_mesh = np.meshgrid(uaxis, vaxis)
+    u_mesh, v_mesh = np.meshgrid(uaxis, vaxis, indexing="ij")
     u_mesh2 = u_mesh**2
     v_mesh2 = v_mesh**2
     radius2 = u_mesh2 + v_mesh2

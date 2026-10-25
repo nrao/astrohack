@@ -2,7 +2,7 @@ import shutil
 
 import numpy as np
 import toolviper.utils.logger as logger
-from casacoretables import tables as ctables
+from xradio._utils._casacore.backend import tables as ctables
 
 from astrohack.core.locit import (
     _build_coordinate_array,

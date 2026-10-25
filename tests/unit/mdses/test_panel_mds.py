@@ -41,10 +41,11 @@ class TestpanelMDS:
             assert pathlib.Path(f"{self.destination_folder}/{plot_name}").is_file(), (
                 f"{plot_name} was not created"
             )
-            assert are_png_files_close(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{plot_name}",
                 f"{self.ref_products_name}/{plot_name}",
-            ), f"{plot_name} Differs from reference"
+            )
+            assert equal, f"{msg}: {plot_name} Differs from reference"
 
     def fits_list_assertions(self):
         fits_list = [

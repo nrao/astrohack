@@ -922,11 +922,12 @@ def fit_zernike_coefficients(
     for itime in range(ntime):
         for ichan in range(nchan):
             for ipol in range(npol):
+                max_ap = np.nanmax(np.abs(aperture_4d[itime, ichan, ipol]))
                 real_coeffs, real_rms, real_model = fit_func(
-                    matrix, aperture_4d[itime, ichan, ipol].real
+                    matrix, aperture_4d[itime, ichan, ipol].real, max_ap
                 )
                 imag_coeffs, imag_rms, imag_model = fit_func(
-                    matrix, aperture_4d[itime, ichan, ipol].imag
+                    matrix, aperture_4d[itime, ichan, ipol].imag, max_ap
                 )
                 zernike_model[
                     itime, ichan, ipol, uv_idx_grid[:, 0], uv_idx_grid[:, 1]
@@ -937,21 +938,23 @@ def fit_zernike_coefficients(
     return zernike_coeffs, zernike_model, fit_rms, create_osa_coordinates(zernike_order)
 
 
-def _fit_an_aperture_plane_component_np_least_squares(matrix, aperture_plane_comp):
+def _fit_an_aperture_plane_component_np_least_squares(
+    matrix, aperture_plane_comp, max_ap
+):
     """
     Fit Zernike polynomial coefficients to aperture data using numpy's linear algebra least squares engine.
     Args:
         matrix: The matrix containing the Zernike polynomials
         aperture_plane_comp: a real or imaginary part of an aperture plane (usually a correlation)
+        max_ap: Peak amplitude of the complex aperture plane, the unit of the coefficients
 
     Returns:
     coefficients, fit rms, and model
     """
-    max_ap = np.nanmax(aperture_plane_comp)
     result, _, _, _ = np.linalg.lstsq(matrix, aperture_plane_comp / max_ap, rcond=None)
     with np.errstate(all="ignore"):
         model = max_ap * np.matmul(matrix, result)
-    rms = np.sqrt(np.sum((aperture_plane_comp - model) ** 2)) / model.shape[0]
+    rms = np.sqrt(np.mean((aperture_plane_comp - model) ** 2))
     return result, rms, model
 
 
@@ -969,21 +972,23 @@ def _scipy_fitting_func(coeffs, matrix, aperture):
     return aperture - np.matmul(matrix, coeffs)
 
 
-def _fit_an_aperture_plane_component_scipy_opt_lst_sq(matrix, aperture_plane_comp):
+def _fit_an_aperture_plane_component_scipy_opt_lst_sq(
+    matrix, aperture_plane_comp, max_ap
+):
     """
     Fit Zernike polynomial coefficients to aperture data using scipy's optimize least squares engine.
     Args:
         matrix: The matrix containing the Zernike polynomials
         aperture_plane_comp: a real or imaginary part of an aperture plane (usually a correlation)
+        max_ap: Peak amplitude of the complex aperture plane, the unit of the coefficients
 
     Returns:
         coefficients, fit rms, and model
     """
     initial_pars = np.ones(matrix.shape[1])
-    max_ap = np.nanmax(aperture_plane_comp)
     norm_aperture = aperture_plane_comp / max_ap
     args = [matrix, norm_aperture]
     results = opt.least_squares(_scipy_fitting_func, initial_pars, args=args)
     model = max_ap * np.matmul(matrix, results.x)
-    rms = np.sqrt(np.sum((aperture_plane_comp - model) ** 2)) / model.shape[0]
+    rms = np.sqrt(np.mean((aperture_plane_comp - model) ** 2))
     return results.x, rms, model

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from astrohack.utils.zernike_aperture_fitting import (
+    _fit_an_aperture_plane_component_np_least_squares,
     create_osa_coordinates,
     zernike_matrix_functions,
 )
@@ -41,3 +42,19 @@ class TestZernikeMatrices:
             assert np.allclose(
                 matrix[:, column], _textbook_zernike(n, m, v_ax, u_ax), atol=1e-9
             ), f"N={n}, M={m}"
+
+    def test_complex_coefficients_share_one_scale(self):
+        """Test that the real and imaginary coefficients are both in units of the peak amplitude"""
+        grid = np.linspace(-1, 1, 41)
+        u_grid, v_grid = np.meshgrid(grid, grid, indexing="ij")
+        inside = np.hypot(u_grid, v_grid) <= 1
+        matrix = zernike_matrix_functions[2](u_grid[inside], v_grid[inside])
+        aperture = (1 + 0.1j) * matrix[:, 4]
+        max_ap = np.max(np.abs(aperture))
+        real_coeffs, _, _ = _fit_an_aperture_plane_component_np_least_squares(
+            matrix, aperture.real, max_ap
+        )
+        imag_coeffs, _, _ = _fit_an_aperture_plane_component_np_least_squares(
+            matrix, aperture.imag, max_ap
+        )
+        assert np.isclose(real_coeffs[4] + 1j * imag_coeffs[4], (1 + 0.1j) / max_ap)

@@ -2,9 +2,8 @@ ALMA Near Field holographies support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Current support for ALMA near field holographies is limited.  It is
-possible to produce aperture images but the near field phase effects
-are not yet fully corrected, making it impossible to produce panel
-adjustments from them.
+possible to produce aperture images corrected for the near field
+effects, but panel adjustments from them have not been tested.
 
 
 
@@ -95,6 +94,7 @@ instruction on how to use the plotting functions can be found on our
 Caveat
 ======
 
-Currently the correction of the apertures for the NF effects is not
-working as it should. Aperture phases contain significant ringing that
-is not yet understood.
+On uid___A002_Xad52b4_X3 (DV08, 104 GHz) the aperture phase left by
+the phase fit corresponds to a surface error of about 20 um rms. A
+concentric ripple of about 15 um remains within about a metre of the
+dish edge; its origin is not yet understood.

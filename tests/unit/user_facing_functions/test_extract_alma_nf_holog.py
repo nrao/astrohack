@@ -100,11 +100,10 @@ class TestExtractAlmaNfHolog:
         assert not np.allclose(new_vis[:, 0, 0], def_vis[:, 0, 0])
 
     def test_holog(self):
-        """Test that holog produces near field apertures from the extracted data"""
+        """Test that holog produces near field apertures from the extracted data, at the distance of the ASDM's pad"""
         image_mds = holog(
             holog_name=self.def_holog_name,
             image_name=self.image_name,
-            alma_osf_pad="TF03",
             to_stokes=False,
             overwrite=True,
         )
@@ -120,6 +119,11 @@ class TestExtractAlmaNfHolog:
         radius = np.hypot(u_grid, v_grid)
         outside = (radius > 6.5) & (radius < 8)
         assert np.nanmean(amplitude[radius < 6]) > 10 * np.nanmean(amplitude[outside])
+
+        # The phase fit leaves the surface errors only
+        phase = image_xds.CORRECTED_PHASE.values[0, 0, 0]
+        ring = (radius > 1) & (radius < 5.5)
+        assert np.sqrt(np.nanmean(phase[ring] ** 2)) < 0.2
 
     def test_invalid_asdm_name(self):
         """Test extract_alma_nf_holog with an invalid ASDM name"""

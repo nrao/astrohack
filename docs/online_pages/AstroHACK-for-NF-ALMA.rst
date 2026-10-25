@@ -45,9 +45,10 @@ followed by a step of correction of the aperture phase from the NF
 effects.
 
 The apertures can be produced and then subsequently plot with a simple
-python script. In this script we call holog with the parameter
-**alma_osf_pad** set to the pad on which the antenna was positioned
-during the holography measurement. We set to parallel to False as
+python script. holog uses the tower distance and feed focus offset of
+the pad on which the antenna was positioned during the holography
+measurement, which defaults to the antenna's station in the ASDM; the
+parameter **alma_osf_pad** overrides it. We set to parallel to False as
 holog parallelizes holographies per antenna and ALMA nf holographies
 contain a single antenna. **to_stokes** must be False: the
 polarization axis of near field data holds the signal (I) and the
@@ -65,7 +66,6 @@ apertures.
 
     image_mds = holog(holog_name='almanf.holog.zarr',
     		  image_name='almanf.image.zarr',
-    		  alma_osf_pad='TF03',
     		  to_stokes=False,
     		  parallel=False,
     		  overwrite=True # denpending on your preferences

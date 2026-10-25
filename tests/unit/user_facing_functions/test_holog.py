@@ -6,6 +6,7 @@ import shutil
 import numpy as np
 import pytest
 import toolviper
+import zarr
 
 from astrohack import open_image
 from astrohack.holog import holog
@@ -25,6 +26,9 @@ class TestHolog:
     phase_fit_img_name = "phase_fit.image.zarr"
     zern_pha_fit_name = "zern_pha.image.zarr"
     zern_coeff_name = "zern_coeff.image.zarr"
+    renamed_hlg_name = "renamed_map.holog.zarr"
+    renamed_img_name = "renamed_map.image.zarr"
+    original_img_name = "original_map.image.zarr"
 
     ant_id = "ea25"
     ddi_id = 0
@@ -363,3 +367,35 @@ class TestHolog:
         assert np.allclose(ref_zernike_coeffs_imag, zer_coeffs.imag), (
             "Fitted imag part of Zernike coefficients do not match references"
         )
+
+    def test_maps_not_starting_at_map_0(self):
+        """
+        Test that holog reads an antenna's summary from its first map, whatever that map's key
+        """
+        shutil.rmtree(self.renamed_hlg_name, ignore_errors=True)
+        shutil.copytree(self.hlg_name, self.renamed_hlg_name)
+        ddi_path = pathlib.Path(self.renamed_hlg_name) / self.ant_key / self.ddi_key
+        (ddi_path / "map_0").rename(ddi_path / "map_1")
+        zarr.consolidate_metadata(self.renamed_hlg_name)
+
+        renamed_mds = holog(
+            holog_name=self.renamed_hlg_name,
+            image_name=self.renamed_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
+            parallel=False,
+        )
+        original_mds = holog(
+            holog_name=self.hlg_name,
+            image_name=self.original_img_name,
+            ant=self.ant_id,
+            ddi=self.ddi_id,
+            overwrite=True,
+            parallel=False,
+        )
+        assert np.allclose(
+            renamed_mds[self.ant_key][self.ddi_key].APERTURE.values,
+            original_mds[self.ant_key][self.ddi_key].APERTURE.values,
+            equal_nan=True,
+        ), "Aperture differs when the antenna's only map is map_1"

@@ -169,7 +169,7 @@ def calculate_near_field_aperture(
         freq: Beam grid frequency axis
         telescope: telescope object with optical parameters
         apply_grid_correction: Apply grid correction (True for gaussian convolution of the beam)
-        apodize: Apodize beam to avoid boxing effects in the FFT (the dashed line cross)
+        apodize: Apodize beam to avoid boxing effects in the FFT (the dashed line cross), for the aperture phase only
         label: Data label for messages
 
     Returns:
@@ -177,29 +177,32 @@ def calculate_near_field_aperture(
     """
     logger.debug(f"{label}: Calculating near field aperture illumination pattern ...")
     start = time.time()
-    work_grid = grid.copy()
-
-    if apodize:
-        apodizer = _apodize_beam(work_grid[0, 0, 0, ...])
-        work_grid[0, 0, 0, ...] *= apodizer
-
-    padded_grid = _pad_beam_image(work_grid, padding_factor)
     wavelength = clight / freq[0]
     z_max = (telescope.diameter / 2) ** 2 / 4 / telescope.focus
     scale = 1.0 + (telescope.el_axis_off + z_max / 2.0) / distance
-    u_axis, v_axis, l_axis, m_axis, aperture_cell_size = _compute_axes(
-        padded_grid.shape, sky_cell_size, wavelength, scale=scale
-    )
-    aperture_grid = _compute_aperture_fft(padded_grid)
-
     factor = 2j * np.pi / wavelength
-    aperture_grid = _compute_non_fresnel_corrections(
-        padded_grid, aperture_grid, l_axis, m_axis, u_axis, v_axis, factor, distance
+    transform_args = (
+        padding_factor,
+        sky_cell_size,
+        wavelength,
+        scale,
+        factor,
+        distance,
+        freq,
+        telescope,
+        apply_grid_correction,
     )
-    if apply_grid_correction:
-        aperture_grid = gridding_correction(
-            aperture_grid, freq, telescope.diameter, sky_cell_size, u_axis, v_axis
-        )
+    aperture_grid, u_axis, v_axis, aperture_cell_size = _near_field_transform(
+        grid, *transform_args
+    )
+    # The apodization suppresses the outer aperture, so the amplitude comes from the beam without it
+    amp = np.absolute(aperture_grid[0, 0, 0, ...])
+
+    if apodize:
+        work_grid = grid.copy()
+        apodizer = _apodize_beam(work_grid[0, 0, 0, ...])
+        work_grid[0, 0, 0, ...] *= apodizer
+        aperture_grid, _, _, _ = _near_field_transform(work_grid, *transform_args)
 
     aperture_grid = _correct_phase_nf_effects(
         aperture_grid, u_axis, v_axis, distance, focus_offset, telescope.focus, factor
@@ -207,7 +210,6 @@ def calculate_near_field_aperture(
 
     #
     phase = np.angle(aperture_grid[0, 0, 0, ...])
-    amp = np.absolute(aperture_grid[0, 0, 0, ...])
     # dish horn_artefact = fit_dish horn_beam_artefact(amp, telescope.inlim, u_axis, v_axis)
     # amp -= dish horn_artefact
 
@@ -218,6 +220,50 @@ def calculate_near_field_aperture(
     duration = time.time() - start
     logger.debug(f"{label}: Near field aperture took {duration:.3} seconds")
     return aperture_grid, u_axis, v_axis, aperture_cell_size, wavelength
+
+
+def _near_field_transform(
+    grid,
+    padding_factor,
+    sky_cell_size,
+    wavelength,
+    scale,
+    factor,
+    distance,
+    freq,
+    telescope,
+    apply_grid_correction,
+):
+    """
+    Transform a near field beam grid to the aperture, with the non Fresnel and gridding corrections
+    Args:
+        grid: Beam grid
+        padding_factor: Padding factor of the beam grid
+        sky_cell_size: Sky cell size (radians)
+        wavelength: Representative wavelength
+        scale: Scale of the aperture axes
+        factor: 2j * pi / wavelength
+        distance: Distance to the holography tower
+        freq: Beam grid frequency axis
+        telescope: Telescope object with optical parameters
+        apply_grid_correction: Apply grid correction (True for gaussian convolution of the beam)
+
+    Returns:
+        aperture grid, u-coordinate array, v-coordinate array, aperture cell size
+    """
+    padded_grid = _pad_beam_image(grid, padding_factor)
+    u_axis, v_axis, l_axis, m_axis, aperture_cell_size = _compute_axes(
+        padded_grid.shape, sky_cell_size, wavelength, scale=scale
+    )
+    aperture_grid = _compute_aperture_fft(padded_grid)
+    aperture_grid = _compute_non_fresnel_corrections(
+        padded_grid, aperture_grid, l_axis, m_axis, u_axis, v_axis, factor, distance
+    )
+    if apply_grid_correction:
+        aperture_grid = gridding_correction(
+            aperture_grid, freq, telescope.diameter, sky_cell_size, u_axis, v_axis
+        )
+    return aperture_grid, u_axis, v_axis, aperture_cell_size
 
 
 # Tabulated Sigma GE and GH functions of the near field holography feed

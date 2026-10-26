@@ -76,7 +76,7 @@ def holog(
     :type scan_average: bool, optional
 
     :param alma_osf_pad: Pad on which the antenna was poitioned at the ALMA OSF (only relevant for ALMA near field \
-    holographies).
+    holographies), defaults to the antenna's station in the holog file.
     :type alma_osf_pad: str, optional
 
     :param ant: List of antennas/antenna to be processed, defaults to "all" when None, ex. ea25

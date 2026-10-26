@@ -85,7 +85,7 @@ def extract_alma_nf_holog(
             holog_name="nf_X3.holog.zarr",
         )
 
-        holog(holog_name="nf_X3.holog.zarr", alma_osf_pad="TF03", to_stokes=False)
+        holog(holog_name="nf_X3.holog.zarr", to_stokes=False)
 
     **AstrohackHologFile**
 

@@ -44,15 +44,15 @@ def estimate_nf_distance(
     .. _Description:
 
     The near field corrections depend on the distance, so an aperture imaged at the wrong distance keeps a residual \
-    phase that holog's phase fit cannot remove. Each trial distance is imaged \
-    with `holog` (`nf_distance`, `to_stokes=False`), and the surface rms left by the phase fit is measured in the \
-    annulus. The distance of the smallest residual comes from a parabola in the squared residual through the trials \
-    within `converged_factor` of the smallest residual. Trials far from the true distance, where the phase fit does \
-    not converge, leave residuals of hundreds of micrometers and are left out.
+    phase that holog's phase fit cannot remove. Each trial distance is imaged with `holog` (`nf_distance`, \
+    `to_stokes=False`), and the surface rms left by the phase fit is measured in the annulus. The distance of the \
+    smallest residual comes from a parabola in the squared residual through the trials within `converged_factor` of \
+    the smallest residual. Trials far from the true distance, where the phase fit does not converge, leave residuals \
+    of hundreds of micrometers and are left out.
 
-    The trial images are written to a temporary directory and removed. The estimate inherits the geometry of \
-    holog's near field model: on data simulated with `simulate_alma_nf_holog`, it is within a few tenths of a meter \
-    of the true distance when the antenna rotates about its elevation axis, and a few meters too far with the \
+    The trial images are written to a temporary directory and removed. The estimate depends on how the antenna \
+    moved during the map: on data simulated with `simulate_alma_nf_holog` and its default raster, it is 0.26 m too \
+    far when the antenna turns about its elevation axis, as ALMA antennas do, and 2.57 m too far with the \
     fixed-distance geometry of Baars et al. (2007).
 
     **Example Usage**

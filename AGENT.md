@@ -29,6 +29,7 @@ src/astrohack/
 ├── __init__.py                # exports the user-facing pipeline functions
 ├── <task>.py                  # USER-FACING api: param validation + dask graph build
 │     extract_pointing, extract_holog, extract_alma_nf_holog, holog, panel,
+│     simulate_alma_nf_holog, estimate_nf_distance,
 │     locit, extract_locit, combine, beamcut, cassegrain_ray_tracing,
 │     image_comparison_tool
 ├── core/                      # COMPUTE: the per-chunk work the dask graph runs

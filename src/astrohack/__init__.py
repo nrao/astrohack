@@ -26,6 +26,7 @@ from astrohack.cassegrain_ray_tracing import (
     plot_radial_projection_from_rt_xds as plot_radial_projection_from_rt_xds,
 )
 from astrohack.combine import combine as combine
+from astrohack.estimate_nf_distance import estimate_nf_distance as estimate_nf_distance
 from astrohack.extract_alma_nf_holog import (
     extract_alma_nf_holog as extract_alma_nf_holog,
 )
@@ -55,6 +56,9 @@ from astrohack.io.point_mds import AstrohackPointFile as AstrohackPointFile
 from astrohack.io.position_mds import AstrohackPositionFile as AstrohackPositionFile
 from astrohack.locit import locit as locit
 from astrohack.panel import panel as panel
+from astrohack.simulate_alma_nf_holog import (
+    simulate_alma_nf_holog as simulate_alma_nf_holog,
+)
 
 install(show_locals=False)
 

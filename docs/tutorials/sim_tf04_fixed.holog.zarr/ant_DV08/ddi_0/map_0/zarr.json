@@ -1,0 +1,85 @@
+{
+  "attributes": {
+    "near_field": true,
+    "nf_focus_off": 0.0988,
+    "time_smoothing_interval": 0.047999999999999994,
+    "summary": {
+      "spectral": {
+        "channel width": 0.0,
+        "number of channels": 1,
+        "frequency range": [
+          104020000000.0,
+          104020000000.0
+        ],
+        "rep. frequency": 104020000000.0,
+        "rep. wavelength": 0.002882065545087483
+      },
+      "beam": {
+        "grid size": [
+          268,
+          268
+        ],
+        "cell size": 8.005737625243009e-05,
+        "l extent": [
+          -0.01075,
+          0.010690000000000057
+        ],
+        "m extent": [
+          -0.01075,
+          0.010690000000000057
+        ]
+      },
+      "general": {
+        "source": "Simulated transmitter",
+        "phase center": [
+          0.0,
+          0.0
+        ],
+        "telescope name": "ALMA",
+        "start time": 59000.0,
+        "stop time": 59000.010124444445,
+        "duration": 874.7520000441,
+        "az el info": {
+          "center": [
+            0.0,
+            0.0
+          ],
+          "mean": [
+            0.0,
+            0.0
+          ],
+          "median": [
+            0.0,
+            0.0
+          ]
+        },
+        "reference antennas": [],
+        "antenna name": "DV08",
+        "station": "TF04"
+      },
+      "aperture": null
+    },
+    "simulation": {
+      "distance": 278.63,
+      "focus_offset": 0.0988,
+      "geometry": "fixed",
+      "feed_legs": true,
+      "surface_bumps": [
+        [
+          2.5,
+          1.0,
+          0.4,
+          5e-05
+        ],
+        [
+          -3.5,
+          -2.0,
+          0.6,
+          5e-05
+        ]
+      ]
+    }
+  },
+  "zarr_format": 3,
+  "node_type": "group"
+}

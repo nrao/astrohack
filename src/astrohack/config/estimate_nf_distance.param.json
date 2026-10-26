@@ -1,0 +1,26 @@
+{
+    "estimate_nf_distance":{
+        "holog_name":{
+            "type":["str"]
+        },
+        "distances":{
+            "type":["list", "ndarray"]
+        },
+        "focus_offset":{
+            "type":["float", "int"],
+            "nullable": true
+        },
+        "inner_radius":{
+            "type":["float", "int"],
+            "min": 0
+        },
+        "outer_radius":{
+            "type":["float", "int"],
+            "min": 1e-15
+        },
+        "converged_factor":{
+            "type":["float", "int"],
+            "min": 1
+        }
+    }
+}

@@ -120,9 +120,14 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
 
     # Current bottleneck
     if is_near_field:
-        distance, focus_offset = telescope.station_distance_dict[
-            holog_chunk_params["alma_osf_pad"] or summary["general"]["station"]
-        ]
+        distance = holog_chunk_params["nf_distance"]
+        focus_offset = holog_chunk_params["nf_focus_offset"]
+        if distance is None or focus_offset is None:
+            pad_distance, pad_focus_offset = telescope.station_distance_dict[
+                holog_chunk_params["alma_osf_pad"] or summary["general"]["station"]
+            ]
+            distance = pad_distance if distance is None else distance
+            focus_offset = pad_focus_offset if focus_offset is None else focus_offset
         aperture_grid, u_axis, v_axis, _, used_wavelength = (
             calculate_near_field_aperture(
                 grid=beam_grid,

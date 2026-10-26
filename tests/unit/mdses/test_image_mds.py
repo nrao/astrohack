@@ -126,6 +126,18 @@ class TestimageMDS:
 
         return
 
+    def test_near_field_phase_fit_export(self):
+        """Test that exporting the unlabelled phase fit results of near field data is skipped instead of failing"""
+        img_mds = open_image(self.img_name)
+        img_mds[self.ant_key][self.ddi_key].attrs["phase_fitting"] = [0.0] * 8
+        destination = f"{self.data_dir}/near_field_exports"
+        img_mds.export_phase_fit_results(
+            destination, ant=self.ant_id, ddi=self.ddi_id, parallel=False
+        )
+        assert not pathlib.Path(
+            f"{destination}/image_phase_fit_ant_{self.ant_id}_ddi_{self.ddi_id}.txt"
+        ).exists()
+
     def test_plot_exports(self):
         img_mds = open_image(self.img_name)
         methods = [

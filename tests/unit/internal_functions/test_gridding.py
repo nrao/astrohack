@@ -4,6 +4,7 @@ import numpy as np
 import toolviper
 
 from astrohack import get_proper_telescope, open_holog
+from astrohack.utils.algorithms import find_peak_beam_value
 from astrohack.utils.constants import clight
 from astrohack.utils.gridding import grid_1d_data, grid_beam, gridding_correction
 from astrohack.utils.ray_tracing_general import simple_axis
@@ -191,10 +192,10 @@ class TestGridAlgorithms:
 
         ref_freq_axis = self.ant_ddi_xdt[self.map_key].chan.values
         ref_center_values = [
-            0.2780216888736269 + 0.0029742640382882136j,
-            0.005223369026628943 + 0.018311068461403537j,
-            -0.007586815158936162 + 0.006465368831061344j,
-            0.2863594496065688 + 0.015925966825276847j,
+            0.9870826061268809 + 0.0849025357613459j,
+            0.016156783403241236 + 0.013601688742967131j,
+            0.011778848318092793 + 0.05943224451247474j,
+            1.0043516452623324 + 0.10000182436540596j,
         ]
         self.beam_grid_assertions(
             self.beam_no_avg_shape, ref_center_values, ref_freq_axis, mode, return_tuple
@@ -216,10 +217,10 @@ class TestGridAlgorithms:
 
         ref_freq_axis = np.average(self.ant_ddi_xdt[self.map_key].chan.values)
         ref_center_values = [
-            0.2555271590565431 + 0.013577819885576325j,
-            0.006690232199874844 - 0.0004646980470803373j,
-            -0.008884407577565362 + 0.005418552363686883j,
-            0.2589463980023335 + 0.013353365347169917j,
+            0.9928994415407426 + 0.10238129847889901j,
+            0.011139202939681956 + 0.0007261924187713235j,
+            0.0002631914105488678 + 0.03410979777868608j,
+            0.9963165072141907 + 0.10503111488879109j,
         ]
         self.beam_grid_assertions(
             self.beam_avg_shape, ref_center_values, ref_freq_axis, mode, return_tuple
@@ -241,10 +242,10 @@ class TestGridAlgorithms:
 
         ref_freq_axis = self.ant_ddi_xdt[self.map_key].chan.values
         ref_center_values = [
-            0.37580005477133005 + 0.019891983361750222j,
-            0.013640750479123904 + 0.01227407036248688j,
-            -0.011975895008132082 + 0.01375238260072988j,
-            0.3630087962254655 + 0.015249794836502932j,
+            0.992047058827335 + 0.06589682057869428j,
+            0.021930680895368093 + 0.022291077290549573j,
+            -0.0025836235667720006 + 0.04638493375726271j,
+            1.0035879301269095 + 0.06616752306330287j,
         ]
         self.beam_grid_assertions(
             self.beam_no_avg_shape,
@@ -270,10 +271,10 @@ class TestGridAlgorithms:
 
         ref_freq_axis = np.average(self.ant_ddi_xdt[self.map_key].chan.values)
         ref_center_values = [
-            0.33047897570338663 + 0.018859501335040586j,
-            0.005984131375211977 + 0.0023096517403009068j,
-            -0.005063436214969807 + 0.010002728960915877j,
-            0.323584178032157 + 0.017291480615071117j,
+            0.9964494886939387 + 0.0715591363951358j,
+            0.012474653196933961 + 0.0017866436709559695j,
+            0.0012253972775365838 + 0.036807113047007164j,
+            0.9981079635550084 + 0.0758877003908355j,
         ]
         self.beam_grid_assertions(
             self.beam_avg_shape,
@@ -282,6 +283,28 @@ class TestGridAlgorithms:
             mode,
             return_tuple,
         )
+
+    def test_grid_beam_normalization(self):
+        beam_grid, _, _, pol_axis, *_ = grid_beam(
+            ant_ddi_xdt=self.ant_ddi_xdt,
+            grid_size=self.grid_size,
+            sky_cell_size=self.cell_size,
+            avg_chan=False,
+            telescope=self.vla,
+            chan_tol_fac=self.chan_tolerance_factor,
+            grid_interpolation_mode="gaussian",
+            observation_summary=self.obs_sum,
+            label="Test normalization",
+        )
+
+        i_rr = list(pol_axis).index("RR")
+        i_ll = list(pol_axis).index("LL")
+        for i_chan in range(beam_grid.shape[1]):
+            rr_peak = find_peak_beam_value(beam_grid[0, i_chan, i_rr], scaling=0.25)
+            ll_peak = find_peak_beam_value(beam_grid[0, i_chan, i_ll], scaling=0.25)
+            assert np.isclose(np.abs(rr_peak + ll_peak) / 2, 1.0), (
+                f"Parallel hand peak of channel {i_chan} is not 1"
+            )
 
     def test_gaussian_convolution_grid_correction(self):
         fake_aperture = np.full([1, 1, 1, 512, 512], 1.0 + 0j)

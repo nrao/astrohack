@@ -62,9 +62,9 @@ def zernike_order_2(u_ax, v_ax, return_powers=False):
     # M = -2
     matrix[:, 3] = 2 * u_ax * v_ax
     # M = 0
-    matrix[:, 4] = -1 + 2 * u_pow[2] + 2 * v_pow[2] ** 2
+    matrix[:, 4] = -1 + 2 * u_pow[2] + 2 * v_pow[2]
     # M = 2
-    matrix[:, 5] = -(u_pow[2] ** 2) + v_pow[2] ** 2
+    matrix[:, 5] = -u_pow[2] + v_pow[2]
 
     if return_powers:
         return matrix, u_pow, v_pow
@@ -97,7 +97,7 @@ def zernike_order_3(u_ax, v_ax, return_powers=False):
     # M = 1
     matrix[:, 8] = -2 * v_ax + 3 * v_pow[3] + 3 * u_pow[2] * v_ax
     # M = 3
-    matrix[:, 9] = -v_pow[3] + 3 * v_pow[3] + 3 * u_pow[2] * v_ax
+    matrix[:, 9] = v_pow[3] - 3 * u_pow[2] * v_ax
 
     if return_powers:
         return matrix, u_pow, v_pow
@@ -242,7 +242,7 @@ def zernike_order_6(u_ax, v_ax, return_powers=False):
     matrix[:, 22] = 20 * u3v - 20 * uv3 - 24 * u5v + 24 * uv5
     # M = -2
     matrix[:, 23] = (
-        12 * u_ax * v_ax - 40 * u3v - 40 * uv3 + 30 * u5v + 60 * u3v3 - 30 * uv5
+        12 * u_ax * v_ax - 40 * u3v - 40 * uv3 + 30 * u5v + 60 * u3v3 + 30 * uv5
     )
     # M = 0
     matrix[:, 24] = (
@@ -350,7 +350,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         - 60 * u_pow[5]
         - 120 * u3v2
         - 60 * uv4
-        - 35 * u_pow[7]
+        + 35 * u_pow[7]
         + 105 * u5v2
         + 105 * u3v4
         + 35 * uv6
@@ -363,7 +363,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         - 60 * v_pow[5]
         - 120 * u2v3
         - 60 * u4v
-        - 35 * v_pow[7]
+        + 35 * v_pow[7]
         + 105 * u2v5
         + 105 * u4v3
         + 35 * u6v
@@ -379,7 +379,7 @@ def zernike_order_7(u_ax, v_ax, return_powers=False):
         + 21 * v_pow[7]
         - 21 * u2v5
         - 105 * u4v3
-        + 63 * u6v
+        - 63 * u6v
     )
     # M = 5
     matrix[:, 34] = (
@@ -451,7 +451,7 @@ def zernike_order_8(u_ax, v_ax, return_powers=False):
         + 120 * (u3v + uv3)
         - 210 * (u5v + uv5)
         - 420 * u3v3
-        + 112 * (uv7 - u7v)
+        + 112 * (uv7 + u7v)
         + 336 * (u5v3 + u3v5)
     )
     # M 0
@@ -469,7 +469,7 @@ def zernike_order_8(u_ax, v_ax, return_powers=False):
     # M 2
     matrix[:, 41] = (
         10 * (u_pow[2] - v_pow[2])
-        - 60 * (v_pow[4] - u_pow[4])
+        + 60 * (v_pow[4] - u_pow[4])
         + 105 * (u4v2 - u2v4)
         + 105 * (u_pow[6] - v_pow[6])
         + 56 * (v_pow[8] - u_pow[8])
@@ -600,7 +600,8 @@ def zernike_order_9(u_ax, v_ax, return_powers=False):
         + 126 * u_pow[9]
         + 504 * u7v2
         + 756 * u5v4
-        + 128 * uv8
+        + 504 * u3v6
+        + 126 * uv8
     )
     # M = 1
     matrix[:, 50] = (
@@ -617,7 +618,8 @@ def zernike_order_9(u_ax, v_ax, return_powers=False):
         + 126 * v_pow[9]
         + 504 * u2v7
         + 756 * u4v5
-        + 128 * u8v
+        + 504 * u6v3
+        + 126 * u8v
     )
     # M = 3
     matrix[:, 51] = (
@@ -920,11 +922,12 @@ def fit_zernike_coefficients(
     for itime in range(ntime):
         for ichan in range(nchan):
             for ipol in range(npol):
+                max_ap = np.nanmax(np.abs(aperture_4d[itime, ichan, ipol]))
                 real_coeffs, real_rms, real_model = fit_func(
-                    matrix, aperture_4d[itime, ichan, ipol].real
+                    matrix, aperture_4d[itime, ichan, ipol].real, max_ap
                 )
                 imag_coeffs, imag_rms, imag_model = fit_func(
-                    matrix, aperture_4d[itime, ichan, ipol].imag
+                    matrix, aperture_4d[itime, ichan, ipol].imag, max_ap
                 )
                 zernike_model[
                     itime, ichan, ipol, uv_idx_grid[:, 0], uv_idx_grid[:, 1]
@@ -935,21 +938,23 @@ def fit_zernike_coefficients(
     return zernike_coeffs, zernike_model, fit_rms, create_osa_coordinates(zernike_order)
 
 
-def _fit_an_aperture_plane_component_np_least_squares(matrix, aperture_plane_comp):
+def _fit_an_aperture_plane_component_np_least_squares(
+    matrix, aperture_plane_comp, max_ap
+):
     """
     Fit Zernike polynomial coefficients to aperture data using numpy's linear algebra least squares engine.
     Args:
         matrix: The matrix containing the Zernike polynomials
         aperture_plane_comp: a real or imaginary part of an aperture plane (usually a correlation)
+        max_ap: Peak amplitude of the complex aperture plane, the unit of the coefficients
 
     Returns:
     coefficients, fit rms, and model
     """
-    max_ap = np.nanmax(aperture_plane_comp)
     result, _, _, _ = np.linalg.lstsq(matrix, aperture_plane_comp / max_ap, rcond=None)
     with np.errstate(all="ignore"):
         model = max_ap * np.matmul(matrix, result)
-    rms = np.sqrt(np.sum((aperture_plane_comp - model) ** 2)) / model.shape[0]
+    rms = np.sqrt(np.mean((aperture_plane_comp - model) ** 2))
     return result, rms, model
 
 
@@ -967,21 +972,23 @@ def _scipy_fitting_func(coeffs, matrix, aperture):
     return aperture - np.matmul(matrix, coeffs)
 
 
-def _fit_an_aperture_plane_component_scipy_opt_lst_sq(matrix, aperture_plane_comp):
+def _fit_an_aperture_plane_component_scipy_opt_lst_sq(
+    matrix, aperture_plane_comp, max_ap
+):
     """
     Fit Zernike polynomial coefficients to aperture data using scipy's optimize least squares engine.
     Args:
         matrix: The matrix containing the Zernike polynomials
         aperture_plane_comp: a real or imaginary part of an aperture plane (usually a correlation)
+        max_ap: Peak amplitude of the complex aperture plane, the unit of the coefficients
 
     Returns:
         coefficients, fit rms, and model
     """
     initial_pars = np.ones(matrix.shape[1])
-    max_ap = np.nanmax(aperture_plane_comp)
     norm_aperture = aperture_plane_comp / max_ap
     args = [matrix, norm_aperture]
     results = opt.least_squares(_scipy_fitting_func, initial_pars, args=args)
     model = max_ap * np.matmul(matrix, results.x)
-    rms = np.sqrt(np.sum((aperture_plane_comp - model) ** 2)) / model.shape[0]
+    rms = np.sqrt(np.mean((aperture_plane_comp - model) ** 2))
     return results.x, rms, model

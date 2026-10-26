@@ -212,6 +212,33 @@ def calculate_near_field_aperture(
     return aperture_grid, u_axis, v_axis, aperture_cell_size, wavelength
 
 
+# Tabulated Sigma GE and GH functions of the near field holography feed
+FEED_GH_TAB = [
+    13.33004 - 0.03155j,
+    -1.27077 + 0.00656j,
+    0.38349 - 0.17755j,
+    0.78041 - 0.11238j,
+    -0.54821 + 0.16739j,
+    -0.68021 + 0.11472j,
+    1.05341 - 0.01921j,
+    -0.80119 + 0.06443j,
+    0.36258 - 0.01845j,
+    -0.07905 + 0.00515j,
+]
+FEED_GE_TAB = [
+    12.79400 + 2.27305j,
+    1.06279 - 0.56235j,
+    -1.92694 - 1.72309j,
+    1.79152 - 0.08008j,
+    0.09406 + 0.46197j,
+    -2.82441 - 1.06010j,
+    2.77077 + 1.02349j,
+    -1.74437 - 0.45956j,
+    0.62276 + 0.11504j,
+    -0.11176 + 0.01616j,
+]
+
+
 def _feed_correction(phase, u_axis, v_axis, focal_length, nk=10):
     """
     Correction to the phases due to the phase change created by the antenna feed
@@ -225,32 +252,6 @@ def _feed_correction(phase, u_axis, v_axis, focal_length, nk=10):
     Returns:
 
     """
-    # Tabulated Sigma GE and GH functions:
-    gh_tab = [
-        13.33004 - 0.03155j,
-        -1.27077 + 0.00656j,
-        0.38349 - 0.17755j,
-        0.78041 - 0.11238j,
-        -0.54821 + 0.16739j,
-        -0.68021 + 0.11472j,
-        1.05341 - 0.01921j,
-        -0.80119 + 0.06443j,
-        0.36258 - 0.01845j,
-        -0.07905 + 0.00515j,
-    ]
-    ge_tab = [
-        12.79400 + 2.27305j,
-        1.06279 - 0.56235j,
-        -1.92694 - 1.72309j,
-        1.79152 - 0.08008j,
-        0.09406 + 0.46197j,
-        -2.82441 - 1.06010j,
-        2.77077 + 1.02349j,
-        -1.74437 - 0.45956j,
-        0.62276 + 0.11504j,
-        -0.11176 + 0.01616j,
-    ]
-
     umesh, vmesh = np.meshgrid(u_axis, v_axis)
     radius2 = umesh**2 + vmesh**2
     theta2 = radius2 / 4 / focal_length**2
@@ -264,8 +265,8 @@ def _feed_correction(phase, u_axis, v_axis, focal_length, nk=10):
     for k in range(nk):
         zz_term *= z_term
         costh = zz_term.real
-        geth += ge_tab[k] * costh
-        ghth += gh_tab[k] * costh
+        geth += FEED_GE_TAB[k] * costh
+        ghth += FEED_GH_TAB[k] * costh
     phi = np.arctan2(vmesh, umesh)
     gain = geth * np.sin(phi) ** 2 + ghth * np.cos(phi) ** 2
     feed_phase = np.angle(gain)

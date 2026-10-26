@@ -91,6 +91,29 @@ instruction on how to use the plotting functions can be found on our
 `visualization tutorial
 <https://astrohack.readthedocs.io/en/stable/visualization_tutorial.html>`_.
 
+Simulating data and estimating the tower distance
+=================================================
+
+The near field corrections depend on the distance from the antenna to
+the transmitter, which holog takes from the pad, or from the parameter
+**nf_distance**. simulate_alma_nf_holog writes a holog file with the
+response of a model aperture to a transmitter at a given distance,
+and estimate_nf_distance images a holog file at trial distances and
+finds the distance at which the surface left by holog's phase fit is
+smallest. The `near field distance tutorial
+<https://astrohack.readthedocs.io/en/stable/tutorials/alma_nf_distance_tutorial.html>`_
+shows both on simulated data.
+
+.. code:: python
+
+    import numpy as np
+    from astrohack import estimate_nf_distance, simulate_alma_nf_holog
+
+    simulate_alma_nf_holog(holog_name='sim.holog.zarr', distance=278.63, overwrite=True)
+    result = estimate_nf_distance(holog_name='sim.holog.zarr',
+                                  distances=np.arange(270.0, 289.0, 2.0))
+    print(result['distance'])
+
 Caveat
 ======
 

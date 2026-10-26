@@ -1,0 +1,60 @@
+{
+    "simulate_alma_nf_holog":{
+        "holog_name":{
+            "type":["str"]
+        },
+        "distance":{
+            "type":["float", "int"],
+            "nullable": true,
+            "min": 1e-15
+        },
+        "focus_offset":{
+            "type":["float", "int"],
+            "nullable": true
+        },
+        "geometry":{
+            "type":["str"],
+            "allowed": ["rotating", "fixed"]
+        },
+        "antenna_name":{
+            "type":["str"]
+        },
+        "alma_osf_pad":{
+            "type":["str"]
+        },
+        "frequency":{
+            "type":["float", "int"],
+            "min": 1e-15
+        },
+        "map_size":{
+            "type":["float", "int"],
+            "min": 1e-15
+        },
+        "map_cell":{
+            "type":["float", "int"],
+            "min": 1e-15
+        },
+        "template_holog_name":{
+            "type":["str"],
+            "nullable": true
+        },
+        "aperture_cell":{
+            "type":["float", "int"],
+            "min": 1e-15
+        },
+        "feed_legs":{
+            "type":["boolean"]
+        },
+        "surface_bumps":{
+            "type":["list"],
+            "nullable": true
+        },
+        "overwrite":{
+            "type":["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
+        }
+    }
+}

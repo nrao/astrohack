@@ -4,11 +4,11 @@ import numpy as np
 import toolviper.utils.logger as logger
 from casacoretables import tables as ctables
 
-from astrohack import AstrohackPositionFile
 from astrohack.core.locit import (
     _build_coordinate_array,
     _filter_data_on_elevation_and_scans,
 )
+from astrohack.io.position_mds import AstrohackPositionFile
 
 
 def fringefit_locit_looping_dict(

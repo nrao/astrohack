@@ -306,7 +306,7 @@ class GlobalQPS:
         new_obj.point_cloud = xds["point_cloud"].values
         new_obj.qps_coefficients = xds["qps_coefficients"].values
 
-    def to_zarr(self, filepath):
+    def to_zarr(self, filepath, zarr_format=3):
         xds = xr.Dataset()
 
         xds.attrs = {"n_points": self.n_points}
@@ -322,7 +322,13 @@ class GlobalQPS:
             "qps": qps_axis,
         }
         xds = xds.assign_coords(coords)
-        xds.to_zarr(filepath, mode="w", compute=True, consolidated=True)
+        xds.to_zarr(
+            filepath,
+            mode="w",
+            compute=True,
+            consolidated=True,
+            zarr_format=zarr_format,
+        )
 
     def compute_gridded_z_cos(self, u_axis, v_axis, mask, light=(0, 0, 1)):
         light = np.array(light)

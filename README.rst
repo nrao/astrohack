@@ -6,10 +6,10 @@
 
 .. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml/badge.svg?branch=main
    :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml?query=branch%3Amain
-	   
+	
 .. image:: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml/badge.svg?branch=main
    :target: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml?query=branch%3Amain
-	   
+	
 
 .. image:: https://codecov.io/gh/nrao/astrohack/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/nrao/astrohack/branch/main/astrohack
@@ -56,3 +56,20 @@ holography data much faster and streamlined for the user.
 > 📝 astroHACK is under active development! Breaking API changes are
 still happening on a regular basis, so proceed with caution.
 
+Development
+-----------
+
+Commits are checked with the `pre-commit <https://pre-commit.com/>`_
+hooks in ``.pre-commit-config.yaml`` (ruff, pyupgrade, absolufy-imports
+and file hygiene checks). CI runs the same hooks on every push and pull
+request. To run them locally:
+
+.. code-block:: sh
+
+   pip install pre-commit
+   pre-commit install          # run the hooks on every git commit
+   pre-commit run --all-files  # run them on the whole repository
+
+The `development guide
+<https://astrohack.readthedocs.io/en/latest/online_pages/development.html>`_
+describes how to set up a development environment and submit changes.

@@ -28,8 +28,9 @@ use numpy/scipy/scikit-image/numba.
 src/astrohack/
 ├── __init__.py                # exports the user-facing pipeline functions
 ├── <task>.py                  # USER-FACING api: param validation + dask graph build
-│     extract_pointing, extract_holog, holog, panel, locit, extract_locit,
-│     combine, beamcut, cassegrain_ray_tracing, image_comparison_tool
+│     extract_pointing, extract_holog, extract_alma_nf_holog, holog, panel,
+│     locit, extract_locit, combine, beamcut, cassegrain_ray_tracing,
+│     image_comparison_tool
 ├── core/                      # COMPUTE: the per-chunk work the dask graph runs
 │     extract_pointing.py, extract_holog.py, extract_locit.py,  ← casacore lives here
 │     holog.py, panel.py, combine.py, beamcut.py, ...
@@ -96,6 +97,27 @@ done with **astropy** (already a core dependency; see `utils/conversion.py`,
 run inside a CASA session** (where casatools / python-casacore exist), not part
 of the installed package or the test suite. Leave them on casatools/casacore.
 
+### ASDM reading — pyasdm
+
+`extract_alma_nf_holog` converts ALMA near field holography ASDMs; the ASDM is
+read with [pyasdm](https://github.com/casangi/pyasdm) only in
+`core/extract_alma_nf_holog.py` (Holography, SpectralWindow, Antenna, Field,
+Flag, Pointing and TotalPower tables).
+
+- pyasdm (0.0.7, 0.0.8) converts the midpoint of a **binary** ArrayTimeInterval
+  to its start as `(midpoint - duration) / 2`, which halves the Pointing times
+  (casangi/pyasdm#46). `_get_pnt_from_asdm` therefore reads the Pointing table
+  with `ArrayTimeInterval.setReadStartTimeDurationInBin(True)` (restored
+  afterwards) and subtracts half the duration itself, unless pyasdm's flag says
+  the ASDM stores start times (`startTimeDurationInBin` in ASDM.xml; the flag
+  is global and never reset, casangi/pyasdm#49). The XML tables are not
+  affected.
+- The output is one antenna, DDI and map with `near_field=True` and the
+  polarization axis `["I", "R2"]`: `holog` needs `to_stokes=False`.
+- The unit tests download the ASDM `uid___A002_Xad52b4_X3`, which is not in
+  the ToolVIPER registry yet (casangi/toolviper#80). To run them before that,
+  copy the ASDM into the test's data folder: `download()` skips existing files.
+
 ---
 
 ## 4. Build / install / environment
@@ -106,21 +128,38 @@ casacoretables and the scientific stack installed.
 ```bash
 conda activate zinc
 cd astrohack
-pip install -e .          # setuptools src-layout; deps incl. casacoretables, toolviper, dask, numba, astropy, zarr<3
+pip install -e .          # setuptools src-layout; deps incl. casacoretables, toolviper, dask, numba, astropy, zarr>=3
 ```
 
 Packaging notes / pre-existing quirks (not introduced by the casacore work):
 - No `[build-system]` table in `pyproject.toml` → setuptools default backend.
 - `python` 3.12–3.14 (`requires-python >= 3.12, < 3.15`, issue #388).
-- `zarr<3.0.0` is pinned deliberately (zarr 3 migration: issue #300), and
-  therefore `xarray<2026.9.0` (xarray 2026.9 dropped zarr-python 2 support).
-  numpy is not pinned: numba sets its own supported numpy range.
-- zarr 2 needs `numcodecs<0.16`, which has no cp314 wheels, so on Python 3.14
-  pip builds numcodecs 0.15.1 from source (needs GCC <= 14 or
-  `CFLAGS=-std=gnu17`; GCC 15 defaults to C23).
+- zarr-python 3 (`zarr>=3.0.0`, issue #300); xarray and numpy are not pinned
+  (numba sets its own supported numpy range).
+
+**Zarr formats.** Every function that writes a zarr file takes
+`zarr_format` (2 or 3, default 3). Format 2 files — the downloaded unit-test
+reference data and the packaged telescopes in `src/astrohack/data/` — are read
+as before. An mds object keeps the format of its file: `open()` reads it from
+the store and `create_from_input_parameters(..., zarr_format)` sets it, and
+`write`, `add_node` and `consolidate` use it, so a store never mixes formats
+(e.g. `extract_holog(append=True)` on a format 2 file stays format 2).
+Consolidated metadata is written for both formats; `astrohack/__init__.py`
+filters zarr's warning that format 3 does not specify it yet.
 
 For quick iteration without installing, `PYTHONPATH=src python -m pytest …`
 works (the package imports cleanly from `src/`).
+
+**Lint/format: pre-commit.** `.pre-commit-config.yaml` is xradio's: hygiene
+checks, pyupgrade (`--py311-plus`; v2.38.2 has no 3.12 flag, ruff's `UP` rules
+cover it), absolufy-imports, and ruff 0.16.10 check + format (config in
+`ruff.toml`). `.github/workflows/pre-commit.yml` runs the same hooks on every
+push and PR. Run them before committing:
+
+```bash
+pip install pre-commit && pre-commit install   # hooks on every git commit
+pre-commit run --all-files
+```
 
 ---
 
@@ -171,6 +210,10 @@ template's separate python-casacore install step is no longer needed.
   `utils/constants.py`) hold the hot loops (e.g. `_extract_holog_chunk_jit`).
   Type changes to the arrays they receive can trigger recompiles or reflected-
   list warnings.
+- **No `from astrohack import X` inside the package.** `__init__.py` imports
+  are absolute and ruff-sorted, so a module it imports cannot rely on another
+  name already being bound in the package namespace (circular import). Import
+  from the defining module, e.g. `from astrohack.io.position_mds import ...`.
 
 ---
 
@@ -190,6 +233,9 @@ PYTHONPATH=src python -m pytest tests/unit/user_facing_functions/test_extract_po
 
 # full unit suite
 PYTHONPATH=src python -m pytest tests/unit -q
+
+# lint/format (same hooks as CI)
+pre-commit run --all-files
 ```
 
 Sibling package using the same backend: **xradio**

@@ -57,16 +57,23 @@ def open_rt_zarr(zarr_filename):
         logger.error(f"There was an exception opening {zarr_filename}: {error}")
 
 
-def write_rt_xds_to_zarr(rt_xds, zarr_filename, overwrite):
+def write_rt_xds_to_zarr(rt_xds, zarr_filename, overwrite, zarr_format=3):
     """
     Write a Xarray dataset containing the results of a run of the Ray Tracing pipeline to disk
     Args:
         rt_xds: Xarray dataset containing the results of a run of the Ray Tracing pipeline
         zarr_filename: Name of the Zarr file containing the RT data
         overwrite: Overwrite file if it already exists?
+        zarr_format: Zarr format of the file, 2 or 3
     """
     overwrite_file(zarr_filename, overwrite)
-    rt_xds.to_zarr(zarr_filename, mode="w", compute=True, consolidated=True)
+    rt_xds.to_zarr(
+        zarr_filename,
+        mode="w",
+        compute=True,
+        consolidated=True,
+        zarr_format=zarr_format,
+    )
 
 
 ######################################################################

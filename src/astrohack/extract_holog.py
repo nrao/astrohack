@@ -33,6 +33,7 @@ def extract_holog(
     parallel: bool = False,
     overwrite: bool = False,
     append: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackHologFile | None:
     """
     Extract holography and optionally pointing data, from measurement set. Creates holography output file.
@@ -99,6 +100,10 @@ def extract_holog(
     defaults to False.
     :type append: bool, optional
 
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3. When appending, the format of the \
+    existing file is kept.
+    :type zarr_format: int, optional
+
     :return: Holography holog object.
     :rtype: AstrohackHologFile
 
@@ -111,7 +116,7 @@ def extract_holog(
     each file. An outline of the holog object structure is show below:
 
     .. parsed-literal::
-        holog_mds = 
+        holog_mds =
         {
             ddi_0:{
                 map_0:{
@@ -151,32 +156,32 @@ def extract_holog(
 
         **holog_obs_dict[holog_mapping_id] (dict):** *holog_mapping_id* is a unique, arbitrary, user-defined integer
         assigned to the data that describes a single complete mapping of the beam.
-        
+
         .. rubric:: This is needed for two reasons:
-        * A complete mapping of the beam can be done over more than one scan (for example the VLA data). 
+        * A complete mapping of the beam can be done over more than one scan (for example the VLA data).
         * A measurement set can contain more than one mapping of the beam (for example the ALMA data).
-    
+
         **holog_obs_dict[holog_mapping_id][scans] (int | numpy.ndarray | list):**
         All the scans in the measurement set the *holog_mapping_id*.
-    
+
         **holog_obs_dict[holog_mapping_id][ant] (dict):** The dictionary keys are the mapping antenna names and the
         values a list of the reference antennas. See example below.
 
         The below example shows how the *holog_obs_description* dictionary should be laid out. For each
         *holog_mapping_id* the relevant scans and antennas must be provided. For the `ant` key, an entry is required
         for each mapping antenna and the accompanying reference antenna(s).
-    
+
         .. parsed-literal::
             holog_obs_description = {
                 'map_0' :{
                     'scans':[2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22],
                     'ant':{
                         'DA44':[
-                            'DV02', 'DV03', 'DV04', 
-                            'DV11', 'DV12', 'DV13', 
-                            'DV14', 'DV15', 'DV16', 
-                            'DV17', 'DV18', 'DV19', 
-                            'DV20', 'DV21', 'DV22', 
+                            'DV02', 'DV03', 'DV04',
+                            'DV11', 'DV12', 'DV13',
+                            'DV14', 'DV15', 'DV16',
+                            'DV17', 'DV18', 'DV19',
+                            'DV20', 'DV21', 'DV22',
                             'DV23', 'DV24', 'DV25'
                         ]
                     }
@@ -215,7 +220,7 @@ def extract_holog(
             extract_holog_params["holog_name"], extract_holog_params["overwrite"]
         )
         holog_mds = AstrohackHologFile.create_from_input_parameters(
-            holog_name, extract_holog_params.copy()
+            holog_name, extract_holog_params.copy(), zarr_format
         )
 
     extract_holog_params["pnt_mds"] = pnt_mds

@@ -79,11 +79,12 @@ class Telescope:
         dest_path = get_astrohack_path() / f"data/telescopes/{name.lower()}.zarr"
         self.read(dest_path)
 
-    def write(self, filename):
+    def write(self, filename, zarr_format=3):
         """
         Write the telescope object to an X array .zarr telescope configuration file
         Args:
             filename: Name of the output file
+            zarr_format: Zarr format of the output file, 2 or 3
         """
         obj_dict = vars(self)
         for key in self.excluded_keys:
@@ -99,15 +100,21 @@ class Telescope:
 
         xds.attrs = obj_dict
         logger.debug("Writing telescope data to: filename")
-        xds.to_zarr(filename, mode="w", compute=True, consolidated=True)
+        xds.to_zarr(
+            filename,
+            mode="w",
+            compute=True,
+            consolidated=True,
+            zarr_format=zarr_format,
+        )
         return
 
-    def write_to_distro(self):
+    def write_to_distro(self, zarr_format=3):
         dest_path = (
             get_astrohack_path()
             / f"data/telescopes/{self.name.lower().replace(spc, undscr)}.zarr"
         )
-        self.write(dest_path)
+        self.write(dest_path, zarr_format)
 
     def __repr__(self):
         """

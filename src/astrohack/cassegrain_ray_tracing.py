@@ -114,6 +114,7 @@ def cassegrain_ray_tracing_pipeline(
     observing_wavelength: float | int = 1,
     wavelength_unit: str = "cm",
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """Execute the cassegrain ray tracing pipeline to determine phase effects caused by optical mis-alignments.
 
@@ -134,22 +135,22 @@ def cassegrain_ray_tracing_pipeline(
 
     :param x_pointing_offset: X Pointing offset in pointing_offset_unit.
     :type x_pointing_offset: float, int, optional
-    
+
     :param y_pointing_offset: Y Pointing offset in pointing_offset_unit.
     :type y_pointing_offset: float, int, optional
-    
+
     :param pointing_offset_unit: Angle unit for pointing offsets, default is "asec".
     :type pointing_offset_unit: str, optional
-    
+
     :param x_focus_offset: X offset of the secondary in focus_offset_unit.
     :type x_focus_offset: float, int, optional
-    
+
     :param y_focus_offset: Y offset of the secondary in focus_offset_unit.
     :type y_focus_offset: float, int, optional
-    
+
     :param z_focus_offset: Z offset of the secondary in focus_offset_unit, what is usually refered to as simply focus.
     :type z_focus_offset: float, int, optional
-    
+
     :param focus_offset_unit: Length unit for focus offsets, default is "mm".
     :type focus_offset_unit: str, optional
 
@@ -167,6 +168,9 @@ def cassegrain_ray_tracing_pipeline(
 
     :param overwrite: Overwrite rt_xds file on disk, default is False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: X array dataset object with the results from the ray tracing.
     :rtype: xr.Dataset
@@ -233,7 +237,7 @@ def cassegrain_ray_tracing_pipeline(
 
     rt_xds.attrs["input_parameters"] = input_pars
 
-    write_rt_xds_to_zarr(rt_xds, output_xds_filename, overwrite)
+    write_rt_xds_to_zarr(rt_xds, output_xds_filename, overwrite, zarr_format)
     return rt_xds
 
 

@@ -29,6 +29,7 @@ def holog(
     to_stokes: bool = True,
     overwrite: bool = False,
     parallel: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackImageFile | None:
     """ Process holography data and derive aperture illumination pattern.
 
@@ -97,9 +98,9 @@ def holog(
 
         Available phase fit controls:
 
-        - [0]: pointing offset; 
-        - [1]: focus xy offsets; 
-        - [2]: focus z offset; 
+        - [0]: pointing offset;
+        - [1]: focus xy offsets;
+        - [2]: focus z offset;
         - [3]: subreflector tilt (off by default except for VLA and VLBA)
         - [4]: cassegrain offset
 
@@ -111,9 +112,12 @@ def holog(
     :param overwrite: Overwrite existing files on disk, defaults to False
     :type overwrite: bool, optional
 
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
+
     :return: Holography image object.
     :rtype: AstrohackImageFile
-    
+
     .. _Description:
     **AstrohackImageFile**
 
@@ -122,11 +126,11 @@ def holog(
       An outline of the image object structure is show below:
 
     .. parsed-literal::
-        image_mds = 
+        image_mds =
             {
             ant_0:{
                 ddi_0: image_ds,
-                 ⋮               
+                 ⋮
                 ddi_m: image_ds
             },
             ⋮
@@ -134,13 +138,13 @@ def holog(
         }
 
     **Example Usage**
-    
+
     .. parsed-literal::
         from astrohack.holog import holog
 
         holog(
-            holog_name="astrohack_observation.holog.zarr", 
-            padding_factor=50, 
+            holog_name="astrohack_observation.holog.zarr",
+            padding_factor=50,
             grid_interpolation_mode='linear',
             chan_average = True,
             scan_average = True,
@@ -160,7 +164,7 @@ def holog(
 
     overwrite_file(image_name, overwrite)
     image_mds = AstrohackImageFile.create_from_input_parameters(
-        image_name, holog_params
+        image_name, holog_params, zarr_format
     )
 
     executed_graph = create_and_execute_graph_from_dict(

@@ -1,9 +1,9 @@
-import filecmp
 import os
 import shutil
 
 import numpy as np
 import pytest
+import zarr
 from shapely.geometry.polygon import Polygon
 
 from astrohack.antenna.ring_panel import RingPanel
@@ -75,9 +75,9 @@ class TestClassTelescope:
         assert os.path.exists(testfile), (
             "Telescope configuration file not created at the proper location"
         )
+        ref_attrs = zarr.open_group(tel.file_path + "/vlba.zarr", mode="r").attrs
         assert (
-            filecmp.cmp(tel.file_path + "/vlba.zarr/.zattrs", testfile + "/.zattrs")
-            == 0
+            zarr.open_group(testfile, mode="r").attrs.asdict() != ref_attrs.asdict()
         ), "Telescope configuration file is not equal to the reference"
         shutil.rmtree(testfile)
 

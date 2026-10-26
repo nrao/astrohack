@@ -2,8 +2,9 @@
 
 ## General
 
+
 - Antenna tapering
-  
+
   - There was previous an error on how beam tapering values were
     presented, there was a factor 2 missing caused by the fact that we
     are dealing with the beam power, this has now been fixed.
@@ -20,23 +21,23 @@
     to the pipelines.
 	
 - Branch changes
-  
+
   - The `main` branch of AstroHACK has been renamed `stable`.
-  
+
   - The `astrohack-dev` branch of AstroHACK has been renamed `main`.
-  
+
   - These name changes have been done so that AstroHACK more closely
     aligns with the rest of the RADPS projects.
 	
 ## Beam cuts
 
-  
+
 - `beamcut` now assumes that the brightest peak is the PB even when
   its identification is not 100% certain.
-  
+
 - Improved labelling of beam cuts in plots and other export
   products.
-  
+
 - Enriched the subtitle for each plot by adding the expected PB
   FWHM.
 
@@ -45,9 +46,9 @@
 
 
 - Scan awareness
-  
+
   - `locit_mds` and `position_mds` now carry scan information.
-  
+
   - Added parameter to exclude problematic scans in both `locit` and
     `fringefit_locit`.
 	
@@ -56,10 +57,10 @@
 	
   - The `baseline-reduction-pipeline` now has a parameter to exclude
     the bad scans.
-  
-  
+
+
 - Factorization
-  
+
   - Common code blocks in `locit` have been group together in a single
     processing function.
 	

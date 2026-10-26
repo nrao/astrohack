@@ -315,6 +315,16 @@ def process_extract_holog_chunk(
     pnt_map_dict = _extract_pointing_chunk(
         map_ant_name_list, time_vis, pnt_mds, pointing_interpolation_method
     )
+    _drop_moving_time_samples(
+        used_samples_dict,
+        map_ant_tuple,
+        map_ant_name_list,
+        time_vis,
+        time_interval,
+        pnt_mds,
+        gen_info["telescope name"],
+        chan_freq,
+    )
 
     grid_params = {}
 
@@ -706,6 +716,65 @@ def _extract_pointing_chunk(
         new_pnt_xds.attrs = pnt_xds.attrs
         pnt_map_dict[antenna] = new_pnt_xds
     return pnt_map_dict
+
+
+def _drop_moving_time_samples(
+    used_samples_dict,
+    map_ant_tuple,
+    map_ant_name_list,
+    time_vis,
+    time_interval,
+    pnt_mds,
+    telescope_name,
+    chan_freq,
+):
+    """Drop the time samples during which a mapping antenna's pointing moves by more than lambda/D
+
+    The pointing at the start, the centre and the end of each time sample is interpolated from the pointing data, and
+    a sample is dropped when two of these positions differ by more than lambda/D. Such a sample has no position the
+    antenna held, as when it spans the end of a scan row and the slew that follows, or a jump in the pointing data.
+
+    Args:
+        used_samples_dict (dict): valid time samples per mapping antenna id, updated in place
+        map_ant_tuple (tuple): mapping antenna ids
+        map_ant_name_list (list): mapping antenna names, in the order of map_ant_tuple
+        time_vis (numpy.ndarray): centres of the time samples
+        time_interval (float): length of the time samples
+        pnt_mds (dict): pointing datasets per antenna name
+        telescope_name (str): telescope name
+        chan_freq (numpy.ndarray): channel frequencies
+    """
+    half_int = time_interval / 2
+    wavelength = clight / np.max(chan_freq)
+    for ant_id, ant_name in zip(map_ant_tuple, map_ant_name_list):
+        pnt_xds = pnt_mds[ant_name]
+        pnt_time = pnt_xds.time.values
+        lm = pnt_xds["DIRECTIONAL_COSINES"].values
+        positions = [
+            np.stack(
+                [
+                    np.interp(time_vis + offset, pnt_time, lm[:, axis])
+                    for axis in range(2)
+                ],
+                axis=1,
+            )
+            for offset in (-half_int, 0.0, half_int)
+        ]
+        spread = np.max(
+            [
+                np.hypot(*(positions[i_pos] - positions[j_pos]).T)
+                for i_pos, j_pos in ((0, 1), (1, 2), (0, 2))
+            ],
+            axis=0,
+        )
+        diameter = get_proper_telescope(telescope_name, ant_name).diameter
+        moving = spread > wavelength / diameter
+        n_dropped = np.sum(moving & used_samples_dict[ant_id])
+        if n_dropped > 0:
+            logger.info(
+                f"{ant_name}: dropping {n_dropped} time samples during which the pointing moves by more than lambda/D"
+            )
+        used_samples_dict[ant_id] = used_samples_dict[ant_id] & ~moving
 
 
 @njit(cache=njit_caching, nogil=True)

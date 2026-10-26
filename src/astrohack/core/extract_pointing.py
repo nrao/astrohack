@@ -3,11 +3,11 @@ import os
 import numpy as np
 import toolviper.utils.logger as logger
 import xarray as xr
-from casacoretables import tables as ctables
 from numba import njit
 from numba.core import types
 from numba.typed import Dict
 from scipy import spatial
+from xradio._utils._casacore.backend import tables as ctables
 
 from astrohack.io.point_mds import AstrohackPointFile
 from astrohack.utils.algorithms import (
@@ -42,8 +42,8 @@ def extract_pointing_preprocessing(input_params):
     )
 
     antenna_positions = ctb.getcol("POSITION").tolist()
-    antenna_stations = ctb.getcol("STATION")
-    antenna_names = ctb.getcol("NAME")
+    antenna_stations = ctb.getcol("STATION").tolist()
+    antenna_names = ctb.getcol("NAME").tolist()
     ctb.close()
 
     antenna_ids = np.arange(len(antenna_names))
@@ -69,7 +69,7 @@ def extract_pointing_preprocessing(input_params):
         ack=False,
     )
     # scan intent (with subscan intent) is stored in the OBS_MODE column of the STATE sub-table.
-    obs_modes = ctb.getcol("OBS_MODE")
+    obs_modes = ctb.getcol("OBS_MODE").tolist()
     ctb.close()
 
     obs_ctb = ctables.table(
@@ -159,7 +159,7 @@ def extract_pointing_chunk(pnt_params: dict, output_mds: AstrohackPointFile):
         direction = direction[:, 0, :]
         target = target[:, 0, :]
         pointing_offset = pointing_offset[:, 0, :]
-    except IndexError or RuntimeError:
+    except (IndexError, RuntimeError):
         warn_msg = f"Skipping {ant_name}, no valid pointing info"
         logger.warning(warn_msg)
         return

@@ -18,10 +18,10 @@ an environment:
    $ conda activate astrohack
 
 Astrohack reads MeasurementSets and CASA calibration tables through
-`casacoretables <https://github.com/nrao/casacoretables>`_, a self-contained
-build of casacore's table system that is installed automatically as a
-dependency on both Linux and macOS. No separate ``python-casacore`` install is
-required (this used to be a manual step on macOS, and is no longer needed).
+`arcae <https://github.com/ska-sa/arcae>`_, by way of
+`XRADIO <https://github.com/casangi/xradio>`_. arcae ships self-contained
+wheels for Linux and macOS and is installed automatically as a dependency. No
+separate ``python-casacore`` install is required.
 
 Astrohack is not yet available for download directly from conda-forge,
 therefore we suggest to install AstroHACK by using pip:
@@ -75,10 +75,9 @@ If you are required to follow a specific development branch, there is one extra 
 Installation inside CASA
 ########################
 
-Astrohack can now be installed inside CASA! this is possible due to a new
-python package (`casacoretables <https://pypi.org/project/casacoretables/>`_)
-that reimplements the access to CASA tables so that they can be accessed
-inside a CASA environment without conflicts with CASA.
+Astrohack can be installed inside CASA. Its CASA table access
+(`arcae <https://pypi.org/project/arcae/>`_) keeps its copy of casacore
+private, so it works inside a CASA environment without conflicts with CASA.
 
 For installation inside CASA to work it is required that the CASA version
 being used is based on python 3.12 (CASA version >= 6.7). The installation can then be done as is described above, but remembering to execute the pip commands inside casa, regular pip install:

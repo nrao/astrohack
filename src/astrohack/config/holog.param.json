@@ -38,6 +38,15 @@
             "type": ["str"],
             "nullable": true
         },
+        "nf_distance": {
+            "type": ["float", "int"],
+            "nullable": true,
+            "min": 1e-15
+        },
+        "nf_focus_offset": {
+            "type": ["float", "int"],
+            "nullable": true
+        },
         "ant":{
             "type":["list", "str"],
             "struct type": ["str"],

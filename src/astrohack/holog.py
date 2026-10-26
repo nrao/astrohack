@@ -21,6 +21,8 @@ def holog(
     chan_tolerance_factor: float = 0.005,
     scan_average: bool = True,
     alma_osf_pad: str | None = None,
+    nf_distance: float | None = None,
+    nf_focus_offset: float | None = None,
     ant: str | list[str] = "all",
     ddi: str | int | list[int] = "all",
     zernike_n_order: int = 4,
@@ -78,6 +80,14 @@ def holog(
     :param alma_osf_pad: Pad on which the antenna was poitioned at the ALMA OSF (only relevant for ALMA near field \
     holographies), defaults to the antenna's station in the holog file.
     :type alma_osf_pad: str, optional
+
+    :param nf_distance: Distance in meters from the antenna to the near field transmitter, overrides the distance of \
+    the pad, defaults to the distance tabulated for the pad.
+    :type nf_distance: float, optional
+
+    :param nf_focus_offset: Axial offset in meters of the near field holography receiver from the focus, overrides \
+    the offset of the pad, defaults to the offset tabulated for the pad.
+    :type nf_focus_offset: float, optional
 
     :param ant: List of antennas/antenna to be processed, defaults to "all" when None, ex. ea25
     :type ant: list or str, optional

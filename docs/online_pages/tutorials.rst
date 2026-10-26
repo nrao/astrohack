@@ -11,3 +11,4 @@ Below is the list of available astrohack tutorials
    ../tutorials/holography_visualization_tutorial
    ../tutorials/locit_tutorial
    ../tutorials/cassegrain_ray_tracing_tutorial
+   ../tutorials/alma_nf_distance_tutorial

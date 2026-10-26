@@ -387,6 +387,8 @@ def grid_1d_data(
                 new_y_data, weights = _gaussian_convolution_1d_jit(
                     dest_ax, orig_ax, dest_delta, y_data
                 )
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    new_y_data /= weights[np.newaxis, :, np.newaxis]
             else:
                 logger.warning("Fallback to gaussian convolution is off.")
         else:

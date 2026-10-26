@@ -342,6 +342,25 @@ class TestGridAlgorithms:
 
         self.resample_nan_count(method, True, 0)
 
+    def test_1d_linear_gridding_gaussian_fallback(self):
+        """Test that the Gaussian fallback of linear resampling returns normalized values"""
+        orig_x_axis = np.arange(0, 1000, 0.05)
+        orig_x_axis[5000:] += 0.34
+        resampled = grid_1d_data(
+            self.dest_x_under,
+            orig_x_axis,
+            self.orig_y_data,
+            "linear",
+            "test origin",
+            "test under",
+            gaussian_fallback=True,
+            return_weights=False,
+            second_dim_len=1,
+        )
+        assert np.allclose(resampled, self.fill_value), (
+            "Gaussian fallback does not preserve a constant"
+        )
+
     def test_1d_gaussian_gridding(self):
         method = "gaussian"
         ref_weights = [0.00390625, 0.0078125, 1.0, 1.0]

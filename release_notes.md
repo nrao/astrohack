@@ -1,3 +1,91 @@
+# v1.2.0
+
+## General
+
+- Antenna tapering
+  
+  - There was previous an error on how beam tapering values were
+    presented, there was a factor 2 missing caused by the fact that we
+    are dealing with the beam power, this has now been fixed.
+	
+- Python versions
+
+  - To keep AstroHACK up to date with the rest of the VIPER code base
+    in this release we are dropping python 3.11 and adding support to
+    Python 3.14.
+	
+- Documentation changes
+
+  - Several pages have been updated to reflect the changes, specially
+    to the pipelines.
+	
+- Branch changes
+  
+  - The `main` branch of AstroHACK has been renamed `stable`.
+  
+  - The `astrohack-dev` branch of AstroHACK has been renamed `main`.
+  
+  - These name changes have been done so that AstroHACK more closely
+    aligns with the rest of the RADPS projects.
+	
+## Beam cuts
+
+  
+- `beamcut` now assumes that the brightest peak is the PB even when
+  its identification is not 100% certain.
+  
+- Improved labelling of beam cuts in plots and other export
+  products.
+  
+- Enriched the subtitle for each plot by adding the expected PB
+  FWHM.
+
+
+## Antenna position corrections
+
+
+- Scan awareness
+  
+  - `locit_mds` and `position_mds` now carry scan information.
+  
+  - Added parameter to exclude problematic scans in both `locit` and
+    `fringefit_locit`.
+	
+  - Delay plots now single out scans so that the user can decide if a
+    removal is warranted.
+	
+  - The `baseline-reduction-pipeline` now has a parameter to exclude
+    the bad scans.
+  
+  
+- Factorization
+  
+  - Common code blocks in `locit` have been group together in a single
+    processing function.
+	
+  - re-wrote code for Hour angle and elevation calculations so that
+    `locit` and `fringefit_locit` use the same code base. This has
+    been re-writting fully using astropy to avoid a incoherence
+    between the 2 locits and an error that appeared in the elevation
+    calculation in `locit`.
+	
+	
+## Holography
+
+- `holography-reduction-pipeline`
+
+  - This release is the first public release of the holography
+    reduction pipeline.
+	
+  - This pipeline is intedended to cover the day to day holography
+    necessities of the VLA and to help the commissioning of the ngVLA
+    antenna prototype.
+	
+  - This pipeline shares a lot of its parameters with the baseline
+    reduction pipeline due to the similar calibration and processing
+    paths.
+
+
 # v1.1.0
 
 ## General:

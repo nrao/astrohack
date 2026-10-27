@@ -353,7 +353,7 @@ def calculate_optimal_grid_parameters(
     )
 
     try:
-        n_pix = np.ceil(data_range / cell_size)
+        n_pix = 2 * np.floor(data_range / (2 * cell_size)) + 1
 
     except ZeroDivisionError:
         logger.error(

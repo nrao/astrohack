@@ -104,19 +104,24 @@ class TestHologMDS:
             return
 
         plot_name = "holog_diagnostics_ant_ea25_ddi_0_map_0.png"
-        assert are_png_files_close(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{plot_name}",
             f"{self.ref_products_name}/{plot_name}",
-        ), "Calibration diagnostics plot is different from reference"
+        )
+        assert equal, f"{msg}: Calibration diagnostics plot is different from reference"
 
         plot_name = "holog_directional_cosines_ant_ea25_ddi_0_map_0.png"
-        assert are_png_files_close(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{plot_name}",
             f"{self.ref_products_name}/{plot_name}",
-        ), "Directional_cosines plot is different from reference"
+        )
+        assert equal, f"{msg}: Directional_cosines plot is different from reference"
 
         plot_name = "holog_directional_cosines_RR_ant_ea25_ddi_0_map_0.png"
-        assert are_png_files_close(
+        equal, msg = are_png_files_close(
             f"{self.destination_folder}/{plot_name}",
             f"{self.ref_products_name}/{plot_name}",
-        ), "Correlation vs Directional cosines plot is different from reference"
+        )
+        assert equal, (
+            f"{msg}: Correlation vs Directional cosines plot is different from reference"
+        )

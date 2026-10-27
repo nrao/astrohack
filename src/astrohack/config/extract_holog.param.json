@@ -47,6 +47,9 @@
             "nullable": false,
             "allowed": ["linear", "gaussian"]
         },
+        "boresight_calibration":{
+            "type":["boolean"]
+        },
         "parallel":{
             "type":["boolean"]
         },

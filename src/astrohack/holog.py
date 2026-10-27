@@ -17,6 +17,7 @@ def holog(
     cell_size: float | int | np.ndarray | list[int] | None = None,
     padding_factor: int = 10,
     grid_interpolation_mode: str = "gaussian",
+    transform: str = "fft",
     chan_average: bool = True,
     chan_tolerance_factor: float = 0.005,
     scan_average: bool = True,
@@ -65,6 +66,12 @@ def holog(
     primary beam main lobe at the given frequency, this is slower than `scipy.interpolate.griddata` but better at\
     preserving the small scales variations in the beam. Defaults to "gaussian".
     :type grid_interpolation_mode: str, optional. Available options: {"gaussian", "linear", "nearest", "cubic"}
+
+    :param transform: How far-field apertures are computed from the visibilities. 'fft' transforms the gridded beam \
+    with an FFT. 'direct' transforms the visibilities directly onto the same aperture axes, as AIPS HOLOG does with \
+    BPARM(6) = 2, without gridding or gridding correction; the beam images are still gridded. Near-field data always \
+    use the FFT. Defaults to "fft".
+    :type transform: str, optional. Available options: {"fft", "direct"}
 
     :param chan_average: Boolean dictating whether the channel average is computed and written to the output holog \
     file., defaults to True

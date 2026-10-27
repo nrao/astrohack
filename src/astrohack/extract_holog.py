@@ -30,6 +30,7 @@ def extract_holog(
     data_column: str = "CORRECTED_DATA",
     time_smoothing_interval: float | int | None = None,
     pointing_interpolation_method: str = "linear",
+    boresight_calibration: bool = True,
     parallel: bool = False,
     overwrite: bool = False,
     append: bool = False,
@@ -89,6 +90,11 @@ def extract_holog(
     :param pointing_interpolation_method: Determines which algorithm to use to interpolate pointing in time, two \
     options are available: 'linear' (Faster but brittle) and 'gaussian' (slower but robust), default is 'linear'.
     :type pointing_interpolation_method: str, optional
+
+    :param boresight_calibration: Divide the visibilities of each mapping baseline by its complex gain on the \
+    boresight (REFERENCE) dwells of the map, interpolated in time, before the baselines are averaged. Data without \
+    such dwells, such as VLA data, are not changed. Defaults to True.
+    :type boresight_calibration: bool, optional
 
     :param parallel: Boolean for whether to process in parallel, defaults to False.
     :type parallel: bool, optional

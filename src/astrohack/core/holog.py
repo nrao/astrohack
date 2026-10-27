@@ -11,6 +11,7 @@ from astrohack.utils.conversion import convert_5d_grid_to_stokes
 from astrohack.utils.gridding import grid_beam
 from astrohack.utils.imaging import (
     calculate_far_field_aperture,
+    calculate_far_field_aperture_direct,
     calculate_near_field_aperture,
     parallactic_derotation,
 )
@@ -98,6 +99,7 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
         m_axis,
         grid_corr,
         summary,
+        beam_normalization,
     ) = grid_beam(
         ant_ddi_xdt=ant_ddi_xdt,
         grid_size=grid_size,
@@ -120,6 +122,10 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
 
     # Current bottleneck
     if is_near_field:
+        if holog_chunk_params["transform"] == "direct":
+            logger.warning(
+                f"{label}: The direct transform is for far-field data, using the near-field FFT"
+            )
         distance = holog_chunk_params["nf_distance"]
         focus_offset = holog_chunk_params["nf_focus_offset"]
         if distance is None or focus_offset is None:
@@ -154,6 +160,20 @@ def process_holog_chunk(holog_chunk_params: dict, output_mds: AstrohackImageFile
                 label=label,
             )
         )
+        if holog_chunk_params["transform"] == "direct":
+            aperture_grid = calculate_far_field_aperture_direct(
+                ant_ddi_xdt=ant_ddi_xdt,
+                beam_normalization=beam_normalization,
+                u_axis=u_axis,
+                v_axis=v_axis,
+                wavelength=used_wavelength,
+                avg_chan=holog_chunk_params["chan_average"],
+                chan_tol_fac=holog_chunk_params["chan_tolerance_factor"],
+                n_beam_cells=int(np.prod(grid_size)),
+                label=label,
+            )
+            if holog_chunk_params["scan_average"]:
+                aperture_grid = np.mean(aperture_grid, axis=0)[None, ...]
     zernike_n_order = holog_chunk_params["zernike_n_order"]
     zernike_coeffs, zernike_model, zernike_rms, osa_coeff_list = (
         fit_zernike_coefficients(

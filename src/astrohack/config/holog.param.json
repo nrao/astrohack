@@ -24,6 +24,10 @@
             "type":["str"],
             "allowed": ["linear", "nearest", "cubic", "gaussian"]
         },
+        "transform":{
+            "type":["str"],
+            "allowed": ["fft", "direct"]
+        },
         "chan_average":{
             "type":["boolean"]
         },

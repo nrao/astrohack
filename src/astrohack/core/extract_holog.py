@@ -73,6 +73,9 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
     ctb.close()
 
     state_ids = get_valid_state_ids(obs_modes)
+    boresight_state_ids = get_valid_state_ids(
+        obs_modes, desired_intent="MAP_ANTENNA_SURFACE#REFERENCE", excluded_intents=()
+    )
 
     spw_ctb = ctables.table(
         os.path.join(extract_holog_params["ms_name"], "SPECTRAL_WINDOW"),
@@ -181,6 +184,7 @@ def extract_holog_preprocessing(extract_holog_params, pnt_mds):
                     "ant_stations": ant_stations,
                     "scans": scans,
                     "sel_state_ids": state_ids,
+                    "boresight_state_ids": boresight_state_ids,
                     "ant_names": ant_names,
                     "chan_setup": chan_setup,
                     "pol_setup": pol_setup,
@@ -279,6 +283,23 @@ def process_extract_holog_chunk(
         time_interval = np.median(np.diff(np.unique(time_vis_row)))
 
     ctb.close()
+    boresight_state_ids = inp_data_dict["boresight_state_ids"]
+    if extract_holog_params["boresight_calibration"] and boresight_state_ids:
+        vis_data = _apply_boresight_calibration(
+            table_obj,
+            data_column,
+            ddi_id,
+            scans,
+            boresight_state_ids,
+            vis_data,
+            ant1,
+            ant2,
+            time_vis_row,
+            map_ant_tuple,
+            ref_ant_per_map_ant_tuple,
+            pol,
+            ant_names,
+        )
     table_obj.close()
 
     map_ref_dict = _get_map_ref_dict(
@@ -375,6 +396,114 @@ def process_extract_holog_chunk(
     )
 
     logger.info(f"Finished extracting holography chunk for DDI {ddi_id}, {map_key}.")
+
+
+def _apply_boresight_calibration(
+    table_obj,
+    data_column,
+    ddi_id,
+    scans,
+    boresight_state_ids,
+    vis_data,
+    ant1,
+    ant2,
+    time_vis_row,
+    map_ant_tuple,
+    ref_ant_per_map_ant_tuple,
+    pol,
+    ant_names,
+):
+    """Divide the visibilities of each mapping baseline by its complex gain on the boresight (REFERENCE) dwells.
+
+    The gain of a dwell is the weighted mean of the unflagged parallel hands over its channels and integrations, in the
+    orientation of the mapping antenna. It is interpolated in time, amplitude and unwrapped phase, to every
+    integration of the baseline, and applied to all polarizations. Each baseline is calibrated on its own dwells
+    before the baselines are averaged, since the drift differs between reference antennas.
+
+    Args:
+        table_obj: Open measurement set table
+        data_column: Data column to read
+        ddi_id: Data description id
+        scans: Scans of the map
+        boresight_state_ids: State ids of the boresight dwells
+        vis_data: Visibilities of the map [row, chan, pol]
+        ant1: ANTENNA1 of the rows of vis_data
+        ant2: ANTENNA2 of the rows of vis_data
+        time_vis_row: TIME of the rows of vis_data
+        map_ant_tuple: Mapping antenna ids
+        ref_ant_per_map_ant_tuple: Reference antenna ids of each mapping antenna
+        pol: Polarization labels
+        ant_names: Antenna names
+
+    Returns:
+        The calibrated visibilities, in vis_data itself unless it is read-only
+    """
+    if not vis_data.flags.writeable:
+        vis_data = vis_data.copy()
+    ctb = ctables.taql(
+        "select %s, ANTENNA1, ANTENNA2, TIME, WEIGHT, FLAG_ROW, FLAG, STATE_ID from $table_obj "
+        "WHERE DATA_DESC_ID == %s AND SCAN_NUMBER in %s AND STATE_ID in %s"
+        % (data_column, ddi_id, scans, list(boresight_state_ids))
+    )
+    parallel_hands = [
+        i_pol for i_pol, pol_label in enumerate(pol) if pol_label[0] == pol_label[1]
+    ]
+    dwell_vis = ctb.getcol(data_column)[:, :, parallel_hands]
+    dwell_weight = ctb.getcol("WEIGHT")[:, None, parallel_hands] * ~(
+        ctb.getcol("FLAG")[:, :, parallel_hands] | ctb.getcol("FLAG_ROW")[:, None, None]
+    )
+    dwell_ant1 = ctb.getcol("ANTENNA1")
+    dwell_ant2 = ctb.getcol("ANTENNA2")
+    dwell_time = ctb.getcol("TIME")
+    dwell_state = ctb.getcol("STATE_ID")
+    ctb.close()
+    row_numerator = np.sum(dwell_weight * dwell_vis, axis=(1, 2))
+    row_denominator = np.sum(dwell_weight, axis=(1, 2))
+
+    for ant_id, refant_ids in zip(map_ant_tuple, ref_ant_per_map_ant_tuple):
+        phase_ranges = []
+        for refant_id in refant_ids:
+            dwell_rows = np.flatnonzero(
+                ((dwell_ant1 == ant_id) & (dwell_ant2 == refant_id))
+                | ((dwell_ant2 == ant_id) & (dwell_ant1 == refant_id))
+            )
+            map_rows = ((ant1 == ant_id) & (ant2 == refant_id)) | (
+                (ant2 == ant_id) & (ant1 == refant_id)
+            )
+            if dwell_rows.size == 0 or not np.any(map_rows):
+                continue
+            dwell_rows = dwell_rows[np.argsort(dwell_time[dwell_rows], kind="stable")]
+            numerator = np.where(
+                dwell_ant2[dwell_rows] == ant_id,
+                np.conj(row_numerator[dwell_rows]),
+                row_numerator[dwell_rows],
+            )
+            boundaries = np.r_[
+                0,
+                np.flatnonzero(np.diff(dwell_state[dwell_rows]) != 0) + 1,
+                dwell_rows.size,
+            ]
+            times, gains = [], []
+            for start, stop in zip(boundaries[:-1], boundaries[1:]):
+                denominator = np.sum(row_denominator[dwell_rows[start:stop]])
+                if denominator > 0:
+                    times.append(np.mean(dwell_time[dwell_rows[start:stop]]))
+                    gains.append(np.sum(numerator[start:stop]) / denominator)
+            if len(gains) == 0:
+                continue
+            phase = np.unwrap(np.angle(gains))
+            row_gain = np.interp(time_vis_row[map_rows], times, np.abs(gains)) * np.exp(
+                1j * np.interp(time_vis_row[map_rows], times, phase)
+            )
+            row_gain = np.where(ant2[map_rows] == ant_id, np.conj(row_gain), row_gain)
+            vis_data[map_rows] /= row_gain[:, None, None]
+            phase_ranges.append(np.degrees(np.ptp(phase)))
+        if phase_ranges:
+            logger.info(
+                f"{create_dataset_label(ant_names[ant_id], ddi_id)}: Boresight calibration of {len(phase_ranges)} "
+                f"baselines, median phase drift {np.median(phase_ranges):.0f} degrees"
+            )
+    return vis_data
 
 
 def _get_map_ref_dict(

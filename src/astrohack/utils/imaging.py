@@ -9,9 +9,9 @@ import scipy.ndimage
 import toolviper.utils.logger as logger
 from numba import njit
 
-from astrohack.utils.algorithms import calc_coords
+from astrohack.utils.algorithms import calc_coords, chunked_average
 from astrohack.utils.constants import clight, njit_caching
-from astrohack.utils.gridding import gridding_correction
+from astrohack.utils.gridding import _create_average_chan_map, gridding_correction
 
 
 def calculate_parallactic_angle_chunk(
@@ -143,6 +143,83 @@ def calculate_far_field_aperture(
     duration = time.time() - start
     logger.debug(f"{label}: Far field aperture took {duration:.3} seconds")
     return aperture_grid, u_axis, v_axis, aperture_cell_size, wavelength
+
+
+def calculate_far_field_aperture_direct(
+    ant_ddi_xdt,
+    beam_normalization,
+    u_axis,
+    v_axis,
+    wavelength,
+    avg_chan,
+    chan_tol_fac,
+    n_beam_cells,
+    label,
+):
+    """Calculates the aperture illumination pattern by a direct Fourier transform of the visibilities, as AIPS HOLOG
+    does with BPARM(6) = 2, on the aperture axes of the FFT path.
+
+    Each map's visibilities are averaged in channel chunks with their positions scaled to the reference frequency, as in
+    grid_beam, transformed with their weights and divided by the map's beam normalisation. l and m enter with the 90
+    degree rotation that parallactic_derotation applies in the FFT path. The weighted mean is multiplied by the number
+    of beam grid cells, the number of terms the FFT of the beam grid sums.
+
+    Args:
+        ant_ddi_xdt: Xarray DataTree containing the visibilities
+        beam_normalization: Divisor that normalised each map, channel and polarization of the gridded beam
+        u_axis: U axis of the aperture grid
+        v_axis: V axis of the aperture grid
+        wavelength: Representative wavelength
+        avg_chan: Average channels? (boolean)
+        chan_tol_fac: Frequency tolerance to chunk channels together
+        n_beam_cells: Number of cells of the beam grid
+        label: Data label for messages
+
+    Returns:
+        aperture grid [map, chan, pol, u, v]
+    """
+    start = time.time()
+    k_u = 2 * np.pi * u_axis / wavelength
+    k_v = 2 * np.pi * v_axis / wavelength
+    n_map, n_chan, n_pol = beam_normalization.shape
+    aperture_grid = np.zeros(
+        (n_map, n_chan, n_pol, u_axis.size, v_axis.size), dtype=complex
+    )
+    for i_map, map_xdt in enumerate(ant_ddi_xdt.values()):
+        freq_axis = map_xdt.chan.values
+        vis = np.nan_to_num(map_xdt.VIS.values)
+        weight = map_xdt.WEIGHT.values
+        lm = map_xdt.DIRECTIONAL_COSINES.values
+        if avg_chan:
+            avg_chan_map, avg_freq_axis = _create_average_chan_map(
+                freq_axis, chan_tol_fac
+            )
+            vis, weight = chunked_average(vis, weight, avg_chan_map, avg_freq_axis)
+            lm_scale = avg_freq_axis / np.mean(freq_axis)
+            o_chan = np.zeros(lm_scale.size, dtype=int)
+        else:
+            lm_scale = np.ones(freq_axis.size)
+            o_chan = np.arange(freq_axis.size)
+        weight_sum = np.zeros((n_chan, n_pol))
+        for i_chan, scale in enumerate(lm_scale):
+            u_phasor = np.exp(-1j * np.outer(k_u, scale * lm[:, 1]))
+            v_phasor = np.exp(1j * np.outer(k_v, scale * lm[:, 0]))
+            for i_pol in range(n_pol):
+                weighted_vis = weight[:, i_chan, i_pol] * vis[:, i_chan, i_pol]
+                aperture_grid[i_map, o_chan[i_chan], i_pol] += (
+                    u_phasor * weighted_vis
+                ) @ v_phasor.T
+                weight_sum[o_chan[i_chan], i_pol] += np.sum(weight[:, i_chan, i_pol])
+        denominator = weight_sum * beam_normalization[i_map] / n_beam_cells
+        aperture_grid[i_map] = np.divide(
+            aperture_grid[i_map],
+            denominator[..., None, None],
+            out=np.zeros_like(aperture_grid[i_map]),
+            where=denominator[..., None, None] != 0,
+        )
+    duration = time.time() - start
+    logger.debug(f"{label}: Direct far field aperture took {duration:.3} seconds")
+    return aperture_grid
 
 
 def calculate_near_field_aperture(

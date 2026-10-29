@@ -14,6 +14,10 @@ The aperture field of a ray is the feed's field, reflected at the subreflector a
 feed's field is one polarization vector in the feed's basis, with a Gaussian power pattern of ``taper`` dB at the
 angle ``subangle``. The amplitude is sqrt(feed gain x solid angle at the feed per aperture area), and the phase is
 2 pi (L - L0) / lambda. Rays inside the central hole or blocked by the quadrupod legs are dropped.
+
+Two BeamCalc defects are fixed by default, and both fixes off reproduce CASA: BeamCalc takes the leg feet's height at
+its default leg-foot radius, radius / 2, not the geometry's (``fix_leg_foot``), and uses the same feed field for every
+ray, which is not transverse to the ray (``fix_feed_field``).
 """
 
 import numpy as np
@@ -112,7 +116,7 @@ def band_for_frequency(freq):
     raise ValueError(f"No EVLA band covers {freq} GHz")
 
 
-def new_antenna(geometry, freq):
+def new_antenna(geometry, freq, fix_leg_foot=True):
     """BeamCalc::newAntenna and newAntennafromApertureCalcParams for one band geometry at freq (GHz)."""
     r, z, m = np.loadtxt(
         get_astrohack_path() / f"data/beamcalc/{geometry['surface']}.surface",
@@ -153,7 +157,9 @@ def new_antenna(geometry, freq):
         hole_radius=geometry["rhole"],
     )
     # newAntenna sets legfootz at its default leg foot, radius / 2, before the geometry's leg foot replaces it
-    a["legfootz"] = dish_value(a, np.array(a["radius"] / 2.0))[0]
+    a["legfootz"] = dish_value(
+        a, np.array(a["legfoot"] if fix_leg_foot else a["radius"] / 2.0)
+    )[0]
     return a
 
 
@@ -277,6 +283,19 @@ def solid_angle(ray1, ray2, ray3):
     return 0.5 * np.linalg.norm(np.cross(n1 - n3, n2 - n3), axis=-1)
 
 
+def feed_field(a, e0, ray):
+    """The feed field e0 [3] turned from the feed direction onto each ray, about their common normal.
+
+    This is the field of a feed with a rotationally symmetric pattern and no cross-polarization (Ludwig's third
+    definition). BeamCalc uses e0 for every ray.
+    """
+    d = a["feeddir"]
+    k = _norm(ray["sub"] - ray["feed"])
+    return e0 - np.sum(k * e0, axis=-1, keepdims=True) / (
+        1.0 + np.sum(k * d, axis=-1, keepdims=True)
+    ) * (d + k)
+
+
 def trace_pol(e0, ray):
     """BeamCalc::tracepol: the feed field e0 [3] reflected at the subreflector and at the dish, per ray."""
     v1, v2, v3 = (
@@ -331,13 +350,27 @@ def leg_block(a, ray, spherical):
     return blocked & (~inside if spherical else inside)
 
 
-def calculate_aperture(geometry, freq, x0, y0, dx, dy, nx, ny, pa=0.0, oversamp=1):
+def calculate_aperture(
+    geometry,
+    freq,
+    x0,
+    y0,
+    dx,
+    dy,
+    nx,
+    ny,
+    pa=0.0,
+    oversamp=1,
+    fix_leg_foot=True,
+    fix_feed_field=True,
+):
     """BeamCalc::calculateAperture for circular feeds: the RR, RL, LR and LL aperture planes [4, ny, nx].
 
     As in BeamCalc, cell (j, i) has the centre (X, Y) = (x0 + i dx, y0 + j dy) and sums oversamp x oversamp points; the
     point (X, Y) is the dish point x = -(X cos(pa + pi/2) - Y sin(pa + pi/2)), y = X sin(pa + pi/2) + Y cos(pa + pi/2).
+    fix_leg_foot and fix_feed_field False reproduce CASA.
     """
-    a = new_antenna(geometry, freq)
+    a = new_antenna(geometry, freq, fix_leg_foot)
     l0 = ray_length(trace(a, np.array(0.0), np.array(0.00001)))
     hhat, vhat, _ = feed_basis(a)
     phase = np.arctan2(hhat[1], hhat[0])
@@ -390,6 +423,8 @@ def calculate_aperture(geometry, freq, x0, y0, dx, dy, nx, ny, pa=0.0, oversamp=
     fp = np.exp(1j * 2.0 * np.pi * (ray_length(ray) - l0) / a["wavelength"]) * amp
     planes = []
     for e0 in (e_r, e_l):
+        if fix_feed_field:
+            e0 = feed_field(a, e0, ray)
         e1 = trace_pol(e0, ray) * fp[..., None]
         planes += [e1[..., 0] - 1j * e1[..., 1], e1[..., 0] + 1j * e1[..., 1]]
     out = np.zeros((4,) + use.shape, dtype=complex)

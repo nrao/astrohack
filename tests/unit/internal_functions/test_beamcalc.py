@@ -59,12 +59,39 @@ class TestBeamcalc:
         e1 = beamcalc.trace_pol((hhat + 1j * vhat) / np.sqrt(2), ray)
         assert np.allclose(np.linalg.norm(e1, axis=-1), 1.0)
 
+    def test_fixes(self):
+        geometry = beamcalc.EVLA_GEOMETRY["EVLA_C"]
+        a = _antenna("EVLA_C")
+        foot_z = np.interp(
+            geometry["legfoot"], np.arange(a["ngeom"]) * a["deltar"], a["z"]
+        )
+        assert abs(a["legfootz"] - foot_z) < 1e-6
+        r, phi = np.meshgrid(
+            np.linspace(2.0, 12.4, 10), np.linspace(0, 2 * np.pi, 12, endpoint=False)
+        )
+        ray = beamcalc.trace(a, r * np.cos(phi), r * np.sin(phi))
+        hhat, vhat, _ = beamcalc.feed_basis(a)
+        e0 = beamcalc.feed_field(a, (hhat + 1j * vhat) / np.sqrt(2), ray)
+        k = beamcalc._norm(ray["sub"] - ray["feed"])
+        assert np.abs(np.sum(k * e0, axis=-1)).max() < 1e-12
+        assert np.allclose(np.linalg.norm(e0, axis=-1), 1.0)
+        assert np.abs(beamcalc.trace_pol(e0, ray)[..., 2]).max() < 1e-8
+
     def test_width_and_squint_against_casa(self):
         # CASA 6.7.6 A-projection at 1.040 GHz: HWHM 20.64 arcmin GHz, RR-LL separation 2.35 arcmin GHz
         freq, dx, n = 1.04, 0.1, 253
         x0 = -(n // 2) * dx
         ap = beamcalc.calculate_aperture(
-            beamcalc.EVLA_GEOMETRY["EVLA_L"], freq, x0, x0, dx, dx, n, n
+            beamcalc.EVLA_GEOMETRY["EVLA_L"],
+            freq,
+            x0,
+            x0,
+            dx,
+            dx,
+            n,
+            n,
+            fix_leg_foot=False,
+            fix_feed_field=False,
         )
         grid = np.arange(-30.0, 30.001, 0.25)
         e = np.exp(

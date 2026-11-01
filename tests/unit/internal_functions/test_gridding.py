@@ -194,8 +194,8 @@ class TestGridAlgorithms:
         ref_freq_axis = self.ant_ddi_xdt[self.map_key].chan.values
         ref_center_values = [
             0.9870826061268809 + 0.0849025357613459j,
-            0.016156783403241236 + 0.013601688742967131j,
             0.011778848318092793 + 0.05943224451247474j,
+            0.016156783403241236 + 0.013601688742967131j,
             1.0043516452623324 + 0.10000182436540596j,
         ]
         self.beam_grid_assertions(
@@ -219,8 +219,8 @@ class TestGridAlgorithms:
         ref_freq_axis = np.average(self.ant_ddi_xdt[self.map_key].chan.values)
         ref_center_values = [
             0.9928994415407426 + 0.10238129847889901j,
-            0.011139202939681956 + 0.0007261924187713235j,
             0.0002631914105488678 + 0.03410979777868608j,
+            0.011139202939681956 + 0.0007261924187713235j,
             0.9963165072141907 + 0.10503111488879109j,
         ]
         self.beam_grid_assertions(
@@ -244,8 +244,8 @@ class TestGridAlgorithms:
         ref_freq_axis = self.ant_ddi_xdt[self.map_key].chan.values
         ref_center_values = [
             0.992047058827335 + 0.06589682057869428j,
-            0.021930680895368093 + 0.022291077290549573j,
             -0.0025836235667720006 + 0.04638493375726271j,
+            0.021930680895368093 + 0.022291077290549573j,
             1.0035879301269095 + 0.06616752306330287j,
         ]
         self.beam_grid_assertions(
@@ -273,8 +273,8 @@ class TestGridAlgorithms:
         ref_freq_axis = np.average(self.ant_ddi_xdt[self.map_key].chan.values)
         ref_center_values = [
             0.9964494886939387 + 0.0715591363951358j,
-            0.012474653196933961 + 0.0017866436709559695j,
             0.0012253972775365838 + 0.036807113047007164j,
+            0.012474653196933961 + 0.0017866436709559695j,
             0.9981079635550084 + 0.0758877003908355j,
         ]
         self.beam_grid_assertions(

@@ -95,7 +95,7 @@ def convert_5d_grid_to_stokes(grid, pol_axis):
         grid_stokes[:, :, 0, :, :] = (grid[:, :, irr, :, :] + grid[:, :, ill, :, :]) / 2
         grid_stokes[:, :, 1, :, :] = (grid[:, :, irl, :, :] + grid[:, :, ilr, :, :]) / 2
         grid_stokes[:, :, 2, :, :] = (
-            1j * (grid[:, :, irl, :, :] - grid[:, :, ilr, :, :]) / 2
+            1j * (grid[:, :, ilr, :, :] - grid[:, :, irl, :, :]) / 2
         )
         grid_stokes[:, :, 3, :, :] = (grid[:, :, irr, :, :] - grid[:, :, ill, :, :]) / 2
     elif "XX" in pol_axis:
@@ -108,7 +108,7 @@ def convert_5d_grid_to_stokes(grid, pol_axis):
         grid_stokes[:, :, 1, :, :] = (grid[:, :, ixx, :, :] - grid[:, :, iyy, :, :]) / 2
         grid_stokes[:, :, 2, :, :] = (grid[:, :, ixy, :, :] + grid[:, :, iyx, :, :]) / 2
         grid_stokes[:, :, 3, :, :] = (
-            1j * (grid[:, :, ixy, :, :] - grid[:, :, iyx, :, :]) / 2
+            1j * (grid[:, :, iyx, :, :] - grid[:, :, ixy, :, :]) / 2
         )
     else:
         raise ValueError("Pol not supported " + str(pol_axis))
@@ -134,10 +134,10 @@ def convert_5d_grid_from_stokes(stokes_grid, input_pol_axis, destiny_pol_axis):
             stokes_grid[:, :, i_i, :, :] + stokes_grid[:, :, i_v, :, :]
         )
         corr_grid[:, :, irl, :, :] = (
-            stokes_grid[:, :, i_q, :, :] - 1j * stokes_grid[:, :, i_u, :, :]
+            stokes_grid[:, :, i_q, :, :] + 1j * stokes_grid[:, :, i_u, :, :]
         )
         corr_grid[:, :, ilr, :, :] = (
-            stokes_grid[:, :, i_q, :, :] + 1j * stokes_grid[:, :, i_u, :, :]
+            stokes_grid[:, :, i_q, :, :] - 1j * stokes_grid[:, :, i_u, :, :]
         )
         corr_grid[:, :, ill, :, :] = (
             stokes_grid[:, :, i_i, :, :] - stokes_grid[:, :, i_v, :, :]
@@ -153,10 +153,10 @@ def convert_5d_grid_from_stokes(stokes_grid, input_pol_axis, destiny_pol_axis):
             stokes_grid[:, :, i_i, :, :] + stokes_grid[:, :, i_q, :, :]
         )
         corr_grid[:, :, ixy, :, :] = (
-            stokes_grid[:, :, i_u, :, :] - 1j * stokes_grid[:, :, i_v, :, :]
+            stokes_grid[:, :, i_u, :, :] + 1j * stokes_grid[:, :, i_v, :, :]
         )
         corr_grid[:, :, iyx, :, :] = (
-            stokes_grid[:, :, i_u, :, :] + 1j * stokes_grid[:, :, i_v, :, :]
+            stokes_grid[:, :, i_u, :, :] - 1j * stokes_grid[:, :, i_v, :, :]
         )
         corr_grid[:, :, iyy, :, :] = (
             stokes_grid[:, :, i_i, :, :] - stokes_grid[:, :, i_q, :, :]

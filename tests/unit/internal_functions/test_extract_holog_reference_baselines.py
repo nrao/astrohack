@@ -28,6 +28,7 @@ def test_all_reference_baselines_are_averaged():
             (0,),
             1.0,
             scan_list,
+            np.array([0]),
         )
     )
     used = used_samples_dict[0]

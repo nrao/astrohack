@@ -399,7 +399,7 @@ def compute_stokes(data, weight, pol_axis):
         sigma_amp[:, 0] = (sigma[:, 0] + sigma[:, 3]) / 2
         stokes_data[:, 1] = (data[:, 1] + data[:, 2]) / 2
         sigma_amp[:, 1] = (sigma[:, 1] + sigma[:, 2]) / 2
-        stokes_data[:, 2] = 1j * (data[:, 1] - data[:, 2]) / 2
+        stokes_data[:, 2] = 1j * (data[:, 2] - data[:, 1]) / 2
         sigma_amp[:, 2] = sigma_amp[:, 1]
         stokes_data[:, 3] = (data[:, 0] - data[:, 3]) / 2
         sigma_amp[:, 0] = (sigma[:, 0] + sigma[:, 3]) / 2
@@ -410,7 +410,7 @@ def compute_stokes(data, weight, pol_axis):
         sigma_amp[:, 1] = sigma_amp[:, 0]
         stokes_data[:, 2] = (data[:, 1] + data[:, 2]) / 2
         sigma_amp[:, 2] = (sigma[:, 1] + sigma[:, 2]) / 2
-        stokes_data[:, 3] = 1j * (data[:, 1] - data[:, 2]) / 2
+        stokes_data[:, 3] = 1j * (data[:, 2] - data[:, 1]) / 2
         sigma_amp[:, 3] = sigma_amp[:, 2]
     else:
         raise ValueError("Pol not supported " + str(pol_axis))

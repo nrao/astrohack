@@ -30,6 +30,7 @@ def fringefit_locit(
     exclude_scans: int | list[int] | tuple[int] | None = None,
     parallel: bool = True,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """
     Extract delays from a fringefit cal table and fit them with a delay model to obtain rough antenna position corrections
@@ -70,6 +71,9 @@ def fringefit_locit(
 
     :param overwrite: Boolean for whether to overwrite current position.zarr file, defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Antenna position object.
     :rtype: AstrohackPositionFile
@@ -122,7 +126,7 @@ def fringefit_locit(
     overwrite_file(locit_params["position_name"], locit_params["overwrite"])
 
     position_mds = AstrohackPositionFile.create_from_input_parameters(
-        locit_params["position_name"], input_params
+        locit_params["position_name"], input_params, zarr_format
     )
 
     extract_antenna_data(locit_params, position_mds)

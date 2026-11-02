@@ -17,7 +17,7 @@ the `etc section of our github page <https://github.com/nrao/astrohack/tree/astr
 In case of pip install you have to visit the `etc section of our github
 page <https://github.com/nrao/astrohack/tree/astrohack-dev/etc/alma-nf-filler>`_ and download the .py files from there.
 
-In case of instalation from source the .py files can be found in 
+In case of instalation from source the .py files can be found in
 \`<astrohackdir>/etc/alma-nf-filler'.
 
 After using the filler you will be left with a .holog.zarr file that

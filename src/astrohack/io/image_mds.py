@@ -705,7 +705,6 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
     """
 
     fig, axes = create_figure_and_axes(parm_dict["figure_size"], [1, 2])
-    norm_z_label = "Z Scale [Normalized]"
     x_label = f"L axis [{parm_dict['angle_unit']}]"
     y_label = f"M axis [{parm_dict['angle_unit']}]"
 
@@ -723,7 +722,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             [vmin, vmax],
             x_label=x_label,
             y_label=y_label,
-            z_label=norm_z_label,
+            z_label="Amplitude normalized Real part [ ]",
         )
         simple_imshow_map_plot(
             axes[1],
@@ -736,7 +735,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             [vmin, vmax],
             x_label=x_label,
             y_label=y_label,
-            z_label=norm_z_label,
+            z_label="Amplitude normalized Imaginary part [ ]",
         )
     else:
         scale = convert_unit("rad", parm_dict["phase_unit"], "trigonometric")
@@ -754,7 +753,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             [np.nanmin(amplitude[amplitude > 1e-8]), np.nanmax(amplitude)],
             x_label=x_label,
             y_label=y_label,
-            z_label=norm_z_label,
+            z_label="Normalized Amplitude [ ]",
         )
         simple_imshow_map_plot(
             axes[1],

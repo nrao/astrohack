@@ -216,5 +216,3 @@ For the classical method there is an extra step. After creating the AstroHACK pl
 #. Produce plots of the phase over time for the raw and baseline corrected data.
 
 After the production of these export products the pipeline then creates a standalone HTML report with all of them that can then be stored or shared without the need to carry any extra data, an example of such a report can be seen `here <../example-baseline-short_x-report.html>`_.
-
-

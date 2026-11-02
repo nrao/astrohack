@@ -34,6 +34,7 @@ def compare_fits_images(
     display: bool = False,
     export_to_fits: bool = False,
     parallel: bool = False,
+    zarr_format: int = 3,
 ):
     """
     Compares a set of images to a set of reference images.
@@ -93,6 +94,9 @@ def compare_fits_images(
 
     :param parallel: If True will use an existing astrohack client to do comparison in parallel, default is False
     :type parallel: bool, optional
+
+    :param zarr_format: Zarr format of the Zarr container, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: DataTree object containing all the comparisons executed
     :rtype: xr.DataTree
@@ -160,7 +164,12 @@ def compare_fits_images(
         root = root.assign({tree_node.name: tree_node})
 
     if zarr_container_name is not None:
-        root.to_zarr(zarr_container_name, mode="w", consolidated=True)
+        root.to_zarr(
+            zarr_container_name,
+            mode="w",
+            consolidated=True,
+            zarr_format=zarr_format,
+        )
 
     return root
 

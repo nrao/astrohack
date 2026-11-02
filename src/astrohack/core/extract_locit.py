@@ -4,7 +4,7 @@ import toolviper.utils.logger as logger
 import xarray as xr
 from astropy.coordinates import CIRS, SkyCoord
 from astropy.time import Time
-from casacoretables import tables as ctables
+from xradio._utils._casacore.backend import tables as ctables
 
 from astrohack.io.locit_mds import AstrohackLocitFile
 from astrohack.io.position_mds import AstrohackPositionFile
@@ -40,10 +40,10 @@ def extract_antenna_data(
     )
     ant_off = ant_table.getcol("OFFSET")
     ant_pos = ant_table.getcol("POSITION")
-    ant_mnt = ant_table.getcol("MOUNT")
-    ant_nam = ant_table.getcol("NAME")
-    ant_sta = ant_table.getcol("STATION")
-    ant_typ = ant_table.getcol("TYPE")
+    ant_mnt = ant_table.getcol("MOUNT").tolist()
+    ant_nam = ant_table.getcol("NAME").tolist()
+    ant_sta = ant_table.getcol("STATION").tolist()
+    ant_typ = ant_table.getcol("TYPE").tolist()
     ant_table.close()
 
     n_ant_orig = ant_off.shape[0]
@@ -92,7 +92,9 @@ def extract_antenna_data(
                 }
                 ant_xdtree.attrs["antenna_info"] = ant_info
                 ant_xdt_name = "/".join([locit_mds.filename, ant_key])
-                ant_xdtree.to_zarr(ant_xdt_name, mode="w")
+                ant_xdtree.to_zarr(
+                    ant_xdt_name, mode="w", zarr_format=locit_mds.zarr_format
+                )
 
     locit_mds.root.attrs["full_antenna_list"] = ant_nam
     if error:
@@ -122,7 +124,7 @@ def extract_spectral_info(extract_locit_parms):
     ref_freq = spw_table.getcol("REF_FREQUENCY")
     n_chan = spw_table.getcol("NUM_CHAN")
     bandwidth = spw_table.getcol("CHAN_WIDTH")
-    spw_names = spw_table.getcol("NAME")
+    spw_names = spw_table.getcol("NAME").tolist()
     spw_table.close()
     n_ddi = len(ref_freq)
     error = False
@@ -175,8 +177,8 @@ def extract_source_and_telescope(
         ack=False,
     )
     src_ids = src_table.getcol("SOURCE_ID")
-    phase_center_fk5 = src_table.getcol("PHASE_DIR")[:, 0, :]
-    src_name = src_table.getcol("NAME")
+    phase_center_fk5 = src_table.getcol("PHASE_DIR")[:, 0, :].copy()
+    src_name = src_table.getcol("NAME").tolist()
     src_table.close()
     n_src = len(src_ids)
 

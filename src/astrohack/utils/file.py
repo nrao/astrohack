@@ -6,6 +6,7 @@ import pathlib
 import shutil
 
 import toolviper.utils.logger as logger
+import zarr
 from toolviper.utils.console import Colorize
 
 from astrohack.utils.algorithms import data_from_version_needs_patch
@@ -36,8 +37,7 @@ def check_if_file_can_be_opened(filename, file_creator, minimal_version):
         raise FileNotFoundError(f"{filename} cannot be found.")
 
     try:
-        with open(f"{filename}/.zattrs") as root_attrs_file:
-            file_metadata = json.load(root_attrs_file)
+        file_metadata = zarr.open_group(filename, mode="r").attrs.asdict()
     except FileNotFoundError:
         raise FileNotFoundError(f"{filename} is not a proper astrohack file")
     except json.JSONDecodeError:

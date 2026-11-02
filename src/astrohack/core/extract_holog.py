@@ -306,6 +306,15 @@ def process_extract_holog_chunk(
         map_ant_tuple, ref_ant_per_map_ant_tuple, ant_names, ant_stations
     )
 
+    # Index of each correlation's transpose (YX for XY), for the rows that are conjugated; -1 if it is not stored
+    pol_names = list(pol)
+    pol_transpose = np.array(
+        [
+            pol_names.index(name[::-1]) if name[::-1] in pol_names else -1
+            for name in pol_names
+        ]
+    )
+
     (
         time_vis,
         vis_map_dict,
@@ -326,6 +335,7 @@ def process_extract_holog_chunk(
         map_ant_tuple,
         time_interval,
         scan_list,
+        pol_transpose,
     )
     del vis_data, weight, ant1, ant2, time_vis_row, flag, flag_row, field_ids, scan_list
 
@@ -558,6 +568,7 @@ def _match_visibilities_to_time_bins(
     map_ant_tuple,
     time_interval,
     scan_list,
+    pol_transpose,
 ):
     """function to extract relevant visibility data from chunk after flagging and applying weights.
 
@@ -573,6 +584,8 @@ def _match_visibilities_to_time_bins(
         map_ant_tuple(tuple): mapping antennas?
         time_interval(float): time smoothing interval
         scan_list(list): list of valid holography scans
+        pol_transpose (numpy.ndarray): index of each polarization's transpose (YX for XY), -1 if it is not stored;
+        a row whose second antenna maps is conjugated, which transposes its correlation matrix
 
     Returns:
         dict: Antenna_id referenced (key) dictionary containing the visibility data selected by (time, channel,
@@ -636,15 +649,16 @@ def _match_visibilities_to_time_bins(
             is_conjugate = ant2_selected[row] == ant_id
             for chan in range(n_chan):
                 for pol in range(n_pol):
-                    if flag_selected[row, chan, pol]:
+                    row_pol = pol_transpose[pol] if is_conjugate else pol
+                    if row_pol < 0 or flag_selected[row, chan, row_pol]:
                         pass
                     else:
                         ant_valid_data[time_index] = True
                         if is_conjugate:
-                            vis_val = np.conjugate(vis_selected[row, chan, pol])
+                            vis_val = np.conjugate(vis_selected[row, chan, row_pol])
                         else:
                             vis_val = vis_selected[row, chan, pol]
-                        wei_val = wei_selected[row, pol]
+                        wei_val = wei_selected[row, row_pol]
                         ant_vis_sum[time_index, chan, pol] += vis_val * wei_val
                         ant_wei_sum[time_index, chan, pol] += wei_val
                         total_wei_sum += wei_val

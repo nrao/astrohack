@@ -140,13 +140,13 @@ class RingPanel(BasePanel):
         Print miscelaneous information about the panel to the terminal
         """
         print("########################################")
-        print("{0:20s}={1:8s}".format("ipanel", self.label))
-        print("{0:20s}={1:8s}".format("model", spc + self.model_name))
-        print("{0:20s}={1:8.5f}".format("inrad", self.inrad))
-        print("{0:20s}={1:8.5f}".format("ourad", self.ourad))
-        print("{0:20s}={1:8.5f}".format("theta1", self.theta1))
-        print("{0:20s}={1:8.5f}".format("theta2", self.theta2))
-        print("{0:20s}={1:8.5f}".format("zeta", self.zeta))
+        print("{:20s}={:8s}".format("ipanel", self.label))
+        print("{:20s}={:8s}".format("model", spc + self.model_name))
+        print("{:20s}={:8.5f}".format("inrad", self.inrad))
+        print("{:20s}={:8.5f}".format("ourad", self.ourad))
+        print("{:20s}={:8.5f}".format("theta1", self.theta1))
+        print("{:20s}={:8.5f}".format("theta2", self.theta2))
+        print("{:20s}={:8.5f}".format("zeta", self.zeta))
         print()
 
     def plot(self, ax, screws=False, label=False, _=False, samples=False):

@@ -490,7 +490,7 @@ def make_single_antenna_phase_over_time(
 def make_all_antenna_phases_plot(
     param_dict: dict, ant_names: list, msger: MessageBoard
 ):
-    from casacoretables import tables
+    from xradio._utils._casacore.backend import tables
 
     start = time.time()
     msger.one_liner("Preparing phase over time plots...")
@@ -500,7 +500,7 @@ def make_all_antenna_phases_plot(
 
     avg_ms = param_dict["freq_averaged_ms"]
     ant_table = tables.table(avg_ms + "/ANTENNA")
-    ms_ant_names = ant_table.getcol("NAME")
+    ms_ant_names = ant_table.getcol("NAME").tolist()
     ant_table.close()
 
     pol_table = tables.table(avg_ms + "/POLARIZATION")

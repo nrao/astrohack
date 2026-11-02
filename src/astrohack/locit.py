@@ -28,6 +28,7 @@ def locit(
     exclude_scans: int | list[int] | tuple[int] | None = None,
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """
     Process phases from a locit file to obtain antenna position corrections which are stores in a position file.
@@ -71,6 +72,9 @@ def locit(
 
     :param overwrite: Boolean for whether to overwrite current position.zarr file, defaults to False.
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Antenna position object.
     :rtype: AstrohackPositionFile
@@ -183,7 +187,7 @@ def locit(
         )
 
     position_mds = AstrohackPositionFile.create_from_input_parameters(
-        locit_params["position_name"], locit_params
+        locit_params["position_name"], locit_params, zarr_format
     )
     position_mds.root.attrs.update(
         {

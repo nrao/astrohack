@@ -53,8 +53,9 @@ def grid_beam(
         label: label to be used in messages
 
     Returns:
-        The gridded beam, its time centroid, frequency axis, polarization axis, L and M axes and a boolean about the
-        necessity of gridding corrections after fourier transform.
+        The gridded beam, its time centroid, frequency axis, polarization axis, L and M axes, a boolean about the
+        necessity of gridding corrections after fourier transform, the observation summary and the divisor that
+        normalised each map, channel and polarization.
     """
 
     n_holog_map = len(ant_ddi_xdt.keys())
@@ -83,6 +84,7 @@ def grid_beam(
     l_axis, m_axis, l_grid, m_grid, beam_grid = _create_beam_grid(
         grid_size, sky_cell_size, n_chan, n_pol, n_holog_map
     )
+    beam_normalization = np.ones(beam_grid.shape[:3], dtype=complex)
     scipy_interp = ["linear", "nearest", "cubic"]
 
     time_centroid = []
@@ -138,8 +140,10 @@ def grid_beam(
         time_centroid_index = map_xdt.sizes["time"] // 2
         time_centroid.append(map_xdt.coords["time"][time_centroid_index].values)
 
-        beam_grid[holog_map_index, ...] = _normalize_beam(
-            beam_grid[holog_map_index, ...], n_chan, pol_axis, datalabel=label
+        beam_grid[holog_map_index, ...], beam_normalization[holog_map_index] = (
+            _normalize_beam(
+                beam_grid[holog_map_index, ...], n_chan, pol_axis, datalabel=label
+            )
         )
 
     return (
@@ -151,6 +155,7 @@ def grid_beam(
         m_axis,
         grid_corr,
         observation_summary,
+        beam_normalization,
     )
 
 
@@ -249,12 +254,14 @@ def _normalize_beam(beam_grid, n_chan, pol_axis, datalabel):
         pol_axis: polarization axis
 
     Returns:
-        Normalized beam grid
+        Normalized beam grid, and the divisor applied to each channel and polarization
     """
+    divisor = np.ones(beam_grid.shape[:2], dtype=complex)
     if "I" in pol_axis:
         i_i = get_str_idx_in_list("I", pol_axis)
         i_peak = find_peak_beam_value(beam_grid[0, i_i, ...], scaling=0.25)
         beam_grid[0, i_i, ...] /= i_peak
+        divisor[0, i_i] = i_peak
     else:
         if "RR" in pol_axis:
             i_p1 = get_str_idx_in_list("RR", pol_axis)
@@ -286,7 +293,8 @@ def _normalize_beam(beam_grid, n_chan, pol_axis, datalabel):
                 normalization = 1
 
             beam_grid[chan, ...] /= normalization
-    return beam_grid
+            divisor[chan, :] = normalization
+    return beam_grid, divisor
 
 
 def _create_average_chan_map(freq_chan, chan_tolerance_factor):

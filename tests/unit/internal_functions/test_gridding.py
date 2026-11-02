@@ -106,6 +106,7 @@ class TestGridAlgorithms:
             m_axis,
             grid_corr,
             obs_sum,
+            _,
         ) = grid_beam_tuple_return
 
         n_chan = expected_shape[1]

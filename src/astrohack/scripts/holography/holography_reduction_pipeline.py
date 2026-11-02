@@ -14,6 +14,7 @@ from astrohack import (
     panel,
 )
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
+from astrohack.utils.constants import length_units
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     add_basic_info_and_parameters_to_report,
@@ -122,9 +123,28 @@ def parse(pipeline_type: str, stages: list):
     )
 
     parser.add_argument(
+        "--deviation-limits",
+        default=2,
+        type=float,
+        help=(
+            "Limits for the Z scale in the aperture deviation maps in the chosen unit, the applied limits will be "
+            "symmetrical about zero so a value of 2 means a limit of -2 to 2, default is %(default)s"
+        ),
+    )
+
+    parser.add_argument(
+        "--deviation-unit",
+        default="mm",
+        type=str,
+        choices=length_units,
+        help="Define the unit of the aperture deviation maps, default is %(default)s",
+    )
+
+    parser.add_argument(
         "-u",
         "--screw-unit",
         default="mils",
+        choices=length_units,
         help="Unit to present screw adjustments (default is %(default)s)",
     )
 
@@ -158,6 +178,8 @@ def param_init(pipeline_type: str, msger: MessageBoard):
     )
 
     # extra parameter initialization comes here
+    user_dev_lim = param_dict["deviation_limits"]
+    param_dict["deviation_limits"] = [-user_dev_lim, user_dev_lim]
 
     initialization_check(
         param_dict, f"{pipeline_type.capitalize()} reduction parameters"

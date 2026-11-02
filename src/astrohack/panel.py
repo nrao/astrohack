@@ -23,6 +23,7 @@ def panel(
     ddi: str | int | list[str] = "all",
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ):
     """Analyze holography images to derive panel adjustments
 
@@ -70,13 +71,16 @@ def panel(
     :param overwrite: Overwrite files on disk. Defaults to False.
     :type overwrite: bool, optional
 
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
+
     :return: Holography panel object.
     :rtype: AstrohackPanelFile
 
     .. _Description:
 
         Each Stokes I aperture image in the input image file is processed in the following steps:
-        
+
         .. rubric:: Code Outline
         - Phase image is converted to a physical surface deviation image.
         - A mask of valid signals is created by using the relative cutoff on the amplitude image.
@@ -161,11 +165,11 @@ def panel(
      An outline of the panel object structure is show below:
 
     .. parsed-literal::
-        panel_mds = 
+        panel_mds =
         {
             ant_0:{
                 ddi_0: panel_ds,
-                 ⋮               
+                 ⋮
                 ddi_m: panel_ds
             },
             ⋮
@@ -204,7 +208,7 @@ def panel(
 
     overwrite_file(panel_name, overwrite)
     panel_mds = AstrohackPanelFile.create_from_input_parameters(
-        panel_name, panel_params
+        panel_name, panel_params, zarr_format
     )
 
     executed_graph = create_and_execute_graph_from_dict(

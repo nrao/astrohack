@@ -10,13 +10,13 @@ authors:
   - name: Jan-Willem Steeb
     equal-contrib: true
     affiliation: 1
-    corresponding: true 
+    corresponding: true
   - name: Joshua Hoskins
     equal-contrib: true
     affiliation: 1
   - name: Victor de Souza Magalhaes
     dropping-particle: de
-    equal-contrib: true 
+    equal-contrib: true
     affiliation: 1
 affiliations:
  - name: National Radio Astronomy Observatory, United States of America
@@ -96,7 +96,7 @@ For a quick reference, the following citation commands can be used:
 
 Figures can be included like this:
 
-![Panel Holography Pipeline.\label{fig:holo}](holography_pipeline.png){ width=90% } 
+![Panel Holography Pipeline.\label{fig:holo}](holography_pipeline.png){ width=90% }
 
 and referenced from text using \autoref{fig:holo}.
 

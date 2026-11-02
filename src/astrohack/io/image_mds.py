@@ -204,7 +204,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         angle_unit: str = "deg",
         phase_unit: str = "deg",
         display: bool = False,
-        colormap: str = "viridis",
+        amplitude_colormap: str = "viridis",
+        phase_like_colormap: str = "RdBu_r",
         figure_size: tuple | list[float] | np.ndarray = (8, 3.5),
         dpi: int = 300,
         parallel: bool = False,
@@ -233,8 +234,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         :param display: Display plots inline or suppress, defaults to True
         :type display: bool, optional
 
-        :param colormap: Colormap for plots, default is viridis
-        :type colormap: str, optional
+        :param amplitude_colormap: Colormap for amplitude plots, default is viridis
+        :type amplitude_colormap: str, optional
+
+        :param phase_like_colormap: Colormap for phase and real and imaginary part plots, default is 'RdBu_r'
+        :type phase_like_colormap: str, optional
 
         :param figure_size: 2 element array/list/tuple with the plot sizes in inches
         :type figure_size: numpy.ndarray, list, tuple, optional
@@ -344,7 +348,7 @@ class AstrohackImageFile(AstrohackBaseFile):
         ant: str | list[str] = "all",
         ddi: str | int | list[int] = "all",
         display: bool = False,
-        colormap: str = "viridis",
+        colormap: str = "RdBu_r",
         figure_size: tuple | list[float] | np.ndarray = (16, 9),
         dpi: int = 300,
         parallel: bool = False,
@@ -718,7 +722,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             maxis,
             beam_image.real,
             "Real part",
-            parm_dict["colormap"],
+            parm_dict["phase_like_colormap"],
             [vmin, vmax],
             x_label=x_label,
             y_label=y_label,
@@ -731,7 +735,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             maxis,
             beam_image.imag,
             "Imaginary part",
-            parm_dict["colormap"],
+            parm_dict["phase_like_colormap"],
             [vmin, vmax],
             x_label=x_label,
             y_label=y_label,
@@ -749,7 +753,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             maxis,
             amplitude,
             "Amplitude",
-            parm_dict["colormap"],
+            parm_dict["amplitude_colormap"],
             [np.nanmin(amplitude[amplitude > 1e-8]), np.nanmax(amplitude)],
             x_label=x_label,
             y_label=y_label,
@@ -762,7 +766,7 @@ def _plot_beam_by_pol(laxis, maxis, pol, beam_image, basename, parm_dict):
             maxis,
             phase,
             "Phase",
-            parm_dict["colormap"],
+            parm_dict["phase_like_colormap"],
             [-np.pi * scale, np.pi * scale],
             x_label=x_label,
             y_label=y_label,

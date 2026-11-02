@@ -86,6 +86,11 @@ def parallactic_derotation(data, parallactic_angle_dict):
     # This is the angle we will rotate the maps to.
     # median_angular_reference = parallactic_angle_dict[maps[0]].parallactic_samples[median_index]
 
+    # scipy.ndimage.rotate turns about (N - 1) / 2. Padding even axes by one pixel makes
+    # that index N // 2, the FFT origin.
+    n_l, n_m = data.shape[-2:]
+    pad_width = ((0, 0), (0, 0), (0, 1 - n_l % 2), (0, 1 - n_m % 2))
+
     for mapping, map_value in enumerate(maps):
         # median_angular_offset = median_angular_reference - parallactic_angle_dict[map_value].parallactic_samples[
         # median_index] median_angular_offset *= 180/np.pi
@@ -93,8 +98,11 @@ def parallactic_derotation(data, parallactic_angle_dict):
         # parallactic_angle = 360 - parallactic_angle_dict[map_value].parallactic_samples[median_index]*180/np.pi
 
         data[mapping] = scipy.ndimage.rotate(
-            input=data[mapping, ...], angle=90, axes=(3, 2), reshape=False
-        )
+            input=np.pad(data[mapping, ...], pad_width),
+            angle=90,
+            axes=(3, 2),
+            reshape=False,
+        )[..., :n_l, :n_m]
 
     return data
 

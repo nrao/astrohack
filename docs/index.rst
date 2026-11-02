@@ -6,10 +6,10 @@
 
 .. image:: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml/badge.svg?branch=main
    :target: https://github.com/nrao/astrohack/actions/workflows/python-testing-macos.yml?query=branch%3Amain
-	   
+	
 .. image:: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml/badge.svg?branch=main
    :target: https://github.com/nrao/astrohack/actions/workflows/run-ipynb.yml?query=branch%3Amain
-	   
+	
 
 .. image:: https://codecov.io/gh/nrao/astrohack/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/nrao/astrohack/branch/main/astrohack
@@ -67,3 +67,4 @@ still happening on a regular basis, so proceed with caution.
    online_pages/AstroHACK_antenna_position_correction_pipeline
    online_pages/AstroHACK_Holography_pipeline
    online_pages/AstroHACK-for-NF-ALMA
+   online_pages/development

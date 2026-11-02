@@ -1,9 +1,11 @@
 import glob
 import pathlib
 
+import numcodecs.abc
 import toolviper.utils.logger as logger
 import xarray as xr
 import zarr
+from zarr.abc.codec import ArrayArrayCodec, ArrayBytesCodec, BytesBytesCodec
 
 from astrohack.utils.file import add_caller_and_version_to_dict
 from astrohack.utils.text import (
@@ -34,6 +36,7 @@ class AstrohackBaseFile:
         self.filename = file
         self._file_is_open = False
         self.root = None
+        self.zarr_format = 3
 
     def __getitem__(self, key: str) -> xr.DataTree:
         """
@@ -164,6 +167,7 @@ class AstrohackBaseFile:
             # Chunks='auto' means lazy dask loading with automatic choice of chunk size
             # chunks=None is direct opening.
             self.root = xr.open_datatree(file, engine="zarr", chunks="auto")
+            self.zarr_format = zarr.open_group(file, mode="r").metadata.zarr_format
 
             self._file_is_open = True
             self.filename = file
@@ -188,7 +192,9 @@ class AstrohackBaseFile:
         :param mode: File mode
         :type mode: str
         """
-        self.root.to_zarr(self.filename, mode=mode, consolidated=True)
+        _drop_incompatible_codecs(self.root, self.zarr_format).to_zarr(
+            self.filename, mode=mode, consolidated=True, zarr_format=self.zarr_format
+        )
 
     def summary(self) -> None:
         """
@@ -204,7 +210,9 @@ class AstrohackBaseFile:
         print(outstr)
 
     @classmethod
-    def create_from_input_parameters(cls, file_name: str, input_parameters: dict):
+    def create_from_input_parameters(
+        cls, file_name: str, input_parameters: dict, zarr_format: int = 3
+    ):
         """
         Create an AstrohackBaseFile object from a filename and initializes xdtree root attributes.
 
@@ -214,10 +222,14 @@ class AstrohackBaseFile:
         :param input_parameters: Input parameters for the calling function to be stored in root attributes.
         :type input_parameters: dict
 
+        :param zarr_format: Zarr format of the file to be created, 2 or 3
+        :type zarr_format: int
+
         :return: Initialized AstrohackBaseFile object
         :rtype: AstrohackBaseFile
         """
         data_obj = cls(file_name)
+        data_obj.zarr_format = zarr_format
         data_obj.root = xr.DataTree(name="root")
         add_caller_and_version_to_dict(data_obj.root.attrs, direct_call=False)
         data_obj.root.attrs["input_parameters"] = input_parameters
@@ -246,12 +258,15 @@ class AstrohackBaseFile:
         new_node_path = "/".join([self.filename, *key_list])
 
         if isinstance(xarray_data, xr.Dataset):
-            xr.DataTree(dataset=xarray_data, name=final_key).to_zarr(
-                new_node_path, mode="w"
-            )
+            xr.DataTree(
+                dataset=_drop_incompatible_codecs(xarray_data, self.zarr_format),
+                name=final_key,
+            ).to_zarr(new_node_path, mode="w", zarr_format=self.zarr_format)
         elif isinstance(xarray_data, xr.DataTree):
             xarray_data.name = final_key
-            xarray_data.to_zarr(new_node_path, mode="w")
+            _drop_incompatible_codecs(xarray_data, self.zarr_format).to_zarr(
+                new_node_path, mode="w", zarr_format=self.zarr_format
+            )
         else:
             raise NotImplementedError(
                 f"Don't know how to handle nodes of type {type(xarray_data)}"
@@ -335,13 +350,13 @@ class AstrohackBaseFile:
                 if n_lvls == 3:
                     lvl_1_list = glob.glob(f"{key_path_0}/*")
                     for key_path_1 in lvl_1_list:
-                        _consolidate_a_level(key_path_1)
-                _consolidate_a_level(key_path_0)
+                        _consolidate_a_level(key_path_1, self.zarr_format)
+                _consolidate_a_level(key_path_0, self.zarr_format)
         else:
             raise NotImplementedError(f"Unsupported number of levels: {n_lvls}")
 
         root_group = zarr.open(mds_path, mode="r+")  # Open in read/write mode
-        zarr.convenience.consolidate_metadata(root_group.store)
+        zarr.consolidate_metadata(root_group.store)
         self.open()
 
     def open_subset(self, key_order: list[str]):
@@ -359,12 +374,63 @@ class AstrohackBaseFile:
         return xr.open_zarr(subset_path)
 
 
-def _consolidate_a_level(key_path: str):
+def _drop_incompatible_codecs(
+    xarray_data: xr.Dataset | xr.DataTree, zarr_format: int
+) -> xr.Dataset | xr.DataTree:
+    """
+    Shallow copy of xarray_data without the codec encodings a zarr_format store cannot use, e.g. the numcodecs \
+    compressors of data read from a format 2 file, when writing format 3.
+
+    :param xarray_data: XDS or XDT to be written
+    :type xarray_data: xr.Dataset, xr.DataTree
+
+    :param zarr_format: Zarr format of the store to be written, 2 or 3
+    :type zarr_format: int
+
+    :return: Shallow copy of xarray_data
+    :rtype: xr.Dataset, xr.DataTree
+    """
+    xarray_data = xarray_data.copy()
+    if isinstance(xarray_data, xr.DataTree):
+        nodes = xarray_data.subtree
+    else:
+        nodes = [xarray_data]
+
+    v3_codec_types = {
+        "compressors": BytesBytesCodec,
+        "filters": ArrayArrayCodec,
+        "serializer": ArrayBytesCodec,
+    }
+    for node in nodes:
+        for variable in node.variables.values():
+            for key in ("compressor", "compressors", "filters", "serializer"):
+                value = variable.encoding.get(key)
+                if value is None or isinstance(value, str):
+                    continue
+                codecs = value if isinstance(value, list | tuple) else (value,)
+                if zarr_format == 2:
+                    compatible = key != "serializer" and all(
+                        isinstance(codec, numcodecs.abc.Codec) for codec in codecs
+                    )
+                else:
+                    codec_type = v3_codec_types.get(key)
+                    compatible = codec_type is not None and all(
+                        isinstance(codec, codec_type) for codec in codecs
+                    )
+                if not compatible:
+                    del variable.encoding[key]
+    return xarray_data
+
+
+def _consolidate_a_level(key_path: str, zarr_format: int):
     """
     Consolidate a level containing data trees onto a single unified data tree entity.
 
     :param key_path: path at which to consolidate
     :type key_path: str
+
+    :param zarr_format: Zarr format of the file, 2 or 3
+    :type zarr_format: int
 
     :return: None
     :rtype: NoneType
@@ -375,10 +441,10 @@ def _consolidate_a_level(key_path: str):
             this_lvl_xdt = xr.open_datatree(key_path, mode="r+", engine="zarr")
         except FileNotFoundError:
             this_lvl_xdt = xr.DataTree(name=key)
-            this_lvl_xdt.to_zarr(key_path)
+            this_lvl_xdt.to_zarr(key_path, mode="a", zarr_format=zarr_format)
 
         del this_lvl_xdt
         this_zarr_group = zarr.open(key_path, mode="r+")
-        zarr.convenience.consolidate_metadata(this_zarr_group.store)
+        zarr.consolidate_metadata(this_zarr_group.store)
     else:
         logger.warning(f"There is an unexpected entity at {key_path}")

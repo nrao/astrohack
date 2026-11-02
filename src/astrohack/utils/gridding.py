@@ -285,7 +285,7 @@ def _normalize_beam(beam_grid, n_chan, pol_axis, datalabel):
                 logger.warning("Peak of zero found! Setting normalization to unity.")
                 normalization = 1
 
-                beam_grid[chan, ...] /= normalization
+            beam_grid[chan, ...] /= normalization
     return beam_grid
 
 

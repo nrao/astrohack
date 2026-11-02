@@ -329,7 +329,7 @@ def _least_squares_fit_block(system, vector):
 
 
 def calculate_optimal_grid_parameters(
-    pnt_map_dict, antenna_name, telescope_diameter, chan_freq, ddi
+    pnt_map_dict, antenna_name, telescope_diameter, chan_freq, ddi, used_samples
 ):
     reference_frequency = np.median(chan_freq)
     reference_lambda = scipy.constants.speed_of_light / reference_frequency
@@ -338,7 +338,7 @@ def calculate_optimal_grid_parameters(
     # Since this is just an estimate for the situation where the user doesn't specify a values, I am picking
     # a values according to the developer heuristic, i.e. it seems to be good.
     cell_size = 0.85 * reference_lambda / telescope_diameter
-    pnt_off = pnt_map_dict[antenna_name].POINTING_OFFSET.values
+    pnt_off = pnt_map_dict[antenna_name].POINTING_OFFSET.values[used_samples]
     # Get data range
     data_range = np.array(
         [

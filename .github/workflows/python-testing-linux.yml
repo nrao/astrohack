@@ -20,9 +20,5 @@ jobs:
       cov_project: "astrohack"
       test-path: "tests/"
       python-versions: '["3.12", "3.13", "3.14"]'
-      # zarr<3 needs numcodecs<0.16, which has no cp314 wheels; pip builds it
-      # from source on 3.14, and its bundled c-blosc does not compile with
-      # GCC >= 15 (C23 default), which ubuntu-latest moves to with 26.04.
-      gcc-version: "14"
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

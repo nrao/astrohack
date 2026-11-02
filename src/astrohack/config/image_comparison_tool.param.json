@@ -98,6 +98,10 @@
             "nullable": false,
             "required": false,
             "type": ["boolean"]
+        },
+        "zarr_format": {
+            "type": ["int"],
+            "allowed": [2, 3]
         }
     },
     "rms_table_from_zarr_datatree":{

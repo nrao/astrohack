@@ -395,7 +395,7 @@ class AntennaSurface:
         plotname = add_prefix(basename, f"{caller}_mask")
         parm_dict["z_lim"] = [0, 1]
         parm_dict["unit"] = spc
-        self._plot_map(plotname, plotmask, "Mask", parm_dict)
+        self._plot_map(plotname, plotmask, "Mask", "Mask", parm_dict)
 
     def plot_amplitude(self, basename, caller, parm_dict):
         """
@@ -425,7 +425,7 @@ class AntennaSurface:
 
         plotname = add_prefix(basename, f"{caller}_amplitude")
         parm_dict["unit"] = self.amp_unit
-        self._plot_map(plotname, self.amplitude, title, parm_dict)
+        self._plot_map(plotname, self.amplitude, title, "Amplitude", parm_dict)
 
     def plot_phase(self, basename, caller, parm_dict):
         """
@@ -448,14 +448,19 @@ class AntennaSurface:
             prefix = "corrected"
             maps = [self.phase]
             labels = ["phase"]
+            z_labels = ["Phase"]
         else:
             if self.residuals is None:
                 maps = [self.phase]
                 labels = ["original"]
+                z_labels = ["Phase"]
             else:
                 maps = [self.phase, self.phase_corrections, self.phase_residuals]
                 labels = ["original", "correction", "residual"]
-        self._multi_plot(maps, labels, prefix, basename, fac, parm_dict, caller)
+                z_labels = ["Phase", "Phase correction", "Phase residual"]
+        self._multi_plot(
+            maps, labels, z_labels, prefix, basename, fac, parm_dict, caller
+        )
 
     def plot_deviation(self, basename, caller, parm_dict):
         """
@@ -478,10 +483,12 @@ class AntennaSurface:
             prefix = "original"
             maps = [self.deviation]
             labels = ["deviation"]
+            z_labels = ["Deviation"]
         else:
             if self.residuals is None:
                 maps = [self.deviation]
                 labels = [f"original RMS={rms:.2f} {parm_dict['unit']}"]
+                z_labels = ["Deviation"]
             else:
                 maps = [self.deviation, self.corrections, self.residuals]
                 labels = [
@@ -489,9 +496,14 @@ class AntennaSurface:
                     "correction",
                     f"residual RMS={rms[1]:.2f} {parm_dict['unit']}",
                 ]
-        self._multi_plot(maps, labels, prefix, basename, fac, parm_dict, caller)
+                z_labels = ["Deviation", "Deviation correction", "Deviation residual"]
+        self._multi_plot(
+            maps, labels, z_labels, prefix, basename, fac, parm_dict, caller
+        )
 
-    def _multi_plot(self, maps, labels, prefix, basename, factor, parm_dict, caller):
+    def _multi_plot(
+        self, maps, labels, z_labels, prefix, basename, factor, parm_dict, caller
+    ):
         if len(maps) != len(labels):
             raise ValueError("Map list and label list must be of the same size")
         nplots = len(maps)
@@ -505,9 +517,11 @@ class AntennaSurface:
             plotname = add_prefix(basename, labels[iplot].split()[0])
             plotname = add_prefix(plotname, prefix)
             plotname = add_prefix(plotname, caller)
-            self._plot_map(plotname, factor * maps[iplot], title, parm_dict)
+            self._plot_map(
+                plotname, factor * maps[iplot], title, z_labels[iplot], parm_dict
+            )
 
-    def _plot_map(self, filename, data, title, parm_dict, add_colorbar=True):
+    def _plot_map(self, filename, data, title, z_label, parm_dict, add_colorbar=True):
         cmap = parm_dict["colormap"]
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
         simple_imshow_map_plot(
@@ -519,7 +533,7 @@ class AntennaSurface:
             title,
             cmap,
             parm_dict["z_lim"],
-            z_label="Z Scale [" + parm_dict["unit"] + "]",
+            z_label=f"{z_label} [{parm_dict['unit']}]",
             add_colorbar=add_colorbar,
         )
 

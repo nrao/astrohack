@@ -17,6 +17,7 @@ def extract_pointing(
     point_name: str | None = None,
     parallel: bool = False,
     overwrite: bool = False,
+    zarr_format: int = 3,
 ) -> AstrohackPointFile | None:
     """ Extract pointing data from measurement set.  Creates holography output file.
 
@@ -32,6 +33,9 @@ def extract_pointing(
 
     :param overwrite: Overwrite pointing file on disk, defaults to False
     :type overwrite: bool, optional
+
+    :param zarr_format: Zarr format of the output file, 2 or 3, defaults to 3
+    :type zarr_format: int, optional
 
     :return: Holography point object.
     :rtype: AstrohackPointFile
@@ -74,7 +78,7 @@ def extract_pointing(
     )
     # Create mds file here
     point_mds = AstrohackPointFile.create_from_input_parameters(
-        point_name, input_params
+        point_name, input_params, zarr_format
     )
     point_mds.root.attrs["mapping_state_ids"] = mapping_state_ids
     point_mds.root.attrs["baseline_dist_matrix"] = ant_dist_matrix

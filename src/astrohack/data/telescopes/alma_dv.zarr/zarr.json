@@ -1,0 +1,135 @@
+{
+  "attributes": {
+    "diameter": 12.0,
+    "antenna_list": [],
+    "file_name": "alma_dv.zarr",
+    "file_path": "/Users/vdesouza/work/Holography/astrohack/src/astrohack/data/telescopes",
+    "array_center": {
+      "m0": {
+        "unit": "rad",
+        "value": -1.1825465955049892
+      },
+      "m1": {
+        "unit": "rad",
+        "value": -0.4018251640113072
+      },
+      "m2": {
+        "unit": "m",
+        "value": 5056.8
+      },
+      "refer": "WGS84",
+      "valid": true
+    },
+    "comment": "Preliminary data for ALMA Vertex antennas. Diameter, focus, magnification and secondary distance taken from ALMA memo 339. n_panel_per_ring, n_rings_of_panels and inner_radial_limit from ALMA cycle 9 technical handbook. panel_inner_radii and panel_outer_radii fetched from the CLIC (GILDAS) script for ALMA holography (J. Magnum, private communication). surp_slope assumed to be zero. Numbering of panels and screw positions taken from ALMA Holography memo: Baars, Lucas & Mangum 2004, Array center location from CASA 6.5.5.21",
+    "inner_radial_limit": 0.375,
+    "outer_radial_limit": 6.0,
+    "name": "ALMA DV",
+    "el_axis_offset": null,
+    "station_distance_dict": {
+      "TF01": [
+        349.847,
+        0.0785
+      ],
+      "TF02": [
+        326.0615,
+        0.0843
+      ],
+      "TF03": [
+        302.3115,
+        0.091
+      ],
+      "TF04": [
+        278.6315,
+        0.0988
+      ],
+      "TF05": [
+        354.937,
+        0.0773
+      ],
+      "TF06": [
+        331.1575,
+        0.0829
+      ],
+      "TF07": [
+        307.7505,
+        0.0894
+      ],
+      "TF08": [
+        323.4975,
+        0.0849
+      ],
+      "TF09": [
+        340.0215,
+        0.0808
+      ],
+      "TF10": [
+        365.7275,
+        0.075
+      ],
+      "VX1": [
+        325.9925,
+        0.0843
+      ]
+    },
+    "gain_wavelengths": null,
+    "panel_inner_radii": [
+      0.375,
+      1.265,
+      1.861,
+      2.605,
+      3.221,
+      4.041,
+      4.781,
+      5.435
+    ],
+    "panel_outer_radii": [
+      1.265,
+      1.861,
+      2.605,
+      3.221,
+      4.041,
+      4.781,
+      5.435,
+      6.0
+    ],
+    "focus": 4.800000000000001,
+    "arm_shadow_rotation": null,
+    "arm_shadow_width": null,
+    "magnification": 20.0,
+    "n_panel_per_ring": [
+      12,
+      12,
+      24,
+      24,
+      48,
+      48,
+      48,
+      48
+    ],
+    "panel_numbering": "sector, counterclockwise, right",
+    "screw_description": [
+      "il",
+      "ir",
+      "ol",
+      "or",
+      "c"
+    ],
+    "screw_offset": null,
+    "secondary_distance_to_focus": 0.294,
+    "secondary_support_shape": null,
+    "surp_slope": 0.0,
+    "n_rings_of_panels": 8,
+    "_panel_label": null,
+    "el_axis_off": 2.18,
+    "onaxisoptics": true,
+    "ringed": true,
+    "secondary_support": "+"
+  },
+  "zarr_format": 3,
+  "consolidated_metadata": {
+    "kind": "inline",
+    "must_understand": false,
+    "metadata": {}
+  },
+  "node_type": "group"
+}

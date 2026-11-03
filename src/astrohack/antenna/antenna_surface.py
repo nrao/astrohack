@@ -383,27 +383,29 @@ class AntennaSurface:
         for panel in self.panels:
             panel.print_misc()
 
-    def plot_mask(self, basename, caller, parm_dict):
+    def plot_mask(self, basename, caller, cmap, parm_dict):
         """
         Plot mask used in the selection of points to be fitted
         Args:
             basename: basename for the plot, the prefix 'ancillary_mask' will be added to it
             caller: Which mds called this plotting function
             parm_dict: dictionary with plotting parameters
+            cmap: colormap name
         """
         plotmask = np.where(self.mask, 1, np.nan)
         plotname = add_prefix(basename, f"{caller}_mask")
         parm_dict["z_lim"] = [0, 1]
         parm_dict["unit"] = spc
-        self._plot_map(plotname, plotmask, "Mask", "Mask", parm_dict)
+        self._plot_map(plotname, plotmask, "Mask", "Mask", cmap, parm_dict)
 
-    def plot_amplitude(self, basename, caller, parm_dict):
+    def plot_amplitude(self, basename, caller, cmap, parm_dict):
         """
         Plot Amplitude map
         Args:
             basename: basename for the plot, the prefix 'ancillary_amplitude' will be added to it
             caller: Which mds called this plotting function
             parm_dict: dictionary with plotting parameters
+            cmap: colormap name
         """
         if (
             parm_dict["amplitude_limits"] is None
@@ -425,9 +427,9 @@ class AntennaSurface:
 
         plotname = add_prefix(basename, f"{caller}_amplitude")
         parm_dict["unit"] = self.amp_unit
-        self._plot_map(plotname, self.amplitude, title, "Amplitude", parm_dict)
+        self._plot_map(plotname, self.amplitude, title, "Amplitude", cmap, parm_dict)
 
-    def plot_phase(self, basename, caller, parm_dict):
+    def plot_phase(self, basename, caller, cmap, parm_dict):
         """
         Plot phase map(s)
         Args:
@@ -435,6 +437,7 @@ class AntennaSurface:
                       it/them
             caller: Which mds called this plotting function
             parm_dict: dictionary with plotting parameters
+            cmap: colormap name
         """
 
         if parm_dict["phase_unit"] is None:
@@ -459,10 +462,10 @@ class AntennaSurface:
                 labels = ["original", "correction", "residual"]
                 z_labels = ["Phase", "Phase correction", "Phase residual"]
         self._multi_plot(
-            maps, labels, z_labels, prefix, basename, fac, parm_dict, caller
+            maps, labels, z_labels, cmap, prefix, basename, fac, parm_dict, caller
         )
 
-    def plot_deviation(self, basename, caller, parm_dict):
+    def plot_deviation(self, basename, caller, cmap, parm_dict):
         """
         Plot deviation map(s)
         Args:
@@ -470,6 +473,7 @@ class AntennaSurface:
                       to it/them
             caller: Which mds called this plotting function
             parm_dict: dictionary with plotting parameters
+            cmap: colormap name
         """
         if parm_dict["deviation_unit"] is None:
             parm_dict["unit"] = "mm"
@@ -498,11 +502,11 @@ class AntennaSurface:
                 ]
                 z_labels = ["Deviation", "Deviation correction", "Deviation residual"]
         self._multi_plot(
-            maps, labels, z_labels, prefix, basename, fac, parm_dict, caller
+            maps, labels, z_labels, cmap, prefix, basename, fac, parm_dict, caller
         )
 
     def _multi_plot(
-        self, maps, labels, z_labels, prefix, basename, factor, parm_dict, caller
+        self, maps, labels, z_labels, cmap, prefix, basename, factor, parm_dict, caller
     ):
         if len(maps) != len(labels):
             raise ValueError("Map list and label list must be of the same size")
@@ -518,11 +522,12 @@ class AntennaSurface:
             plotname = add_prefix(plotname, prefix)
             plotname = add_prefix(plotname, caller)
             self._plot_map(
-                plotname, factor * maps[iplot], title, z_labels[iplot], parm_dict
+                plotname, factor * maps[iplot], title, z_labels[iplot], cmap, parm_dict
             )
 
-    def _plot_map(self, filename, data, title, z_label, parm_dict, add_colorbar=True):
-        cmap = parm_dict["colormap"]
+    def _plot_map(
+        self, filename, data, title, z_label, cmap, parm_dict, add_colorbar=True
+    ):
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
         simple_imshow_map_plot(
             ax,

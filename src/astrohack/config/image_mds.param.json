@@ -175,7 +175,14 @@
                 "boolean"
             ]
         },
-        "colormap": {
+        "amplitude_colormap": {
+            "nullable": false,
+            "required": false,
+            "type": [
+                "string"
+            ],
+            "check allowed with": "colormaps"
+        },"phase_like_colormap": {
             "nullable": false,
             "required": false,
             "type": [

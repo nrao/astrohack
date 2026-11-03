@@ -125,7 +125,8 @@ class AstrohackImageFile(AstrohackBaseFile):
         deviation_limits: list[float | int] | tuple | np.ndarray | None = None,
         panel_labels: bool = False,
         display: bool = False,
-        colormap: str = "viridis",
+        amplitude_colormap: str = "viridis",
+        phase_like_colormap: str = "RdBu_r",
         figure_size: tuple | list[float | int] | np.ndarray | None = None,
         dpi: int = 300,
         parallel: bool = False,
@@ -169,8 +170,11 @@ class AstrohackImageFile(AstrohackBaseFile):
         :param display: Display plots inline or suppress, defaults to True
         :type display: bool, optional
 
-        :param colormap: Colormap for plots, default is viridis
-        :type colormap: str, optional
+        :param amplitude_colormap: Colormap for amplitude plots, default is viridis
+        :type amplitude_colormap: str, optional
+
+        :param phase_like_colormap: Colormap for phase and surface deviation plots, default is 'RdBu_r'
+        :type phase_like_colormap: str, optional
 
         :param figure_size: 2 element array/list/tuple with the plot sizes in inches
         :type figure_size: numpy.ndarray, list, tuple, optional
@@ -659,9 +663,15 @@ def _plot_aperture_chunk(parm_dict):
                 clip_level=0,
             )
             basename = f"{destination}/{antenna}_{ddi}_pol_{pol_state}"
-            surface.plot_phase(basename, "image_aperture", parm_dict)
-            surface.plot_deviation(basename, "image_aperture", parm_dict)
-            surface.plot_amplitude(basename, "image_aperture", parm_dict)
+            surface.plot_phase(
+                basename, "image_aperture", parm_dict["phase_like_colormap"], parm_dict
+            )
+            surface.plot_deviation(
+                basename, "image_aperture", parm_dict["phase_like_colormap"], parm_dict
+            )
+            surface.plot_amplitude(
+                basename, "image_aperture", parm_dict["amplitude_colormap"], parm_dict
+            )
         else:
             logger.warning(f"Polarization state {pol_state} not available in data")
 

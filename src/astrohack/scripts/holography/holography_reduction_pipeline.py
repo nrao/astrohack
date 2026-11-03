@@ -141,6 +141,20 @@ def parse(pipeline_type: str, stages: list):
     )
 
     parser.add_argument(
+        "--amplitude-colormap",
+        default="viridis",
+        type=str,
+        help="Colormap to use for amplitude plots (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--phase-like-colormap",
+        default="RdBu_r",
+        type=str,
+        help="Colormap to use for phase like plots (e.g.: phase, surface deviation, etc) (default is %(default)s)",
+    )
+
+    parser.add_argument(
         "-u",
         "--screw-unit",
         default="mils",

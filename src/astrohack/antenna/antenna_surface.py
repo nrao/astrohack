@@ -678,59 +678,108 @@ class AntennaSurface:
             self.panel_model_array[ipanel] = self.panels[ipanel].model_name
             self.panel_fallback[ipanel] = self.panels[ipanel].fall_back_fit
 
-    def export_screws(self, filename, unit="mm", comment_char="#"):
+    def export_screws(
+        self,
+        filename,
+        unit="mm",
+        comment_char="#",
+        filter_shadowed_panels=False,
+        threshold=None,
+        combined_threshold=None,
+        apply_thresholds=False,
+    ):
         """
         Export screw adjustments for all panels onto an ASCII file
         Args:
             filename: ASCII file name/path
             unit: unit for panel screw adjustments ['mm','miliinches']
             comment_char: Character used for comments
+            filter_shadowed_panels: Filter panels in the shadows of feed arms from appearing in the list
+            threshold: Threshold for individual screw adjustments to be included in the list
+            combined_threshold: threshold for sum(abs(screw_adjustments)) above which to include all screws in a panel
+            apply_thresholds: Apply thresholds to produce a filtered list
         """
         date_str = create_informative_label_from_summary(self.summary, "deg").split(
             ","
         )[-1]
-        outfile = f"# Screw adjustments for {self.telescope.name}'s {self.label}, pol. state {self.pol_state}{lnbr}"
-        outfile += f"# Observation date:{date_str}{lnbr}"
+        outfile = f"{comment_char} Screw adjustments for {self.telescope.name}'s {self.label}, pol. state {self.pol_state}{lnbr}"
+        outfile += f"{comment_char} Observation date:{date_str}{lnbr}"
         freq = clight / self.wavelength
         rmses = self.get_rms(unit)
-        outfile += f"# Frequency = {format_frequency(freq)}{lnbr}"
+        outfile += f"{comment_char} Frequency = {format_frequency(freq)}{lnbr}"
         if unit == "mm":
-            outfile += f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)}{lnbr}"
-            outfile += f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)}{lnbr}"
+            outfile += f"{comment_char} Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)}{lnbr}"
+            outfile += f"{comment_char} Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)}{lnbr}"
         else:
             mmrms = self.get_rms("mm")
             outfile += (
-                f"# Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)} or "
+                f"{comment_char} Antenna surface RMS before adjustment: {format_value_unit(rmses[0], unit)} or "
                 f"{format_value_unit(mmrms[0], 'mm')}{lnbr}"
             )
             outfile += (
-                f"# Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)} or "
+                f"{comment_char} Antenna surface RMS after adjustment: {format_value_unit(rmses[1], unit)} or "
                 f"{format_value_unit(mmrms[1], 'mm')}{lnbr}"
             )
-        outfile += "# Lower means away from subreflector" + lnbr
-        outfile += "# Raise means toward the subreflector" + lnbr
-        outfile += "# LOWER the panel if the number is POSITIVE" + lnbr
-        outfile += "# RAISE the panel if the number is NEGATIVE" + lnbr
-        outfile += "# Adjustments are in " + unit + lnbr
+        outfile += f"{comment_char} Lower means away from subreflector" + lnbr
+        outfile += f"{comment_char} Raise means toward the subreflector" + lnbr
+        outfile += f"{comment_char} LOWER the panel if the number is POSITIVE" + lnbr
+        outfile += f"{comment_char} RAISE the panel if the number is NEGATIVE" + lnbr
+        outfile += f"{comment_char} Adjustments are in " + unit + lnbr
         outfile += lnbr
         outfile += f"{comment_char} Panel{2 * spc}"
         nscrews = len(self.telescope.screw_description)
         for screw in self.telescope.screw_description:
             outfile += f"{4 * spc}{screw:2s}{4 * spc}"
         outfile += f"Fallback{4 * spc}Model{lnbr}"
+
         fac = convert_unit("m", unit, "length")
 
-        for ipanel in range(len(self.panel_labels)):
-            outfile += f"{self.panel_labels[ipanel]:>5s}"
+        if apply_thresholds:
+            screw_max = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
+            if threshold is None:
+                threshold = 0.1 * screw_max
+            if combined_threshold is None:
+                combined_threshold = 0.3 * screw_max
+        else:
+            threshold = 0
+            combined_threshold = 0
 
-            for iscrew in range(nscrews):
-                outfile += f" {fac * self.screw_adjustments[ipanel, iscrew]:>9.2f}"
+        for i_panel in range(len(self.panel_labels)):
+            this_panel_abs_screw = np.abs(fac * self.screw_adjustments[i_panel, :])
+            # HERE COMES THE CHECK FOR BLACKLISTED PANELS IF BLACKLISTED AND FILTER ACTIVE CONTINUE
+            this_panel_line = ""
+            if np.sum(this_panel_abs_screw) > combined_threshold:
+                this_panel_line += f"{self.panel_labels[i_panel]:>5s}"
+                for i_screw in range(nscrews):
+                    this_panel_line += (
+                        f" {fac * self.screw_adjustments[i_panel, i_screw]:>9.2f}"
+                    )
+            else:
+                if np.any(this_panel_abs_screw > threshold):
+                    this_panel_line += f"{self.panel_labels[i_panel]:>5s}"
+                    for i_screw in range(nscrews):
+                        if this_panel_abs_screw[i_screw] > threshold:
+                            this_panel_line += f" {fac * self.screw_adjustments[i_panel, i_screw]:>9.2f}"
+                        else:
+                            this_panel_line += 10 * " "
 
+            if this_panel_line != "":
+                this_panel_line += (
+                    f"{5 * spc}{bool_to_str(self.panel_fallback[i_panel]):>3s}{7 * spc}{self.panel_model_array[i_panel]}"
+                    + lnbr
+                )
+            outfile += this_panel_line
+
+        if filter_shadowed_panels:
             outfile += (
-                f"{5 * spc}{bool_to_str(self.panel_fallback[ipanel]):>3s}{7 * spc}{self.panel_model_array[ipanel]}"
-                + lnbr
+                f"{lnbr}{comment_char} Applied filtering of shadowed panels{lnbr}"
             )
-
+        if combined_threshold > 0:
+            outfile += f"{comment_char} Applied a combined threshold of {combined_threshold:.3f} {unit}{lnbr}"
+        if threshold > 0:
+            outfile += (
+                f"{comment_char} Applied a threshold of {threshold:.3f} {unit}{lnbr}"
+            )
         string_to_ascii_file(outfile, filename)
 
     def export_xds(self):

@@ -38,6 +38,7 @@ class Telescope:
         self.el_axis_offset = None
         self.station_distance_dict = None
         self.gain_wavelengths = None
+        self.list_of_shadowed_panels = None
 
     def read(self, filename):
         """

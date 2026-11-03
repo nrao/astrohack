@@ -66,6 +66,9 @@ class AstrohackPanelFile(AstrohackBaseFile):
         ddi: str | int | list[int] = "all",
         unit: str = "mm",
         threshold: float | int | None = None,
+        combined_threshold: float | int | None = None,
+        produce_filtered_list: bool = True,
+        exclude_shadowed_panels: bool = True,
         panel_labels: bool = True,
         display: bool = False,
         colormap: str = "RdBu_r",
@@ -87,9 +90,21 @@ class AstrohackPanelFile(AstrohackBaseFile):
         :param unit: Unit for screws adjustments, most length units supported, defaults to "mm"
         :type unit: str, optional
 
-        :param threshold: Threshold below which data is considered negligible, value is assumed to be in the same unit\
-         as the plot, if not given defaults to 10% of the maximal deviation
+        :param threshold: Threshold below which screw adjustments are considered negligible, if not given, defaults to \
+        10% of the maximal adjustment
         :type threshold: float, optional
+
+        :param combined_threshold: similar to threshold but this one applies to the sum of all screws in a panel, if \
+        not given, defaults to 30% of the maximal adjustment
+        :type combined_threshold: float, optional
+
+        :param produce_filtered_list: Produce a list of screw adjustments containing only adjustments for screws above \
+        at least one of the thresholds above, default is True.
+        :type produce_filtered_list: bool, optional
+
+        :param exclude_shadowed_panels: Exclude shadowed panels from the screw adjustment map and the filtered list of \
+        adjustments, defaults to True
+        :type exclude_shadowed_panels: bool, optional
 
         :param panel_labels: Add panel labels to antenna surface plots, default is True
         :type panel_labels: bool, optional
@@ -400,11 +415,20 @@ def _export_screws_chunk(parm_dict):
     """
     antenna = parm_dict["this_ant"]
     ddi = parm_dict["this_ddi"]
-    export_name = parm_dict["destination"] + f"/panel_screws_{antenna}_{ddi}."
+    export_name = parm_dict["destination"] + f"/panel_screws_{antenna}_{ddi}"
     xds = parm_dict["xdt_data"]
     surface = AntennaSurface(xds, reread=True)
-    surface.export_screws(export_name + "txt", unit=parm_dict["unit"])
-    surface.plot_screw_adjustments(export_name + "png", parm_dict)
+    surface.export_screws(export_name + ".txt", unit=parm_dict["unit"])
+    if parm_dict["produce_filtered_list"]:
+        surface.export_screws(
+            export_name + "_filtered.txt",
+            unit=parm_dict["unit"],
+            threshold=parm_dict["threshold"],
+            combined_threshold=parm_dict["combined_threshold"],
+            apply_thresholds=True,
+            filter_shadowed_panels=True,
+        )
+    surface.plot_screw_adjustments(export_name + ".png", parm_dict)
 
 
 def _plot_antenna_chunk(parm_dict):

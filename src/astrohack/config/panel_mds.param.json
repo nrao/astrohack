@@ -43,6 +43,22 @@
             "type": ["float", "int"],
             "min": 0
         },
+        "combined_threshold":{
+            "nullable": true,
+            "required": false,
+            "type": ["float", "int"],
+            "min": 0
+        },
+        "produce_filtered_list": {
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
+        "exclude_shadowed_panels": {
+            "nullable": false,
+            "required": false,
+            "type": ["boolean"]
+        },
         "panel_labels":{
             "nullable": false,
             "required": false,

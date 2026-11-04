@@ -6,6 +6,7 @@ from matplotlib.patches import Circle
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT, PanelModel, PanelPoint
 from astrohack.utils.constants import fontsize, markersize, pi
 from astrohack.utils.conversion import convert_unit
+from astrohack.utils.text import bool_to_str, lnbr, spc
 
 
 class BasePanel:
@@ -140,18 +141,6 @@ class BasePanel:
             self.screw_corrections[iscrew] = self.model.correct_point(screw)
         return self.corrections
 
-    def export_screws(self, unit="mm"):
-        """
-        Export screw adjustments to a numpy array in unit
-        Args:
-            unit: Unit for the screw adjustments
-
-        Returns:
-            Numpy array with screw adjustments
-        """
-        fac = convert_unit("m", unit, "length")
-        return fac * self.screw_corrections
-
     def plot_label(self, ax, rotate=True):
         """
         Plots panel label to ax
@@ -238,12 +227,42 @@ class BasePanel:
             # Nothing to plot!
             pass
 
-    def reread_solution(self, parameters, screw_adjustments):
+    def reread_solution(self, model_name, parameters, fallback, screw_adjustments):
         """
         Simple re-read of values pertinent for export production
         Args:
+            model_name: Panel surface model
             parameters: model parameters
+            fallback: is the panel model a fallback?
             screw_adjustments: screw adjustments
         """
         self.model.parameters = parameters
         self.screw_corrections = screw_adjustments
+        self.model_name = model_name
+        self.fall_back_fit = fallback
+
+    def get_panel_adjustment_string(self, unit_factor, threshold, combined_threshold):
+        """
+        Get a string of panel adjustments
+        Args:
+            unit_factor: unit conversion factor
+            threshold: threshold for single corrections
+            combined_threshold: Threshold for cor the combined corrections in a panel
+        Returns:
+            Empty string if nothing to report, string with panel adjustments if successful
+        """
+        out_str = f"{self.label:>5s}"
+        if self._above_combined_threshold(unit_factor, combined_threshold):
+            for screw_correction in self.screw_corrections:
+                out_str += f" {unit_factor * screw_correction:>9.2f}"
+        elif self._any_screw_above_threshold(unit_factor, threshold):
+            for screw_correction in self.screw_corrections:
+                if np.abs(screw_correction) > threshold:
+                    out_str += f" {unit_factor * screw_correction:>9.2f}"
+                else:
+                    out_str += 10 * " "
+        else:
+            return ""
+
+        out_str += f"{5 * spc}{bool_to_str(self.fall_back_fit):>3s}{7 * spc}{self.model_name}{lnbr}"
+        return out_str

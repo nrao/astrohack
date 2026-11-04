@@ -17,7 +17,6 @@ from astrohack.utils.fits import (
 )
 from astrohack.utils.text import (
     add_prefix,
-    bool_to_str,
     create_dataset_label,
     create_informative_label_from_summary,
     format_frequency,
@@ -98,7 +97,10 @@ class AntennaSurface:
         if self.reread:
             for i_panel, panel in enumerate(self.panels):
                 panel.reread_solution(
-                    self.panel_pars[i_panel, :], self.screw_adjustments[i_panel, :]
+                    self.panel_model_array[i_panel],
+                    self.panel_pars[i_panel, :],
+                    self.panel_fallback[i_panel],
+                    self.screw_adjustments[i_panel, :],
                 )
         else:
             self.panel_model = panel_model
@@ -683,13 +685,13 @@ class AntennaSurface:
         self.panel_labels = np.ndarray([npanels], dtype="U22")
         self.panel_model_array = np.ndarray([npanels], dtype="U22")
         self.panel_pars = np.full((npanels, max_n_par), np.nan, dtype=float)
-        self.screw_adjustments = np.ndarray((npanels, max_n_screws), dtype=float)
+        self.screw_adjustments = np.full((npanels, max_n_screws), np.nan, dtype=float)
         self.panel_fallback = np.ndarray([npanels], dtype=bool)
 
         for i_panel, panel in enumerate(self.panels):
             self.panel_labels[i_panel] = panel.label
             self.panel_pars[i_panel, :] = panel.model.parameters
-            self.screw_adjustments[i_panel, :] = panel.export_screws(unit="m")
+            self.screw_adjustments[i_panel, :] = panel.screw_corrections
             self.panel_model_array[i_panel] = panel.model_name
             self.panel_fallback[i_panel] = panel.fall_back_fit
 
@@ -742,15 +744,19 @@ class AntennaSurface:
         outfile += f"{comment_char} Adjustments are in " + unit + lnbr
         outfile += lnbr
         outfile += f"{comment_char} Panel{2 * spc}"
-        nscrews = len(self.telescope.screw_description)
+
         for screw in self.telescope.screw_description:
             outfile += f"{4 * spc}{screw:2s}{4 * spc}"
         outfile += f"Fallback{4 * spc}Model{lnbr}"
 
-        fac = convert_unit("m", unit, "length")
+        filter_shadowed_panels = (
+            filter_shadowed_panels
+            and self.telescope.list_of_shadowed_panels is not None
+        )
+        unit_factor = convert_unit("m", unit, "length")
 
         if apply_thresholds:
-            screw_max = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
+            screw_max = float(np.nanmax(np.abs(unit_factor * self.screw_adjustments)))
             threshold, combined_threshold = set_thresholds(
                 screw_max, threshold, combined_threshold
             )
@@ -758,31 +764,13 @@ class AntennaSurface:
             threshold = 0
             combined_threshold = 0
 
-        for i_panel in range(len(self.panel_labels)):
-            this_panel_abs_screw = np.abs(fac * self.screw_adjustments[i_panel, :])
-            # HERE COMES THE CHECK FOR BLACKLISTED PANELS IF BLACKLISTED AND FILTER ACTIVE CONTINUE
-            this_panel_line = ""
-            if np.sum(this_panel_abs_screw) > combined_threshold:
-                this_panel_line += f"{self.panel_labels[i_panel]:>5s}"
-                for i_screw in range(nscrews):
-                    this_panel_line += (
-                        f" {fac * self.screw_adjustments[i_panel, i_screw]:>9.2f}"
-                    )
-            else:
-                if np.any(this_panel_abs_screw > threshold):
-                    this_panel_line += f"{self.panel_labels[i_panel]:>5s}"
-                    for i_screw in range(nscrews):
-                        if this_panel_abs_screw[i_screw] > threshold:
-                            this_panel_line += f" {fac * self.screw_adjustments[i_panel, i_screw]:>9.2f}"
-                        else:
-                            this_panel_line += 10 * " "
-
-            if this_panel_line != "":
-                this_panel_line += (
-                    f"{5 * spc}{bool_to_str(self.panel_fallback[i_panel]):>3s}{7 * spc}{self.panel_model_array[i_panel]}"
-                    + lnbr
-                )
-            outfile += this_panel_line
+        for panel in self.panels:
+            if filter_shadowed_panels:
+                if panel.label in self.telescope.list_of_shadowed_panels:
+                    continue
+            outfile += panel.get_panel_adjustment_string(
+                unit_factor, threshold, combined_threshold
+            )
 
         if filter_shadowed_panels:
             outfile += (

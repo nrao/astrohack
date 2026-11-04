@@ -88,8 +88,8 @@ class TestBasePanel:
             one_corr, value_generator(0, 0, expected_pars), atol=self.tolerance
         ), "Correction for a point did not match the expected value"
 
-        mm_screws = this_panel.export_screws()
         fac = convert_unit("m", "mm", "length")
+        mm_screws = fac * this_panel.screw_corrections
         for screw_corr in mm_screws:
             assert np.isclose(
                 screw_corr,
@@ -167,7 +167,7 @@ class TestBasePanel:
         params = [0, 0, 0]
         screw_adjustments = [1.2, 3.2, 5.0, 4]
         this_panel = BasePanel("rigid", self.screws, False, 0.1, "TEST")
-        this_panel.reread_solution(params, screw_adjustments)
+        this_panel.reread_solution("flexible", params, False, screw_adjustments)
 
         assert np.all(this_panel.model.parameters == params), (
             "Panel model Parameters do not match"

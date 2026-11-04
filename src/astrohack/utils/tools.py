@@ -111,3 +111,16 @@ def check_is_proper_shape(array, shape):
         raise ValueError(
             f"{array.__name__} shape ({array.shape}) is not what was expected({shape})."
         )
+
+
+def set_thresholds(data_maximum, threshold, combined_threshold):
+    if threshold is None or threshold == "None":
+        threshold = 0.1 * data_maximum
+    else:
+        threshold = np.abs(threshold)
+    if combined_threshold is None or combined_threshold == "None":
+        combined_threshold = 0.3 * data_maximum
+    else:
+        combined_threshold = np.abs(combined_threshold)
+
+    return threshold, combined_threshold

@@ -27,6 +27,7 @@ from astrohack.utils.text import (
     statistics_to_text,
     string_to_ascii_file,
 )
+from astrohack.utils.tools import set_thresholds
 from astrohack.visualization.plot_tools import (
     close_figure,
     compute_extent,
@@ -603,24 +604,21 @@ class AntennaSurface:
             parm_dict: Dictionary with plotting parameters
         """
         unit = parm_dict["unit"]
-        threshold = parm_dict["threshold"]
-        combined_threshold = parm_dict["combined_threshold"]
         cmap = get_proper_color_map(parm_dict["colormap"], default_cmap="RdBu_r")
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
 
         fac = convert_unit("m", unit, "length")
         vmax = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
         vmin = -vmax
-        if threshold is None or threshold == "None":
-            threshold = 0.1 * vmax
-        else:
-            threshold = np.abs(threshold)
-        if combined_threshold is None or combined_threshold == "None":
-            combined_threshold = 0.3 * vmax
-        else:
-            combined_threshold = np.abs(combined_threshold)
 
-        ax.set_title(f"{lnbr}Threshold = {threshold:.2f} {unit}", fontsize="small")
+        threshold, combined_threshold = set_thresholds(
+            vmax, parm_dict["threshold"], parm_dict["combined_threshold"]
+        )
+
+        ax.set_title(
+            f"{lnbr}Threshold = {threshold:.2f} {unit}, combined threshold = {combined_threshold:.2f} {unit}",
+            fontsize="small",
+        )
         # set the limits of the plot to the limits of the data
         extent = compute_extent(self.u_axis, self.v_axis)
         im = ax.imshow(
@@ -753,10 +751,9 @@ class AntennaSurface:
 
         if apply_thresholds:
             screw_max = float(np.nanmax(np.abs(fac * self.screw_adjustments)))
-            if threshold is None:
-                threshold = 0.1 * screw_max
-            if combined_threshold is None:
-                combined_threshold = 0.3 * screw_max
+            threshold, combined_threshold = set_thresholds(
+                screw_max, threshold, combined_threshold
+            )
         else:
             threshold = 0
             combined_threshold = 0

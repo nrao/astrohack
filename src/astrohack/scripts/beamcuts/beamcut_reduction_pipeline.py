@@ -162,14 +162,14 @@ def run_astrohack_reduction(input_param_dict, msger):
         ["exports", beamcut],
     ]
     for next_stage, function in exec_list:
-        if status and param_dict["processing_stage"] == function.__name__:
+        if status and input_param_dict["processing_stage"] == function.__name__:
             status, exec_exception = run_astrohack_function(
                 param_dict,
                 function,
                 msger,
             )
             if status:
-                param_dict["processing_stage"] = next_stage
+                input_param_dict["processing_stage"] = next_stage
 
     if not status:
         raise RuntimeError(

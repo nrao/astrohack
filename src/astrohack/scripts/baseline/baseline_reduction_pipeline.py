@@ -135,7 +135,7 @@ def fetch_ms_data(param_dict):
     # Ms data fetching and some consistency checks
     pnt_intent = "CALIBRATE_POINTING#ON_SOURCE"
     msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
+    msmd.open(param_dict["ms_name"])
     ant_names = msmd.antennanames()
     field_names = msmd.fieldnames()
     spw_list = msmd.spwsforintent(pnt_intent)
@@ -211,7 +211,7 @@ def run_casa_pre_locit_steps(param_dict: dict, msger: MessageBoard):
     run_casatask(
         "split",
         {
-            "vis": param_dict["msname"],
+            "vis": param_dict["ms_name"],
             "outputvis": param_dict["pointing_only_ms"],
             "intent": param_dict["intent"],
             "datacolumn": "data",

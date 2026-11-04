@@ -163,6 +163,20 @@ def parse(pipeline_type: str, stages: list):
         help="Unit to present screw adjustments (default is %(default)s)",
     )
 
+    parser.add_argument(
+        "--threshold",
+        default=15.0,
+        type=float,
+        help="Threshold above which to include panel screws in --screw-unit (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--combined_threshold",
+        default=45.0,
+        type=float,
+        help="Threshold on the sum of all panel screws in a panel in --screw-unit (default is %(default)s)",
+    )
+
     return vars(parser.parse_args())
 
 
@@ -327,8 +341,11 @@ def run_astrohack_reduction(input_param_dict: dict, msger: MessageBoard):
     ]
 
     for next_stage, function in exec_list:
-        if status and param_dict["processing_stage"] == function.__name__:
-            if param_dict["processing_stage"] == "panel" and param_dict["combine"]:
+        if status and input_param_dict["processing_stage"] == function.__name__:
+            if (
+                input_param_dict["processing_stage"] == "panel"
+                and param_dict["combine"]
+            ):
                 param_dict["image_name"] = param_dict["combine_name"]
 
             status, exec_exception = run_astrohack_function(
@@ -336,7 +353,10 @@ def run_astrohack_reduction(input_param_dict: dict, msger: MessageBoard):
                 function,
                 msger,
             )
-            if param_dict["processing_stage"] == "holog" and param_dict["combine"]:
+            if (
+                input_param_dict["processing_stage"] == "holog"
+                and param_dict["combine"]
+            ):
                 status, exec_exception = run_astrohack_function(
                     param_dict,
                     combine,
@@ -344,8 +364,8 @@ def run_astrohack_reduction(input_param_dict: dict, msger: MessageBoard):
                 )
 
             if status:
-                param_dict["processing_stage"] = next_stage
-    param_dict["image_name"] = bckp_img_name
+                input_param_dict["processing_stage"] = next_stage
+    input_param_dict["image_name"] = bckp_img_name
     if not status:
         raise RuntimeError(
             f"{param_dict['processing_stage']} failed, see above for details."

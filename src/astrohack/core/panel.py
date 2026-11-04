@@ -34,7 +34,7 @@ def process_panel_chunk(panel_chunk_params: dict, output_mds: AstrohackPanelFile
         clip_type=panel_chunk_params["clip_type"],
         pol_state=panel_chunk_params["polarization_state"],
         clip_level=clip_level,
-        pmodel=panel_chunk_params["panel_model"],
+        panel_model=panel_chunk_params["panel_model"],
         panel_margins=panel_chunk_params["panel_margins"],
         patch_phase=False,
         use_detailed_mask=panel_chunk_params["use_detailed_mask"],

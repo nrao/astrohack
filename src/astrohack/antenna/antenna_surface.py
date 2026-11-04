@@ -45,7 +45,7 @@ class AntennaSurface:
         inputxds,
         clip_type="sigma",
         clip_level=3,
-        pmodel="rigid",
+        panel_model="rigid",
         nan_out_of_bounds=True,
         panel_margins=0.05,
         reread=False,
@@ -59,7 +59,7 @@ class AntennaSurface:
             inputxds: Input xarray dataset
             clip_type: Type of clipping to be applied to amplitude
             clip_level: Level of clipping
-            pmodel: model of panel surface fitting, if is None defaults to telescope default
+            panel_model: model of panel surface fitting, if is None defaults to telescope default
             nan_out_of_bounds: Should the region outside the dish be replaced with NaNs?
             panel_margins: Margin to be ignored at edges of panels when fitting, defaults to 20% if None
             reread: Read a previously processed holography
@@ -75,8 +75,8 @@ class AntennaSurface:
         self.phase_corrections = None
         self.phase_residuals = None
         self.solved = False
-        self.ingains = np.nan
-        self.ougains = np.nan
+        self.in_gains = np.nan
+        self.ou_gains = np.nan
         self.in_rms = np.nan
         self.out_rms = np.nan
         self.fitted = False
@@ -93,9 +93,14 @@ class AntennaSurface:
             self.u_axis, self.v_axis, self.mask, self.phase, self.wavelength
         )
 
-        self.panels = self.telescope.build_panel_list(pmodel, panel_margins)
-        if not self.reread:
-            self.panelmodel = pmodel
+        self.panels = self.telescope.build_panel_list(panel_model, panel_margins)
+        if self.reread:
+            for i_panel, panel in enumerate(self.panels):
+                panel.reread_solution(
+                    self.panel_pars[i_panel, :], self.screw_adjustments[i_panel, :]
+                )
+        else:
+            self.panel_model = panel_model
             self.panel_margins = panel_margins
             self.panel_distribution = self.telescope.attribute_pixels_to_panels(
                 self.panels,
@@ -110,97 +115,97 @@ class AntennaSurface:
         if nan_out_of_bounds:
             self._nan_out_of_bounds()
 
-    def _read_holog_xds(self, inputxds):
-        if "chan" in inputxds.dims:
-            if inputxds.sizes["chan"] != 1:
+    def _read_holog_xds(self, input_xds):
+        if "chan" in input_xds.dims:
+            if input_xds.sizes["chan"] != 1:
                 raise RuntimeError("Only single channel holographies supported")
-            self.wavelength = clight / inputxds.chan.values[0]
+            self.wavelength = clight / input_xds.chan.values[0]
         else:
-            self.wavelength = inputxds.attrs["wavelength"]
+            self.wavelength = input_xds.attrs["wavelength"]
 
-        if self.pol_state not in inputxds.coords["pol"]:
+        if self.pol_state not in input_xds.coords["pol"]:
             msg = (
                 f"Polarization state {self.pol_state} is not present in the data (available states: "
-                f"{inputxds.coords['pol']})"
+                f"{input_xds.coords['pol']})"
             )
             logger.error(msg)
             raise ValueError(msg)
 
         self.amplitude = (
-            inputxds["AMPLITUDE"].sel(pol=self.pol_state).isel(time=0, chan=0).values
+            input_xds["AMPLITUDE"].sel(pol=self.pol_state).isel(time=0, chan=0).values
         )
         self.phase = (
-            inputxds["CORRECTED_PHASE"]
+            input_xds["CORRECTED_PHASE"]
             .sel(pol=self.pol_state)
             .isel(time=0, chan=0)
             .values
         )
 
         self.amp_unit = "V"
-        self.u_axis = inputxds.u_prime.values
-        self.v_axis = inputxds.v_prime.values
+        self.u_axis = input_xds.u_prime.values
+        self.v_axis = input_xds.v_prime.values
 
-    def _read_panel_xds(self, inputxds):
-        self.wavelength = inputxds.attrs["wavelength"]
-        self.amp_unit = inputxds.attrs["amp_unit"]
-        self.panelmodel = inputxds.attrs["panel_model"]
-        self.panel_margins = inputxds.attrs["panel_margin"]
-        self.clip = inputxds.attrs["clip"]
-        self.solved = inputxds.attrs["solved"]
-        self.fitted = inputxds.attrs["fitted"]
-        if "pol_state" not in inputxds.attrs:
+    def _read_panel_xds(self, input_xds):
+        self.wavelength = input_xds.attrs["wavelength"]
+        self.amp_unit = input_xds.attrs["amp_unit"]
+        self.panel_model = input_xds.attrs["panel_model"]
+        self.panel_margins = input_xds.attrs["panel_margin"]
+        self.clip = input_xds.attrs["clip"]
+        self.solved = input_xds.attrs["solved"]
+        self.fitted = input_xds.attrs["fitted"]
+        if "pol_state" not in input_xds.attrs:
             # Here I assume no one was doing panel fitting on something that is not Stokes I
             self.pol_state = "I"
         else:
-            self.pol_state = inputxds.attrs["pol_state"]
+            self.pol_state = input_xds.attrs["pol_state"]
         # Arrays
-        self.amplitude = inputxds["AMPLITUDE"].values
-        self.phase = inputxds["PHASE"].values
-        self.deviation = inputxds["DEVIATION"].values
-        self.mask = inputxds["MASK"].values
-        self.u_axis = inputxds.u.values
-        self.v_axis = inputxds.v.values
-        self.panel_distribution = inputxds["PANEL_DISTRIBUTION"].values
-        self.amplitude_noise = inputxds["AMP_NOISE"].values
+        self.amplitude = input_xds["AMPLITUDE"].values
+        self.phase = input_xds["PHASE"].values
+        self.deviation = input_xds["DEVIATION"].values
+        self.mask = input_xds["MASK"].values
+        self.u_axis = input_xds.u.values
+        self.v_axis = input_xds.v.values
+        self.panel_distribution = input_xds["PANEL_DISTRIBUTION"].values
+        self.amplitude_noise = input_xds["AMP_NOISE"].values
 
         if self.solved:
-            self.panel_fallback = inputxds["PANEL_FALLBACK"].values
-            self.panel_model_array = inputxds["PANEL_MODEL"].values
-            self.phase_residuals = inputxds["PHASE_RESIDUALS"].values
-            self.residuals = inputxds["RESIDUALS"].values
-            self.phase_corrections = inputxds["PHASE_CORRECTIONS"].values
-            self.corrections = inputxds["CORRECTIONS"].values
-            self.panel_pars = inputxds["PANEL_PARAMETERS"].values
-            self.screw_adjustments = inputxds["PANEL_SCREWS"].values
-            self.ingains = [
-                inputxds.attrs["input_gain"],
-                inputxds.attrs["theoretical_gain"],
+            self.panel_fallback = input_xds["PANEL_FALLBACK"].values
+            self.panel_model_array = input_xds["PANEL_MODEL"].values
+            self.phase_residuals = input_xds["PHASE_RESIDUALS"].values
+            self.residuals = input_xds["RESIDUALS"].values
+            self.phase_corrections = input_xds["PHASE_CORRECTIONS"].values
+            self.corrections = input_xds["CORRECTIONS"].values
+            self.panel_pars = input_xds["PANEL_PARAMETERS"].values
+            self.screw_adjustments = input_xds["PANEL_SCREWS"].values
+            self.in_gains = [
+                input_xds.attrs["input_gain"],
+                input_xds.attrs["theoretical_gain"],
             ]
-            self.ougains = [
-                inputxds.attrs["output_gain"],
-                inputxds.attrs["theoretical_gain"],
+            self.ou_gains = [
+                input_xds.attrs["output_gain"],
+                input_xds.attrs["theoretical_gain"],
             ]
-            self.panel_labels = inputxds.labels.values
+            self.panel_labels = input_xds.labels.values
 
-    def _read_xds(self, inputxds):
+    def _read_xds(self, input_xds):
         """
         Read input XDS, the reading function depending on if it is a reread or a new processing
         Args:
-            inputxds: X array dataset
+            input_xds: X array dataset
         """
         # Origin dependant reading
 
         if self.reread:
-            self._read_panel_xds(inputxds)
+            self._read_panel_xds(input_xds)
         else:
-            self._read_holog_xds(inputxds)
+            self._read_holog_xds(input_xds)
 
         # Common elements
-        self.summary = inputxds.attrs["summary"]
-        self.antenna_name = inputxds.attrs["summary"]["general"]["antenna name"]
-        self.resolution = inputxds.summary["aperture"]["resolution"]
-        self.ddi = inputxds.attrs["ddi"]
-        self.label = create_dataset_label(self.antenna_name, inputxds.attrs["ddi"])
+        self.summary = input_xds.attrs["summary"]
+        self.antenna_name = input_xds.attrs["summary"]["general"]["antenna name"]
+        self.resolution = input_xds.summary["aperture"]["resolution"]
+        self.ddi = input_xds.attrs["ddi"]
+        self.label = create_dataset_label(self.antenna_name, input_xds.attrs["ddi"])
         self.telescope = get_proper_telescope(
             self.summary["general"]["telescope name"], self.antenna_name
         )
@@ -272,13 +277,13 @@ class AntennaSurface:
         Returns:
         Gains before panel fitting OR Gains before and after panel fitting
         """
-        self.ingains = self.gain_at_wavelength(False, self.wavelength)
+        self.in_gains = self.gain_at_wavelength(False, self.wavelength)
         if not self.solved:
-            return self.ingains
+            return self.in_gains
 
         else:
-            self.ougains = self.gain_at_wavelength(True, self.wavelength)
-            return self.ingains, self.ougains
+            self.ou_gains = self.gain_at_wavelength(True, self.wavelength)
+            return self.in_gains, self.ou_gains
 
     def gain_at_wavelength(self, corrected, wavelength):
         # This is valid for the VLA not sure if valid for anything else...
@@ -343,7 +348,7 @@ class AntennaSurface:
         self.fitted = True
         if len(panels) > 0:
             msg = (
-                f"{self.label}: Fit failed with the {self.panelmodel} model and a simple mean has been used instead "
+                f"{self.label}: Fit failed with the {self.panel_model} model and a simple mean has been used instead "
                 f"for the following panels:"
             )
 
@@ -599,6 +604,7 @@ class AntennaSurface:
         """
         unit = parm_dict["unit"]
         threshold = parm_dict["threshold"]
+        combined_threshold = parm_dict["combined_threshold"]
         cmap = get_proper_color_map(parm_dict["colormap"], default_cmap="RdBu_r")
         fig, ax = create_figure_and_axes(parm_dict["figure_size"], [1, 1])
 
@@ -609,6 +615,10 @@ class AntennaSurface:
             threshold = 0.1 * vmax
         else:
             threshold = np.abs(threshold)
+        if combined_threshold is None or combined_threshold == "None":
+            combined_threshold = 0.3 * vmax
+        else:
+            combined_threshold = np.abs(combined_threshold)
 
         ax.set_title(f"{lnbr}Threshold = {threshold:.2f} {unit}", fontsize="small")
         # set the limits of the plot to the limits of the data
@@ -637,15 +647,26 @@ class AntennaSurface:
         ax.set_xlabel("X axis [m]")
         ax.set_ylabel("Y axis [m]")
 
+        filter_shadowed_panels = (
+            parm_dict["exclude_shadowed_panels"]
+            and self.telescope.list_of_shadowed_panels is not None
+        )
+
         for ipanel in range(len(self.panels)):
-            self.panels[ipanel].plot(ax, screws=False, label=parm_dict["panel_labels"])
-            self.panels[ipanel].plot_corrections(
-                ax, cmap, fac * self.screw_adjustments[ipanel], threshold, vmin, vmax
+            panel = self.panels[ipanel]
+            panel.plot(ax, screws=False, label=parm_dict["panel_labels"])
+            if filter_shadowed_panels:
+                if panel.label in self.telescope.list_of_shadowed_panels:
+                    continue
+            panel.plot_screw_corrections(
+                ax, cmap, unit, threshold, combined_threshold, vmin, vmax
             )
 
-        suptitle = create_informative_label_from_summary(self.summary, "deg")
-        suptitle += f", Pol. state: {self.pol_state}"
-        close_figure(fig, suptitle, filename, parm_dict["dpi"], parm_dict["display"])
+        superior_title = create_informative_label_from_summary(self.summary, "deg")
+        superior_title += f", Pol. state: {self.pol_state}"
+        close_figure(
+            fig, superior_title, filename, parm_dict["dpi"], parm_dict["display"]
+        )
 
     def _build_panel_data_arrays(self):
         """
@@ -655,28 +676,24 @@ class AntennaSurface:
         """
         npanels = len(self.panels)
         # First panel might fail hence we need to check npar for all panels
-        max_par = 0
+        max_n_par = 0
+        max_n_screws = 0
         for panel in self.panels:
-            p_npar = panel.model.npar
-            if p_npar > max_par:
-                max_par = p_npar
-
-        nscrews = self.panels[0].screws.shape[0]
+            max_n_par = np.max((panel.model.npar, max_n_par))
+            max_n_screws = np.max((panel.screw_positions.shape[0], max_n_screws))
 
         self.panel_labels = np.ndarray([npanels], dtype="U22")
         self.panel_model_array = np.ndarray([npanels], dtype="U22")
-        self.panel_pars = np.full((npanels, max_par), np.nan, dtype=float)
-        self.screw_adjustments = np.ndarray((npanels, nscrews), dtype=float)
+        self.panel_pars = np.full((npanels, max_n_par), np.nan, dtype=float)
+        self.screw_adjustments = np.ndarray((npanels, max_n_screws), dtype=float)
         self.panel_fallback = np.ndarray([npanels], dtype=bool)
 
-        for ipanel in range(npanels):
-            self.panel_labels[ipanel] = self.panels[ipanel].label
-            self.panel_pars[ipanel, :] = self.panels[ipanel].model.parameters
-            self.screw_adjustments[ipanel, :] = self.panels[ipanel].export_screws(
-                unit="m"
-            )
-            self.panel_model_array[ipanel] = self.panels[ipanel].model_name
-            self.panel_fallback[ipanel] = self.panels[ipanel].fall_back_fit
+        for i_panel, panel in enumerate(self.panels):
+            self.panel_labels[i_panel] = panel.label
+            self.panel_pars[i_panel, :] = panel.model.parameters
+            self.screw_adjustments[i_panel, :] = panel.export_screws(unit="m")
+            self.panel_model_array[i_panel] = panel.model_name
+            self.panel_fallback[i_panel] = panel.fall_back_fit
 
     def export_screws(
         self,
@@ -794,7 +811,7 @@ class AntennaSurface:
         xds.attrs["ddi"] = self.ddi
         xds.attrs["wavelength"] = self.wavelength
         xds.attrs["amp_unit"] = self.amp_unit
-        xds.attrs["panel_model"] = self.panelmodel
+        xds.attrs["panel_model"] = self.panel_model
         xds.attrs["panel_margin"] = self.panel_margins
         xds.attrs["clip"] = self.clip
         xds.attrs["solved"] = self.solved
@@ -860,7 +877,7 @@ class AntennaSurface:
         """
 
         head = {
-            "PMODEL": self.panelmodel,
+            "PMODEL": self.panel_model,
             "PMARGIN": self.panel_margins,
             "CLIP": self.clip,
             "TELESCOP": self.antenna_name,

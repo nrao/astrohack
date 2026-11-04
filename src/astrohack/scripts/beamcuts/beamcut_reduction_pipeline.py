@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 
 from astrohack import (
     beamcut,
@@ -146,8 +147,9 @@ def run_casa_calibration(param_dict, msger):
     return
 
 
-def run_astrohack_reduction(param_dict, msger):
+def run_astrohack_reduction(input_param_dict, msger):
     # Astrohack convenience changes
+    param_dict = deepcopy(input_param_dict)
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
@@ -177,7 +179,8 @@ def run_astrohack_reduction(param_dict, msger):
     return
 
 
-def run_astrohack_exports(param_dict, msger):
+def run_astrohack_exports(input_param_dict, msger):
+    param_dict = deepcopy(input_param_dict)
     param_dict["destination"] = param_dict["exports_name"]
     pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
     bmc_mds = open_astrohack_file(open_beamcut, param_dict["beamcut_name"])

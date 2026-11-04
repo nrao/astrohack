@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -303,8 +304,9 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
+def run_astrohack_reduction(input_param_dict: dict, msger: MessageBoard):
     # Astrohack convenience changes
+    param_dict = deepcopy(input_param_dict)
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
@@ -352,7 +354,9 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
+def run_astrohack_exports(input_param_dict: dict, msger: MessageBoard):
+    param_dict = deepcopy(input_param_dict)
+
     param_dict["destination"] = param_dict["exports_name"]
     # This key forces pnl_mds.plot_antennas to do all aperture plots
     param_dict["plot_type"] = "all"

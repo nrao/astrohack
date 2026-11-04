@@ -257,7 +257,7 @@ class BasePanel:
                 out_str += f" {unit_factor * screw_correction:>9.2f}"
         elif self._any_screw_above_threshold(unit_factor, threshold):
             for screw_correction in self.screw_corrections:
-                if np.abs(screw_correction) > threshold:
+                if unit_factor * np.abs(screw_correction) > threshold:
                     out_str += f" {unit_factor * screw_correction:>9.2f}"
                 else:
                     out_str += 10 * " "

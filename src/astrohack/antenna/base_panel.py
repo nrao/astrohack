@@ -17,7 +17,7 @@ class BasePanel:
     def __init__(
         self,
         model,
-        screws,
+        screw_positions,
         plot_screw_pos,
         plot_screw_size,
         label,
@@ -43,20 +43,22 @@ class BasePanel:
         Args:
             model: What model of surface fitting method to be used
             label: Panel label
-            screws: position of the screws
+            screw_positions: position of the screws
             center: Panel center
             zeta: panel center angle
+            ref_points: panel ref_points (relevant for flexible model)
         """
         self.model_name = model
         self.solved = False
         self.fall_back_fit = False
         self.label = label
-        self.screws = screws
+        self.screw_positions = screw_positions
         self.plot_screw_pos = plot_screw_pos
         self.plot_screw_size = plot_screw_size
         self.samples = []
         self.margins = []
-        self.corr = None
+        self.corrections = None
+        self.screw_corrections = None
 
         if center is None:
             self.center = PanelPoint(0, 0)
@@ -131,8 +133,12 @@ class BasePanel:
             msg = "Cannot correct a panel that is not solved"
             logger.error(msg)
             raise RuntimeError(msg)
-        self.corr = self.model.correct(self.samples, self.margins)
-        return self.corr
+        self.corrections = self.model.correct(self.samples, self.margins)
+        nscrew = len(self.screw_positions)
+        self.screw_corrections = np.zeros(nscrew)
+        for iscrew, screw in enumerate(self.screw_positions):
+            self.screw_corrections[iscrew] = self.model.correct_point(screw)
+        return self.corrections
 
     def export_screws(self, unit="mm"):
         """
@@ -144,11 +150,7 @@ class BasePanel:
             Numpy array with screw adjustments
         """
         fac = convert_unit("m", unit, "length")
-        nscrew = len(self.screws)
-        screw_corr = np.zeros(nscrew)
-        for iscrew, screw in enumerate(self.screws):
-            screw_corr[iscrew] = fac * self.model.correct_point(screw)
-        return screw_corr
+        return fac * self.screw_corrections
 
     def plot_label(self, ax, rotate=True):
         """
@@ -179,7 +181,7 @@ class BasePanel:
         Args:
             ax: matplotlib axes instance
         """
-        for iscrew, screw in enumerate(self.screws):
+        for iscrew, screw in enumerate(self.screw_positions):
             ax.scatter(
                 screw.xc,
                 screw.yc,
@@ -189,28 +191,59 @@ class BasePanel:
                 color=self.colors[iscrew],
             )
 
-    def plot_corrections(self, ax, cmap, corrections, threshold, vmin, vmax):
+    def _any_screw_above_threshold(self, unit_factor, threshold):
+        return np.any(unit_factor * self.screw_corrections > threshold)
+
+    def _above_combined_threshold(self, unit_factor, combined_threshold):
+        return np.sum(unit_factor * self.screw_corrections) > combined_threshold
+
+    def plot_screw_corrections(
+        self, ax, cmap, unit, threshold, combined_threshold, vmin, vmax
+    ):
         """
         Plot screw corrections onto an axis
         Args:
             ax: axis for plot
             cmap: Colormap of the corrections to be applied to each screw
-            corrections: the screw corrections
-            threshold: Threshold below which data is considered negligable
+            unit: unit for corrections
+            threshold: Threshold below which data is considered negligible
+            combined_threshold: Same as threshold but for the sum of all corrections in this panel
             vmin: bottom of the colormap
             vmax: top of the colormap
         """
-        norm = Normalize(vmin=vmin, vmax=vmax)
-        for iscrew in range(self.plot_screw_pos.shape[0]):
-            screw = self.plot_screw_pos[iscrew]
-            if np.abs(corrections[iscrew]) < threshold:
-                corr = 0
-            else:
-                corr = corrections[iscrew]
+
+        def plot_a_screw(screw_pos, screw_corr):
             circle = Circle(
-                (screw.xc, screw.yc),
+                (screw_pos.xc, screw_pos.yc),
                 self.plot_screw_size,
-                color=cmap(norm(corr)),
+                color=cmap(norm(screw_corr)),
                 fill=True,
             )
             ax.add_artist(circle)
+
+        fac = convert_unit("m", unit, "length")
+        norm = Normalize(vmin=vmin, vmax=vmax)
+        if self._any_screw_above_threshold(fac, threshold):
+            for i_screw in range(self.plot_screw_pos.shape[0]):
+                screw_correction = fac * self.screw_corrections[i_screw]
+                if screw_correction > threshold:
+                    plot_a_screw(self.plot_screw_pos[i_screw], screw_correction)
+
+        elif self._above_combined_threshold(fac, combined_threshold):
+            for i_screw in range(self.plot_screw_pos.shape[0]):
+                plot_a_screw(
+                    self.plot_screw_pos[i_screw], fac * self.screw_corrections[i_screw]
+                )
+        else:
+            # Nothing to plot!
+            pass
+
+    def reread_solution(self, parameters, screw_adjustments):
+        """
+        Simple re-read of values pertinent for export production
+        Args:
+            parameters: model parameters
+            screw_adjustments: screw adjustments
+        """
+        self.model.parameters = parameters
+        self.screw_corrections = screw_adjustments

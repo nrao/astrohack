@@ -79,7 +79,7 @@ class TestBasePanel:
             ), f"{i_par}-eth parameter does not match its expected value"
 
         this_panel.get_corrections()
-        assert len(this_panel.corr) == n_side**2, (
+        assert len(this_panel.corrections) == n_side**2, (
             "Number of corrected points do not match number of samples"
         )
 
@@ -116,7 +116,7 @@ class TestBasePanel:
         assert this_panel.model_name == "mean", "Internal model does not match input"
         assert this_panel.samples == [], "List of samples should be empty"
         assert this_panel.margins == [], "list of pixels in the margin should be empty"
-        assert this_panel.corr is None, "List of corrections should be None"
+        assert this_panel.corrections is None, "List of corrections should be None"
         assert not this_panel.solved, "Panel cannot be solved at creation"
         with pytest.raises(ValueError):
             BasePanel("xxx", self.screws, False, 0.1, label)
@@ -162,3 +162,16 @@ class TestBasePanel:
         for key, par_tuple in fit_dict.items():
             expected_pars, value_generator = par_tuple
             self.panel_solving_assertions(key, expected_pars, value_generator)
+
+    def test_reread(self):
+        params = [0, 0, 0]
+        screw_adjustments = [1.2, 3.2, 5.0, 4]
+        this_panel = BasePanel("rigid", self.screws, False, 0.1, "TEST")
+        this_panel.reread_solution(params, screw_adjustments)
+
+        assert np.all(this_panel.model.parameters == params), (
+            "Panel model Parameters do not match"
+        )
+        assert np.all(this_panel.screw_corrections == screw_adjustments), (
+            "Screw adjustments do not match"
+        )

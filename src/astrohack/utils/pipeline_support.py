@@ -534,7 +534,7 @@ def basic_holography_parser(pipeline_type: str, stage_choices: list):
     return parser
 
 
-def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
+def fetch_ms_metadata_for_holography(param_dict, pipeline_type):
     import casatools
 
     # Fetch metadata from ms
@@ -670,7 +670,7 @@ def common_parameter_initialization_for_holography(
             raise RuntimeError(
                 "Reference antenna must be specified when starting from calibration"
             )
-        param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
+        param_dict = fetch_ms_metadata_for_holography(param_dict, pipeline_type)
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)

@@ -542,7 +542,7 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
                 heading_level=3,
             )
             screw_block += add_preformatted_text_file_to_html(
-                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}.txt",
+                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}_filtered.txt",
                 "Full list of screw corrections",
                 heading_level=3,
             )

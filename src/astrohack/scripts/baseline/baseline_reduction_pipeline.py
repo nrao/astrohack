@@ -50,8 +50,8 @@ def parse(pipelie_type, stages):
     parser.add_argument(
         "-f",
         "--fringefit-source",
-        default="0319+415",
-        help="Fringe fit source, default is 0319+415",
+        default=None,
+        help="Fringe fit source, None means that the source is chosen from a list of ranked calibrators, default is %(default)s",
     )
 
     parser.add_argument(
@@ -155,10 +155,23 @@ def fetch_ms_data(param_dict):
             error_msgs.append(
                 f"Chosen refant ({param_dict['refant']}) not present in ms."
             )
-    if param_dict["fringefit_source"] not in field_names:
-        error_msgs.append(
-            f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
-        )
+
+    if param_dict["use_fringefit_locit"]:
+        # Here the choice of a fringefit source is irrelevant
+        pass
+    else:
+        if param_dict["fringefit_source"] is None:
+            success, msg_or_source = choose_fringefit_calibrator(field_names)
+            if success:
+                param_dict["fringefit_source"] = msg_or_source
+            else:
+                error_msgs.append(msg_or_source)
+        else:
+            if param_dict["fringefit_source"] not in field_names:
+                error_msgs.append(
+                    f"Chosen fringefit source ({param_dict['fringefit_source']}) not present in ms."
+                )
+
     if nchan.size != 1:
         error_msgs.append(
             "Spectral windows are not consistent with each other, is this really a pointing ms?"
@@ -167,6 +180,53 @@ def fetch_ms_data(param_dict):
         raise RuntimeError("\n".join(error_msgs))
 
     return param_dict
+
+
+def choose_fringefit_calibrator(field_names: list):
+    # In this list the order is import, i.e. the first in the list is the most desirable calibrator
+    # and the last the least, etc.
+    # This list was provided by VLA operations.
+    ranked_calibrators = [
+        "0319+415",
+        "1229+020",
+        "1640+397",
+        "1256-057",
+        "2253+161",
+        "1512-090",
+        "1751+096",
+        "0854+201",
+        "0238+166",
+        "1733-130",
+        "0217+738",
+        "0102+584",
+        "0359+508",
+        "0420-014",
+        "0609-157",
+        "0738+177",
+        "1058+015",
+        "1130-148",
+        "1310+323",
+        "1331+305",
+        "1613+342",
+        "1743-038",
+        "1829+487",
+        "1924-292",
+        "1927+739",
+        "2025+337",
+        "2131-121",
+        "2136+006",
+        "2202+422",
+        "2232+117",
+    ]
+
+    for choice_calibrator in ranked_calibrators:
+        if choice_calibrator in field_names:
+            return True, choice_calibrator
+
+    return (
+        False,
+        "None of the choice calibrators appear in this data set a fringefit source needs to be given by hand",
+    )
 
 
 def param_init(param_dict: dict, msger: MessageBoard):

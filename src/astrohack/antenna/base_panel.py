@@ -181,10 +181,10 @@ class BasePanel:
             )
 
     def _any_screw_above_threshold(self, unit_factor, threshold):
-        return np.any(unit_factor * self.screw_corrections > threshold)
+        return np.any(unit_factor * np.abs(self.screw_corrections) > threshold)
 
     def _above_combined_threshold(self, unit_factor, combined_threshold):
-        return np.sum(unit_factor * self.screw_corrections) > combined_threshold
+        return np.sum(unit_factor * np.abs(self.screw_corrections)) > combined_threshold
 
     def plot_screw_corrections(
         self, ax, cmap, unit, threshold, combined_threshold, vmin, vmax

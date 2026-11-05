@@ -608,19 +608,20 @@ def fetch_ms_metadata_for_holography(param_dict, pipeline_type):
         for base_band_str in base_band_strs:
             quacked_base_bands.append(f"{base_band_str}:{fchan}~{lchan}")
 
-    param_dict["quacked_base_band_selection"] = quacked_base_bands
-    delay_spwmap = []
-    full_spwmap = []
-    for i_spw in all_spw_list:
-        if np.any(i_spw == np.array(base_bands)):
-            for ibase, base_band in enumerate(base_bands):
-                if i_spw in base_band:
-                    delay_spwmap.append(np.min(base_band))
-        else:
-            delay_spwmap.append(np.min(base_bands))
-        full_spwmap.append(i_spw)
-    param_dict["delay_spwmap"] = delay_spwmap
-    param_dict["full_spwmap"] = full_spwmap
+    if pipeline_type == "holography":
+        param_dict["quacked_base_band_selection"] = quacked_base_bands
+        delay_spwmap = []
+        full_spwmap = []
+        for i_spw in all_spw_list:
+            if np.any(i_spw == np.array(base_bands)):
+                for ibase, base_band in enumerate(base_bands):
+                    if i_spw in base_band:
+                        delay_spwmap.append(np.min(base_band))
+            else:
+                delay_spwmap.append(np.min(base_bands))
+            full_spwmap.append(i_spw)
+        param_dict["delay_spwmap"] = delay_spwmap
+        param_dict["full_spwmap"] = full_spwmap
 
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))

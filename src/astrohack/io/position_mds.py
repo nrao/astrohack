@@ -101,50 +101,50 @@ class AstrohackPositionFile(AstrohackLocitFile):
         param_dict = locals()
         pathlib.Path(param_dict["destination"]).mkdir(exist_ok=True)
 
-        len_fact = convert_unit("m", position_unit, "length")
-        del_fact = convert_unit("sec", delay_unit, kind="time")
-        pha_fact = convert_unit("rad", phase_unit, kind="trigonometric")
-        pos_fact = len_fact * clight
+        delay_factor = convert_unit("sec", delay_unit, kind="time")
+        phase_factor = convert_unit("rad", phase_unit, kind="trigonometric")
+        position_factor = clight * convert_unit("m", position_unit, "length")
         combined = self.root.attrs["combined"]
         input_pars = self.root.attrs["input_parameters"]
-
+        kterm_present = input_pars["fit_kterm"]
         if combined:
+            k_term_index = 5
             field_names = [
                 "Antenna",
                 "Station",
-                f"RMS [{delay_unit}]",
-                f"RMS [{phase_unit}]",
-                f"F. delay [{delay_unit}]",
                 f"X offset [{position_unit}]",
                 f"Y offset [{position_unit}]",
                 f"Z offset [{position_unit}]",
+                f"RMS [{delay_unit}]",
+                f"RMS [{phase_unit}]",
+                f"F. delay [{delay_unit}]",
             ]
             specifier = f"combined_{self.root.attrs['combine_specifier']}"
 
         else:
+            k_term_index = 6
             field_names = [
                 "Antenna",
                 "Station",
                 "DDI",
-                f"RMS [{delay_unit}]",
-                f"RMS [{phase_unit}]",
-                f"F. delay [{delay_unit}]",
                 f"X offset [{position_unit}]",
                 f"Y offset [{position_unit}]",
                 f"Z offset [{position_unit}]",
+                f"RMS [{delay_unit}]",
+                f"RMS [{phase_unit}]",
+                f"F. delay [{delay_unit}]",
             ]
             specifier = "separated_ddis"
-        kterm_present = input_pars["fit_kterm"]
-        rate_present = input_pars["fit_delay_rate"]
         if kterm_present:
-            field_names.extend([f"K offset [{position_unit}]"])
+            field_names.insert(k_term_index, f"K offset [{position_unit}]")
+        rate_present = input_pars["fit_delay_rate"]
         if rate_present:
-            slo_unit = f"{delay_unit}/{time_unit}"
-            slo_fact = del_fact / convert_unit("day", time_unit, "time")
-            field_names.extend([f"Rate [{slo_unit}]"])
+            rate_unit = f"{delay_unit}/{time_unit}"
+            rate_factor = delay_factor / convert_unit("day", time_unit, "time")
+            field_names.append(f"Rate [{rate_unit}]")
         else:
-            slo_unit = notavail
-            slo_fact = 1.0
+            rate_unit = notavail
+            rate_factor = 1.0
 
         table = create_pretty_table(field_names)
         telescope = get_proper_telescope(self.root.attrs["telescope_name"])
@@ -165,10 +165,10 @@ class AstrohackPositionFile(AstrohackLocitFile):
                             _export_position_xds_to_table_row(
                                 row,
                                 antenna.attrs,
-                                del_fact,
-                                pha_fact,
-                                pos_fact,
-                                slo_fact,
+                                delay_factor,
+                                phase_factor,
+                                position_factor,
+                                rate_factor,
                                 position_unit,
                                 delay_unit,
                                 kterm_present,
@@ -187,10 +187,10 @@ class AstrohackPositionFile(AstrohackLocitFile):
                                 _export_position_xds_to_table_row(
                                     row,
                                     antenna[ddi_key].attrs,
-                                    del_fact,
-                                    pha_fact,
-                                    pos_fact,
-                                    slo_fact,
+                                    delay_factor,
+                                    phase_factor,
+                                    position_factor,
+                                    rate_factor,
                                     position_unit,
                                     delay_unit,
                                     kterm_present,
@@ -223,7 +223,8 @@ class AstrohackPositionFile(AstrohackLocitFile):
         :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
         :type ddi: list or int, optional
 
-        :param correction_threshold: Correction threshold in meters to include an antenna position correction in output.
+        :param correction_threshold: Correction threshold in meters to include an antenna in output (Applied to the \
+        combined position change).
         :type correction_threshold: float, optional
 
         .. _Description:
@@ -747,12 +748,12 @@ def _plot_delays_chunk(parm_dict):
 def _export_position_xds_to_table_row(
     row,
     attributes,
-    del_fact,
-    pha_fact,
-    pos_fact,
-    slo_fact,
-    pos_unit,
-    del_unit,
+    delay_factor,
+    phase_factor,
+    position_factor,
+    slope_factor,
+    position_unit,
+    delay_unit,
     kterm_present,
     rate_present,
 ):
@@ -761,14 +762,14 @@ def _export_position_xds_to_table_row(
     Args:
         row: row onto which the data results are to be added
         attributes: The XDS attributes dictionary
-        del_fact: Delay unit scaling factor
-        pos_fact: Position unit scaling factor
-        slo_fact: Delay rate unit scaling factor
+        delay_factor: Delay unit scaling factor
+        position_factor: Position unit scaling factor
+        slope_factor: Delay rate unit scaling factor
         kterm_present: Is the elevation axis offset term present?
         rate_present: Is the delay rate term present?
-        pha_fact: phase unit scaling factor
-        pos_unit: Position unit
-        del_unit: Delay unit
+        phase_factor: phase unit scaling factor
+        position_unit: Position unit
+        delay_unit: Delay unit
 
     Returns:
     The filled table row
@@ -777,20 +778,10 @@ def _export_position_xds_to_table_row(
     delay_rms = np.sqrt(attributes["chi_squared"])
     mean_freq = np.nanmean(attributes["frequency"])
     phase_rms = twopi * mean_freq * delay_rms
-    row.append(f"{delay_rms * del_fact:4.2e}")
-    row.append(f"{phase_rms * pha_fact:5.1f}")
 
-    sig_scale_pos = convert_unit("mm", pos_unit, "length")
-    sig_scale_del = 1e-3 * convert_unit("nsec", del_unit, "time")
+    sig_scale_pos = convert_unit("mm", position_unit, "length")
+    sig_scale_del = 1e-3 * convert_unit("nsec", delay_unit, "time")
 
-    row.append(
-        fixed_format_error(
-            attributes["fixed_delay_fit"],
-            attributes["fixed_delay_error"],
-            del_fact,
-            sig_scale_del,
-        )
-    )
     position, poserr = rotate_to_gmt(
         np.copy(attributes["position_fit"]),
         attributes["position_error"],
@@ -799,23 +790,35 @@ def _export_position_xds_to_table_row(
 
     for i_pos in range(3):
         row.append(
-            fixed_format_error(position[i_pos], poserr[i_pos], pos_fact, sig_scale_pos)
+            fixed_format_error(
+                position[i_pos], poserr[i_pos], position_factor, sig_scale_pos
+            )
         )
     if kterm_present:
         row.append(
             fixed_format_error(
                 attributes["koff_fit"],
                 attributes["koff_error"],
-                pos_fact,
+                position_factor,
                 sig_scale_pos,
             )
         )
+    row.append(f"{delay_rms * delay_factor:4.2e}")
+    row.append(f"{phase_rms * phase_factor:5.1f}")
+    row.append(
+        fixed_format_error(
+            attributes["fixed_delay_fit"],
+            attributes["fixed_delay_error"],
+            delay_factor,
+            sig_scale_del,
+        )
+    )
     if rate_present:
         row.append(
             fixed_format_error(
                 attributes["rate_fit"],
                 attributes["rate_error"],
-                slo_fact,
+                slope_factor,
                 sig_scale_del,
             )
         )
@@ -837,12 +840,11 @@ def _export_position_xds_to_parminator(attributes, threshold, kterm_present):
         attributes["antenna_info"]["longitude"],
     )
     station = attributes["antenna_info"]["station"]
-
+    position_corrections = delays * clight
     outstr = ""
-    for iaxis, delay in enumerate(delays):
-        correction = delay * clight
-        if np.abs(correction) > threshold:
-            outstr += f"{station}, ,{axes[iaxis]},${correction: .4f}{lnbr}"
+    if np.sqrt(np.sum(position_corrections**2)) > threshold:
+        for i_axis, position_correction in enumerate(position_corrections):
+            outstr += f"{station}, ,{axes[i_axis]},${position_correction: .4f}{lnbr}"
 
     if kterm_present:
         correction = attributes["koff_fit"] * clight

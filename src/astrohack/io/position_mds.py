@@ -264,6 +264,69 @@ class AstrohackPositionFile(AstrohackLocitFile):
 
         string_to_ascii_file(parmstr, filename)
 
+    def export_results_for_baselines_weblog(
+        self,
+        filename: str,
+        ant: str | list[str] = "all",
+        ddi: int | None = None,
+        correction_threshold: float | int = 0.01,
+    ) -> None:
+        """Export antenna position fit results to the format ingested by VLA's weblog
+
+        :param filename: Name of the file to be created
+        :type filename: str
+
+        :param ant: List of antennas/antenna to be exported, defaults to "all" when None, ex. ea25
+        :type ant: list or str, optional
+
+        :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
+        :type ddi: list or int, optional
+
+        :param correction_threshold: Correction threshold in meters to include an antenna in output (Applied to the \
+        combined position change).
+        :type correction_threshold: float, optional
+
+        .. _Description:
+
+        Produce a VLA weblog compatible text file with the fit results from astrohack.locit.
+        """
+        param_dict = locals()
+        combined = self.root.attrs["combined"]
+        input_pars = self.root.attrs["input_parameters"]
+
+        if (not combined) and (not isinstance(ddi, int)):
+            msg = "If position file contains multiple DDIs one must be specified."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        kterm_present = input_pars["fit_kterm"]
+
+        telescope = get_proper_telescope(self.root.attrs["telescope_name"])
+        full_antenna_list = telescope.antenna_list
+        selected_antenna_list = param_to_list(ant, self, "ant")
+        threshold = correction_threshold
+
+        output_file = "ANT  PAD    Bx      By      Bz"
+        if kterm_present:
+            output_file += "      K"
+        for ant_name in full_antenna_list:
+            ant_key = add_prefix(ant_name, "ant")
+
+            if ant_key in selected_antenna_list:
+                if ant_key in self.keys():
+                    if combined:
+                        position_xds = self[ant_key]
+                    else:
+                        position_xds = self[ant_key][f"ddi_{ddi}"]
+
+                    output_file += _export_position_xds_to_parminator(
+                        position_xds.attrs, threshold, kterm_present
+                    )
+
+        string_to_ascii_file(output_file, filename)
+
+        return
+
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)
     def plot_sky_coverage(
         self,

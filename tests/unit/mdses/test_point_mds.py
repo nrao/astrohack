@@ -54,21 +54,23 @@ class TestPointMDS:
         pnt_mds.plot_array_configuration(self.destination_folder)
         if not produce_reference_data():
             plot_name = "point_array_configuration.png"
-            assert are_png_files_close(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{plot_name}",
                 f"{self.ref_products_name}/{plot_name}",
-            ), "Array configuration plot is failing closeness test"
+            )
+            assert equal, f"{msg}: Array configuration plot is failing closeness test"
 
         pnt_mds.plot_pointing_in_time(
             self.destination_folder, plot_antennas_separately=False
         )
         if not produce_reference_data():
             plot_name = "point_directional_cosines_combined.png"
-            assert are_png_files_close(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{plot_name}",
                 f"{self.ref_products_name}/{plot_name}",
-            ), (
-                "All antennas combined directional cosines plot is failing closeness test"
+            )
+            assert equal, (
+                f"{msg}: All antennas combined directional cosines plot is failing closeness test"
             )
 
         pnt_mds.plot_pointing_in_time(
@@ -78,11 +80,12 @@ class TestPointMDS:
         )
         if not produce_reference_data():
             plot_name = "point_directional_cosines_ant_ea25.png"
-            assert are_png_files_close(
+            equal, msg = are_png_files_close(
                 f"{self.destination_folder}/{plot_name}",
                 f"{self.ref_products_name}/{plot_name}",
-            ), (
-                "All antennas combined directional cosines plot is failing closeness test"
+            )
+            assert equal, (
+                f"{msg}: All antennas combined directional cosines plot is failing closeness test"
             )
 
     def compute_simple_hash(self, pnt_mds: AstrohackPointFile, key_to_hash):

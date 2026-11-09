@@ -264,12 +264,12 @@ class AstrohackPositionFile(AstrohackLocitFile):
 
         string_to_ascii_file(parmstr, filename)
 
-    def export_results_for_baselines_weblog(
+    @toolviper.utils.parameter.validate()
+    def export_results_for_weblog(
         self,
         filename: str,
         ant: str | list[str] = "all",
         ddi: int | None = None,
-        correction_threshold: float | int = 0.01,
     ) -> None:
         """Export antenna position fit results to the format ingested by VLA's weblog
 
@@ -281,10 +281,6 @@ class AstrohackPositionFile(AstrohackLocitFile):
 
         :param ddi: List of ddis/ddi to be exported, defaults to "all" when None, ex. 0
         :type ddi: list or int, optional
-
-        :param correction_threshold: Correction threshold in meters to include an antenna in output (Applied to the \
-        combined position change).
-        :type correction_threshold: float, optional
 
         .. _Description:
 
@@ -304,27 +300,41 @@ class AstrohackPositionFile(AstrohackLocitFile):
         telescope = get_proper_telescope(self.root.attrs["telescope_name"])
         full_antenna_list = telescope.antenna_list
         selected_antenna_list = param_to_list(ant, self, "ant")
-        threshold = correction_threshold
 
-        output_file = "ANT  PAD    Bx      By      Bz"
+        field_names = ["ANT", "PAD", "Bx", "By", "Bz"]
         if kterm_present:
-            output_file += "      K"
-        for ant_name in full_antenna_list:
-            ant_key = add_prefix(ant_name, "ant")
+            field_names.append("K")
+        table = create_pretty_table(field_names, alignment="r")
+        # These 2 tweaks make the pretty table a simple grid onto which to snap values.
+        table.vertical_char = " "
+        table.border = False
 
+        for ant_name in full_antenna_list:
+            # Antenna names expected to in the format xx## where xx are letters and ## are numbers.
+            ant_key = add_prefix(ant_name, "ant")
             if ant_key in selected_antenna_list:
                 if ant_key in self.keys():
                     if combined:
-                        position_xds = self[ant_key]
+                        this_ant_attrs = self[ant_key].attrs
                     else:
-                        position_xds = self[ant_key][f"ddi_{ddi}"]
-
-                    output_file += _export_position_xds_to_parminator(
-                        position_xds.attrs, threshold, kterm_present
+                        this_ant_attrs = self[ant_key][f"ddi_{ddi}"].attrs
+                    ant_station = this_ant_attrs["antenna_info"]["station"]
+                    ant_number = int(ant_name[2:])
+                    row = [ant_number, ant_station]
+                    delays, _ = rotate_to_gmt(
+                        np.copy(this_ant_attrs["position_fit"]),
+                        this_ant_attrs["position_error"],
+                        this_ant_attrs["antenna_info"]["longitude"],
                     )
+                    position_corrections = delays * clight
+                    for position_correction in position_corrections:
+                        row.append(f"{position_correction:.4f}")
+                    if kterm_present:
+                        correction = this_ant_attrs["koff_fit"] * clight
+                        row.append(f"{correction:.4f}")
+                    table.add_row(row)
 
-        string_to_ascii_file(output_file, filename)
-
+        string_to_ascii_file(table.get_string(), filename)
         return
 
     @toolviper.utils.parameter.validate(custom_checker=custom_unit_checker)

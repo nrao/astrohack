@@ -449,7 +449,6 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     astrohack_param_dict = {
         "destination": param_dict["exports_name"],
         "ant": param_dict["antenna"],
-        "filename": f"{param_dict['exports_name']}/parminator.par",
         "parallel": False,
         "dpi": param_dict["dpi"],
         "delay_limits": param_dict["delay_limits"],
@@ -461,7 +460,6 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
         position_mds.plot_delays,
         position_mds.plot_position_corrections,
         position_mds.export_locit_fit_results,
-        position_mds.export_results_to_parminator,
     ]
 
     for plot_method in plotting_methods:
@@ -478,6 +476,12 @@ def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
     )
     position_mds.print_array_configuration(
         save_to=f"{param_dict['exports_name']}/array_configuration.txt"
+    )
+    position_mds.export_results_to_parminator(
+        filename=f"{param_dict['exports_name']}/parminator.par",
+    )
+    position_mds.export_results_for_weblog(
+        filename=f"{param_dict['exports_name']}/weblog_output.txt"
     )
     return
 
@@ -755,6 +759,10 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
     html_body += add_preformatted_text_file_to_html(
         f"{exports_name}/parminator.par",
         "Proposed parminator corrections",
+    )
+
+    html_body += add_preformatted_text_file_to_html(
+        f"{exports_name}/weblog_output.txt", "Weblog compatible position table"
     )
 
     pos_mds = open_position(param_dict["position_name"])

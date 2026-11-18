@@ -24,18 +24,24 @@ The pipeline has been written with a simple command line interface that expects 
 
     CASA <1>: !holography-reduction-pipeline -h
 
-    ###################################################################################################################################################################################
-    ###  Welcome to the AstroHACK holography reduction pipeline                                                                                                                     ###
-    ###################################################################################################################################################################################
+    #####################################################################################################################################
+    ###  Welcome to the AstroHACK holography reduction pipeline                                                                       ###
+    #####################################################################################################################################
 
-    usage: holography-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y]
-                                         [--reimport-asdm] [--starting-stage {calibration,extract_pointing,extract_holog,holog,panel,exports,report}] [--dpi DPI] [-d DATA_COLUMN]
-                                         [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS] [-q QUACK_NCHAN] [-f HOLOGRAPHY_FIELD]
-                                         [--baseline-average-nearest BASELINE_AVERAGE_NEAREST] [--pointing-interpolation-method {linear,gaussian}] [--grid-size GRID_SIZE]
-                                         [--cell-size CELL_SIZE] [--grid-interpolation-mode GRID_INTERPOLATION_MODE] [--padding-factor PADDING_FACTOR]
-                                         [--zernike-n-order ZERNIKE_N_ORDER] [-z] [-c] [--clip-type {sigma,none,absolute,relative,noise_threshold}] [--clip-level CLIP_LEVEL]
+    usage: holography-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE]
+                                         [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y] [--reimport-asdm]
+                                         [--starting-stage {calibration,extract_pointing,extract_holog,holog,panel,exports,report}]
+                                         [--dpi DPI] [-d DATA_COLUMN] [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS]
+                                         [-q QUACK_NCHAN] [-f HOLOGRAPHY_FIELD] [--baseline-average-nearest BASELINE_AVERAGE_NEAREST]
+                                         [--pointing-interpolation-method {linear,gaussian}] [--grid-size GRID_SIZE]
+                                         [--cell-size CELL_SIZE] [--grid-interpolation-mode GRID_INTERPOLATION_MODE]
+                                         [--padding-factor PADDING_FACTOR] [--zernike-n-order ZERNIKE_N_ORDER] [-z] [-c]
+                                         [--clip-type {sigma,none,absolute,relative,noise_threshold}] [--clip-level CLIP_LEVEL]
                                          [--panel-model {mean,rigid,flexible,corotated_scipy,corotated_lst_sq,corotated_robust,xy_paraboloid,rotated_paraboloid,full_paraboloid_lst_sq}]
-                                         [--panel-margins PANEL_MARGINS] [-u SCREW_UNIT]
+                                         [--panel-margins PANEL_MARGINS] [--deviation-limits DEVIATION_LIMITS]
+                                         [--deviation-unit {km,mi,m,yd,ft,in,cm,mm,um,mils}] [--amplitude-colormap AMPLITUDE_COLORMAP]
+                                         [--phase-like-colormap PHASE_LIKE_COLORMAP] [-u {km,mi,m,yd,ft,in,cm,mm,um,mils}]
+                                         [--threshold THRESHOLD] [--combined_threshold COMBINED_THRESHOLD]
                                          filename [refant]
 
     Holography reduction pipeline
@@ -48,9 +54,11 @@ The pipeline has been written with a simple command line interface that expects 
       -h, --help            show this help message and exit
       -r ROOT_NAME, --root-name ROOT_NAME
                             Root name for the products of the pipeline, default is ms_name without extension
-      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is all
+      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is
+                            all
       -a ANTENNA, --antenna ANTENNA
-                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02', default is all
+                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02',
+                            default is all
       -n NCORES, --ncores NCORES
                             Number of cores to use, default is 4
       -m MEMORY_PER_CORE, --memory-per-core MEMORY_PER_CORE
@@ -67,7 +75,8 @@ The pipeline has been written with a simple command line interface that expects 
                             Data column to be extracted from MS, default is CORRECTED_DATA
       --plot-pointing       Plot antenna pointing, default is False
       --exclude-bad-antennas EXCLUDE_BAD_ANTENNAS
-                            Exclude antennas with bad data, for a list use comma separated values with no spaces, e.g.: 'ea18,ea01', default is None.
+                            Exclude antennas with bad data, for a list use comma separated values with no spaces, e.g.: 'ea18,ea01',
+                            default is None.
       -q QUACK_NCHAN, --quack-nchan QUACK_NCHAN
                             Number of channels to quack at the edge of the spectral window (default is 4)
       -f HOLOGRAPHY_FIELD, --holography-field HOLOGRAPHY_FIELD
@@ -87,7 +96,8 @@ The pipeline has been written with a simple command line interface that expects 
       --zernike-n-order ZERNIKE_N_ORDER
                             Zernike N polynomial order to be fitted to the apertures (default is 4)
       -z, --use-zernike-phase-fitting
-                            Use zernike phase fitting instead of regular perturbation phase fitting (ngVLA uses this even when option is not given).
+                            Use zernike phase fitting instead of regular perturbation phase fitting (ngVLA uses this even when option
+                            is not given).
       -c, --combine         Combine SPWs to improve SNR (all selected SPWs will be combined)
       --clip-type {sigma,none,absolute,relative,noise_threshold}
                             Choose the type of clipping algorithm to use in the apertures before fitting panels (default is sigma)
@@ -97,9 +107,21 @@ The pipeline has been written with a simple command line interface that expects 
                             Choose the panel model to use (default is flexible)
       --panel-margins PANEL_MARGINS
                             Define the fraction of the edge of the panels to be excluded from fitting (default is 0.05)
-      -u SCREW_UNIT, --screw-unit SCREW_UNIT
+      --deviation-limits DEVIATION_LIMITS
+                            Limits for the Z scale in the aperture deviation maps in the chosen unit, the applied limits will be
+                            symmetrical about zero so a value of 2 means a limit of -2 to 2, default is 2
+      --deviation-unit {km,mi,m,yd,ft,in,cm,mm,um,mils}
+                            Define the unit of the aperture deviation maps, default is mm
+      --amplitude-colormap AMPLITUDE_COLORMAP
+                            Colormap to use for amplitude plots (default is viridis)
+      --phase-like-colormap PHASE_LIKE_COLORMAP
+                            Colormap to use for phase like plots (e.g.: phase, surface deviation, etc) (default is RdBu_r)
+      -u {km,mi,m,yd,ft,in,cm,mm,um,mils}, --screw-unit {km,mi,m,yd,ft,in,cm,mm,um,mils}
                             Unit to present screw adjustments (default is mils)
-
+      --threshold THRESHOLD
+                            Threshold above which to include panel screws in --screw-unit (default is 15.0)
+      --combined_threshold COMBINED_THRESHOLD
+                            Threshold on the sum of all panel screws in a panel in --screw-unit (default is 45.0)
 
 Calibration stage
 #################
@@ -115,8 +137,8 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
     ###  Welcome to the AstroHACK holography reduction pipeline                                                                       ###
     #####################################################################################################################################
 
-    2026-10-07 16:46:46	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on otf-ku.ms...
-    2026-10-07 16:46:49	INFO	MSMetaData::_computeScanAndSubScanProperties 	Computing scan and subscan properties...
+    2026-11-18 23:29:16     INFO    msmetadata_cmpt.cc::open        Performing internal consistency checks on otf-ku.ms...
+    2026-11-18 23:29:17     INFO    MSMetaData::_computeScanAndSubScanProperties    Computing scan and subscan properties...
 
     Holography reduction parameters:
         filename                      => otf-ku.ms
@@ -150,9 +172,15 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
         clip_level                    => 3
         panel_model                   => flexible
         panel_margins                 => 0.05
+        deviation_limits              => [-2, 2]
+        deviation_unit                => mm
+        amplitude_colormap            => viridis
+        phase_like_colormap           => RdBu_r
         screw_unit                    => mils
+        threshold                     => 15.0
+        combined_threshold            => 45.0
         is_asdm                       => False
-        msname                        => otf-ku.ms
+        ms_name                       => otf-ku.ms
         delay_cal_name                => otf-ku.dcal
         bandpass_cal_name             => otf-ku.bcal
         gain_cal_name                 => otf-ku.gcal
@@ -164,8 +192,7 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
         exports_name                  => otf-ku.exports
         report_name                   => otf-ku-report.html
         quacked_spw_selection         => 0~7:4~60
-        quacked_base_band_0_selection => 0~3:4~60
-        quacked_base_band_1_selection => 4~7:4~60
+        quacked_base_band_selection   => ['0~3:4~60', '4~7:4~60']
         delay_spwmap                  => [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(4), np.int64(4), np.int64(4), np.int64(4), np.int64(0), np.int64(0)]
         full_spwmap                   => [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9)]
         calibration_scans             => 2,5,26,47,68,89,92,113,134,155,176,179,200,221,242,263,266,287,304
@@ -174,7 +201,6 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
 
     Proceed? <(Y)es/(N)o>:
-
 
 The check before proceeding can be suppressed by adding the ``-y`` option to the call, e.g.:
 

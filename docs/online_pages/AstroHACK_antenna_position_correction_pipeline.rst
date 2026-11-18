@@ -24,13 +24,15 @@ The pipeline has been written with a simple command line interface that expects 
 
     CASA <1>: !baseline-reduction-pipeline -h
 
-    ###################################################################################################################################################################################
-    ###  Welcome to the AstroHACK baseline reduction pipeline                                                                                                                       ###
-    ###################################################################################################################################################################################
+    #####################################################################################################################################
+    ###  Welcome to the AstroHACK baseline reduction pipeline                                                                         ###
+    #####################################################################################################################################
 
-    usage: baseline-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y]
-                                       [--reimport-asdm] [--starting-stage {calibration,locit,exports,report}] [--dpi DPI] [-f FRINGEFIT_SOURCE] [-i INTENT] [-e ELEVATION_LIMIT]
-                                       [-p {both,L,R}] [-c {simple,difference}] [-k] [-dr] [-l DELAY_LIMITS] [--use-fringefit-locit] [--exclude-scans EXCLUDE_SCANS]
+    usage: baseline-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE]
+                                       [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y] [--reimport-asdm]
+                                       [--starting-stage {calibration,locit,exports,report}] [--dpi DPI] [-f FRINGEFIT_SOURCE]
+                                       [-i INTENT] [-e ELEVATION_LIMIT] [-p {both,L,R}] [-c {simple,difference}] [-k] [-dr]
+                                       [-l DELAY_LIMITS] [--use-fringefit-locit] [--exclude-scans EXCLUDE_SCANS]
                                        filename [refant]
 
     Baseline reduction pipeline
@@ -43,9 +45,11 @@ The pipeline has been written with a simple command line interface that expects 
       -h, --help            show this help message and exit
       -r ROOT_NAME, --root-name ROOT_NAME
                             Root name for the products of the pipeline, default is ms_name without extension
-      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is all
+      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is
+                            all
       -a ANTENNA, --antenna ANTENNA
-                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02', default is all
+                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02',
+                            default is all
       -n NCORES, --ncores NCORES
                             Number of cores to use, default is 4
       -m MEMORY_PER_CORE, --memory-per-core MEMORY_PER_CORE
@@ -59,7 +63,7 @@ The pipeline has been written with a simple command line interface that expects 
                             Starting stage in which to start processing (default: calibration).
       --dpi DPI             Dots Per Inch for plotting, default is 300
       -f FRINGEFIT_SOURCE, --fringefit-source FRINGEFIT_SOURCE
-                            Fringe fit source, default is 0319+415
+                            Fringe fit source, None means that the source is chosen from a list of ranked calibrators, default is None
       -i INTENT, --intent INTENT
                             Intent for pointing observations.
       -e ELEVATION_LIMIT, --elevation-limit ELEVATION_LIMIT
@@ -72,11 +76,13 @@ The pipeline has been written with a simple command line interface that expects 
       -dr, --fit-delay-rate
                             Fit delay rate
       -l DELAY_LIMITS, --delay-limits DELAY_LIMITS
-                            Symmetrical limit for delay plots in nanoseconds, default is 0.1 which results in the limits being [-0.1, 0.1]
+                            Symmetrical limit for delay plots in nanoseconds, default is 0.1 which results in the limits being [-0.1,
+                            0.1]
       --use-fringefit-locit
                             Use fringefit_locit to determine very large errors (order of meters) in antenna positions (EXPERIMENTAL)
       --exclude-scans EXCLUDE_SCANS
-                            Select scans to exclude from locit delay fitting, for a list use comma separated values with no spaces, e.g.: '5,37', default is None
+                            Select scans to exclude from locit delay fitting, for a list use comma separated values with no spaces,
+                            e.g.: '5,37', default is None
 
 
 Pipeline initialization
@@ -87,13 +93,13 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
 .. code-block::
 
-    CASA <3>: !baseline-reduction-pipeline short_x.ms ea13 -f 2148+611
+    CASA <2>: !baseline-reduction-pipeline short_x.ms ea13
 
     #####################################################################################################################################
     ###  Welcome to the AstroHACK baseline reduction pipeline                                                                         ###
     #####################################################################################################################################
 
-    2026-10-07 17:53:05	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on short_x.ms...
+    2026-11-18 22:18:10	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on short_x.ms...
 
     Baseline determination parameters:
         filename            => short_x.ms
@@ -109,7 +115,7 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
         reimport_asdm       => False
         starting_stage      => calibration
         dpi                 => 300
-        fringefit_source    => 2148+611
+        fringefit_source    => 2025+337
         intent              => CALIBRATE_POINTING#ON_SOURCE
         elevation_limit     => 10.0
         polarization        => both
@@ -120,7 +126,7 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
         use_fringefit_locit => False
         exclude_scans       => None
         is_asdm             => False
-        msname              => short_x.ms
+        ms_name             => short_x.ms
         pointing_only_ms    => short_x.pnt.ms
         freq_averaged_ms    => short_x.avg.ms
         fringefit_caltable  => short_x.sbd
@@ -136,12 +142,11 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
     Proceed? <(Y)es/(N)o>:
 
-
 The check before proceeding can be suppressed by adding the ``-y`` option to the call, e.g.:
 
 .. code-block::
 
-    CASA <4>: !baseline-reduction-pipeline short_x.ms ea13 -y
+    CASA <3>: !baseline-reduction-pipeline short_x.ms ea13 -y
 
 
 After initialization there are two possible processing flows in the pipeline, one using regular locit, i.e. the classical approach dependent on gain phases; the other using fringefit_locit, which is less accurate but is not constrained by λ ambiguities.
@@ -173,7 +178,7 @@ When solutions are not good, i.e. there is no considerable improvement of antenn
 
 .. code-block::
 
-    CASA <5>: !baseline-reduction-pipeline short_x.ms -y -c difference --starting-stage locit
+    CASA <4>: !baseline-reduction-pipeline short_x.ms -y -c difference --starting-stage locit
 
 
 fringefit_locit flow

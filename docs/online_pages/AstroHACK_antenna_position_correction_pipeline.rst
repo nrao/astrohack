@@ -221,3 +221,16 @@ For the classical method there is an extra step. After creating the AstroHACK pl
 #. Produce plots of the phase over time for the raw and baseline corrected data.
 
 After the production of these export products the pipeline then creates a standalone HTML report with all of them that can then be stored or shared without the need to carry any extra data, an example of such a report can be seen `here <../example-baseline-short_x-report.html>`_.
+
+
+Running the pipeline multiple times with different parameters
+=============================================================
+
+Sometimes it might be advantageous to run the pipeline a few times with different parameters to test the effects of elevation limits and so on. To avoid overwriting the previous execution it is then useful to use the option ``-r`` to specify a different name for the outputs. It is also not necessary to run the pipeline from the calibration stage. Below is an example where the pipeline is executed 4 times, 2 with combination simple, 2 with combination difference, with both elevation limits of 10 and 30 degrees.
+
+.. code-block::
+
+    !baseline-reduction-pipeline short_x.ms -y -c difference --starting-stage locit -r diff-10-deg
+    !baseline-reduction-pipeline short_x.ms -y -c difference --starting-stage locit -e 30 -r diff-30-deg
+    !baseline-reduction-pipeline short_x.ms -y --starting-stage locit -r simple-10-deg
+    !baseline-reduction-pipeline short_x.ms -y --starting-stage locit -e 30 -r simple-30-deg

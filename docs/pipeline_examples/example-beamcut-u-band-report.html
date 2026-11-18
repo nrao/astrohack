@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Beamcut report for u-band.ms</title>
+<title>Beamcut report for beamcut-u-band.ms</title>
 <style>
     body { font-family: sans-serif; text-align: left; margin-top: 50px; }
     img { max-width: 100%; height: auto; border: 2px solid #ccc; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
@@ -44,11 +44,11 @@ gap:4rem;
 
 </style>
 </head>
-<body><h1>Beamcut report for u-band.ms</h1>
+<body><h1>Beamcut report for beamcut-u-band.ms</h1>
 <h2>Pipeline parameters:</h2>
 <pre style="text-align: left;">
-    filename                      => u-band.ms
-    refant                        => ea23
+    filename                      => beamcut-u-band.ms
+    refant                        => None
     root_name                     => None
     spw                           => [0, 1]
     antenna                       => ['ea24', 'ea25']
@@ -58,39 +58,27 @@ gap:4rem;
     overwrite                     => True
     assume_yes                    => True
     reimport_asdm                 => False
-    starting_stage                => calibration
+    starting_stage                => extract_pointing
     dpi                           => 300
     data_column                   => CORRECTED_DATA
     plot_pointing                 => False
     exclude_bad_antennas          => None
     quack_nchan                   => 4
-    beamcut_field                 => 3
+    beamcut_field                 => None
     baseline_average_nearest      => 1
     pointing_interpolation_method => linear
     is_asdm                       => False
-    msname                        => u-band.ms
-    delay_cal_name                => u-band.dcal
-    bandpass_cal_name             => u-band.bcal
-    gain_cal_name                 => u-band.gcal
-    point_name                    => u-band.point.zarr
-    holog_name                    => u-band.holog.zarr
-    beamcut_name                  => u-band.beamcut.zarr
-    exports_name                  => u-band.exports
-    report_name                   => u-band-report.html
-    quacked_spw_selection         => 0~7:4~60
-    quacked_base_band_0_selection => 0~3:4~60
-    quacked_base_band_1_selection => 4~7:4~60
-    delay_spwmap                  => [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(4), np.int64(4), np.int64(4), np.int64(4), np.int64(0), np.int64(0)]
-    full_spwmap                   => [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9)]
-    calibration_scans             => 2,5,10,15
-    beamcut_scans                 => 8,13
+    ms_name                       => beamcut-u-band.ms
+    delay_cal_name                => beamcut-u-band.dcal
+    bandpass_cal_name             => beamcut-u-band.bcal
+    gain_cal_name                 => beamcut-u-band.gcal
+    point_name                    => beamcut-u-band.point.zarr
+    holog_name                    => beamcut-u-band.holog.zarr
+    beamcut_name                  => beamcut-u-band.beamcut.zarr
+    exports_name                  => beamcut-u-band.exports
+    report_name                   => beamcut-u-band-report.html
     parallel                      => True
     processing_stage              => report
-    ant                           => ['ea24', 'ea25']
-    ddi                           => [0, 1]
-    exclude_antennas              => None
-    ms_name                       => u-band.ms
-    destination                   => u-band.exports
 
 </pre>
 <h2>Basic Time information:</h2>

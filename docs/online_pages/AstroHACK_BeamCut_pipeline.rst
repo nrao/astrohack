@@ -24,14 +24,16 @@ The pipeline has been written with a simple command line interface that expects 
 
     CASA <1>: !beamcut-reduction-pipeline -h
 
-    ###################################################################################################################################################################################
-    ###  Welcome to the AstroHACK beamcut reduction pipeline                                                                                                                        ###
-    ###################################################################################################################################################################################
+    #####################################################################################################################################
+    ###  Welcome to the AstroHACK beamcut reduction pipeline                                                                          ###
+    #####################################################################################################################################
 
-    usage: beamcut-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y]
-                                      [--reimport-asdm] [--starting-stage {calibration,extract_pointing,extract_holog,beamcut,exports,report}] [--dpi DPI] [-d DATA_COLUMN]
-                                      [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS] [-q QUACK_NCHAN] [-f BEAMCUT_FIELD]
-                                      [--baseline-average-nearest BASELINE_AVERAGE_NEAREST] [--pointing-interpolation-method {linear,gaussian}]
+    usage: beamcut-reduction-pipeline [-h] [-r ROOT_NAME] [-s SPW] [-a ANTENNA] [-n NCORES] [-m MEMORY_PER_CORE]
+                                      [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-o] [-y] [--reimport-asdm]
+                                      [--starting-stage {calibration,extract_pointing,extract_holog,beamcut,exports,report}]
+                                      [--dpi DPI] [-d DATA_COLUMN] [--plot-pointing] [--exclude-bad-antennas EXCLUDE_BAD_ANTENNAS]
+                                      [-q QUACK_NCHAN] [-f BEAMCUT_FIELD] [--baseline-average-nearest BASELINE_AVERAGE_NEAREST]
+                                      [--pointing-interpolation-method {linear,gaussian}]
                                       filename [refant]
 
     Beamcut reduction pipeline
@@ -44,9 +46,11 @@ The pipeline has been written with a simple command line interface that expects 
       -h, --help            show this help message and exit
       -r ROOT_NAME, --root-name ROOT_NAME
                             Root name for the products of the pipeline, default is ms_name without extension
-      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is all
+      -s SPW, --spw SPW     Select SPWs for processing, for a list use comma separated values with no spaces, e.g.: '0,1,2', default is
+                            all
       -a ANTENNA, --antenna ANTENNA
-                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02', default is all
+                            Select antennas for processing, for a list use comma separated values with no spaces, e.g.: 'ea01,ea02',
+                            default is all
       -n NCORES, --ncores NCORES
                             Number of cores to use, default is 4
       -m MEMORY_PER_CORE, --memory-per-core MEMORY_PER_CORE
@@ -63,7 +67,8 @@ The pipeline has been written with a simple command line interface that expects 
                             Data column to be extracted from MS, default is CORRECTED_DATA
       --plot-pointing       Plot antenna pointing, default is False
       --exclude-bad-antennas EXCLUDE_BAD_ANTENNAS
-                            Exclude antennas with bad data, for a list use comma separated values with no spaces, e.g.: 'ea18,ea01', default is None.
+                            Exclude antennas with bad data, for a list use comma separated values with no spaces, e.g.: 'ea18,ea01',
+                            default is None.
       -q QUACK_NCHAN, --quack-nchan QUACK_NCHAN
                             Number of channels to quack at the edge of the spectral window (default is 4)
       -f BEAMCUT_FIELD, --beamcut-field BEAMCUT_FIELD
@@ -73,7 +78,6 @@ The pipeline has been written with a simple command line interface that expects 
       --pointing-interpolation-method {linear,gaussian}
                             Interpolation method to use for matching pointing and visibilities, default is linear
 
-
 Calibration stage
 #################
 
@@ -82,17 +86,17 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
 
 .. code-block::
 
-    CASA <3>: !beamcut-reduction-pipeline u-band.ms ea23
+    CASA <2>: !beamcut-reduction-pipeline beamcut-u-band.ms ea23
 
     #####################################################################################################################################
     ###  Welcome to the AstroHACK beamcut reduction pipeline                                                                          ###
     #####################################################################################################################################
 
-    2026-10-07 17:30:11	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on u-band.ms...
-    2026-10-07 17:30:11	INFO	MSMetaData::_computeScanAndSubScanProperties 	Computing scan and subscan properties...
+    2026-11-18 22:01:57	INFO	msmetadata_cmpt.cc::open	Performing internal consistency checks on beamcut-u-band.ms...
+    2026-11-18 22:01:57	INFO	MSMetaData::_computeScanAndSubScanProperties 	Computing scan and subscan properties...
 
     Beam cut reduction parameters:
-        filename                      => u-band.ms
+        filename                      => beamcut-u-band.ms
         refant                        => ea23
         root_name                     => None
         spw                           => all
@@ -113,20 +117,16 @@ The first step of the pipeline is to check whether the data is an ASDM or an MS 
         baseline_average_nearest      => 1
         pointing_interpolation_method => linear
         is_asdm                       => False
-        msname                        => u-band.ms
-        delay_cal_name                => u-band.dcal
-        bandpass_cal_name             => u-band.bcal
-        gain_cal_name                 => u-band.gcal
-        point_name                    => u-band.point.zarr
-        holog_name                    => u-band.holog.zarr
-        beamcut_name                  => u-band.beamcut.zarr
-        exports_name                  => u-band.exports
-        report_name                   => u-band-report.html
+        ms_name                       => beamcut-u-band.ms
+        delay_cal_name                => beamcut-u-band.dcal
+        bandpass_cal_name             => beamcut-u-band.bcal
+        gain_cal_name                 => beamcut-u-band.gcal
+        point_name                    => beamcut-u-band.point.zarr
+        holog_name                    => beamcut-u-band.holog.zarr
+        beamcut_name                  => beamcut-u-band.beamcut.zarr
+        exports_name                  => beamcut-u-band.exports
+        report_name                   => beamcut-u-band-report.html
         quacked_spw_selection         => 0~7:4~60
-        quacked_base_band_0_selection => 0~3:4~60
-        quacked_base_band_1_selection => 4~7:4~60
-        delay_spwmap                  => [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(4), np.int64(4), np.int64(4), np.int64(4), np.int64(0), np.int64(0)]
-        full_spwmap                   => [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9)]
         calibration_scans             => 2,5,10,15
         beamcut_scans                 => 8,13
         parallel                      => True
@@ -138,7 +138,7 @@ The check before proceeding can be suppressed by adding the ``-y`` option to the
 
 .. code-block::
 
-    CASA <4>: !beamcut-reduction-pipeline u-band.ms ea23 -y
+    CASA <3>: !beamcut-reduction-pipeline u-band.ms ea23 -y
 
 The code will then proceed through the calibration steps:
 

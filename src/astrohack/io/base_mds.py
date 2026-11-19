@@ -446,5 +446,7 @@ def _consolidate_a_level(key_path: str, zarr_format: int):
         del this_lvl_xdt
         this_zarr_group = zarr.open(key_path, mode="r+")
         zarr.consolidate_metadata(this_zarr_group.store)
+    elif "zarr.json" in key_path:
+        pass
     else:
         logger.warning(f"There is an unexpected entity at {key_path}")

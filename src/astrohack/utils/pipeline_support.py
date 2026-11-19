@@ -272,8 +272,8 @@ def asdm_test_and_import(
     param_dict["is_asdm"] = file_is_asdm(param_dict["filename"])
 
     if param_dict["is_asdm"]:
-        param_dict["msname"] = f"{base_name}.ms"
-        if pathlib.Path(param_dict["msname"]).is_dir():
+        param_dict["ms_name"] = f"{base_name}.ms"
+        if pathlib.Path(param_dict["ms_name"]).is_dir():
             execute_import = param_dict["reimport_asdm"]
         else:
             execute_import = True
@@ -281,7 +281,7 @@ def asdm_test_and_import(
             msger.one_liner("Input is an ASDM, importing it...")
             base_param_dict = {
                 "asdm": param_dict["filename"],
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "overwrite": param_dict["overwrite"],
             }
             if for_holography:
@@ -290,7 +290,7 @@ def asdm_test_and_import(
                         "ocorr_mode": "co",
                         "asis": "Receiver CalAtmosphere",
                         "savecmds": True,
-                        "outfile": f"{param_dict['msname']}.online-flags.txt",
+                        "outfile": f"{param_dict['ms_name']}.online-flags.txt",
                         "with_pointing_correction": True,
                         "applyflags": True,
                     }
@@ -304,7 +304,7 @@ def asdm_test_and_import(
         else:
             msger.one_liner("ASDM already imported, skipping import.")
     else:
-        param_dict["msname"] = param_dict["filename"]
+        param_dict["ms_name"] = param_dict["filename"]
 
     return param_dict
 
@@ -349,9 +349,9 @@ def add_basic_info_and_parameters_to_report(param_dict: dict):
         make_dict_str_simple(param_dict), "Pipeline parameters:"
     )
 
-    if casatools_available and Path(param_dict["msname"]).is_dir():
+    if casatools_available and Path(param_dict["ms_name"]).is_dir():
         msmd = casatools.msmetadata()
-        msmd.open(param_dict["msname"])
+        msmd.open(param_dict["ms_name"])
         timerange = msmd.timerangeforobs(0)
         start_time = timerange["begin"]
         end_time = timerange["end"]
@@ -534,12 +534,12 @@ def basic_holography_parser(pipeline_type: str, stage_choices: list):
     return parser
 
 
-def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
+def fetch_ms_metadata_for_holography(param_dict, pipeline_type):
     import casatools
 
     # Fetch metadata from ms
     msmd = casatools.msmetadata()
-    msmd.open(param_dict["msname"])
+    msmd.open(param_dict["ms_name"])
     cal_scans = msmd.scansforintent("*PHASE*")
     mapping_scans = msmd.scansforintent("*MAP*ON_SOURCE")
     mapping_spw_list = msmd.spwsforintent("*MAP*")
@@ -608,19 +608,20 @@ def fetch_ms_metadata_for_holograpy(param_dict, pipeline_type):
         for base_band_str in base_band_strs:
             quacked_base_bands.append(f"{base_band_str}:{fchan}~{lchan}")
 
-    param_dict["quacked_base_band_selection"] = quacked_base_bands
-    delay_spwmap = []
-    full_spwmap = []
-    for i_spw in all_spw_list:
-        if np.any(i_spw == np.array(base_bands)):
-            for ibase, base_band in enumerate(base_bands):
-                if i_spw in base_band:
-                    delay_spwmap.append(np.min(base_band))
-        else:
-            delay_spwmap.append(np.min(base_bands))
-        full_spwmap.append(i_spw)
-    param_dict["delay_spwmap"] = delay_spwmap
-    param_dict["full_spwmap"] = full_spwmap
+    if pipeline_type == "holography":
+        param_dict["quacked_base_band_selection"] = quacked_base_bands
+        delay_spwmap = []
+        full_spwmap = []
+        for i_spw in all_spw_list:
+            if np.any(i_spw == np.array(base_bands)):
+                for ibase, base_band in enumerate(base_bands):
+                    if i_spw in base_band:
+                        delay_spwmap.append(np.min(base_band))
+            else:
+                delay_spwmap.append(np.min(base_bands))
+            full_spwmap.append(i_spw)
+        param_dict["delay_spwmap"] = delay_spwmap
+        param_dict["full_spwmap"] = full_spwmap
 
     # Convert to comma-separated string
     param_dict["calibration_scans"] = ",".join(map(str, cal_scans))
@@ -670,7 +671,7 @@ def common_parameter_initialization_for_holography(
             raise RuntimeError(
                 "Reference antenna must be specified when starting from calibration"
             )
-        param_dict = fetch_ms_metadata_for_holograpy(param_dict, pipeline_type)
+        param_dict = fetch_ms_metadata_for_holography(param_dict, pipeline_type)
 
     param_dict["antenna"] = parse_list_or_all(param_dict, "antenna")
     param_dict["spw"] = parse_list_or_all(param_dict, "spw", list_type=int)

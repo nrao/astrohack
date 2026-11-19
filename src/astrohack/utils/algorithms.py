@@ -5,7 +5,7 @@ import scipy.signal as scisig
 import toolviper.utils.logger as logger
 import xarray as xr
 from numba import njit
-from scipy.spatial import distance_matrix
+from scipy.spatial.distance import cdist
 
 from astrohack.utils.constants import njit_caching, pi, twopi
 from astrohack.utils.conversion import convert_unit
@@ -618,7 +618,7 @@ def compute_antenna_baseline_distance_matrix_dict(ant_pos, ant_names):
     """
     pos_df = pd.DataFrame(ant_pos, columns=["x", "y", "z"], index=ant_names)
     dist_mat_df = pd.DataFrame(
-        distance_matrix(pos_df.values, pos_df.values),
+        cdist(pos_df.values, pos_df.values),
         index=pos_df.index,
         columns=pos_df.index,
     )

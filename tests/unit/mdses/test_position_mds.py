@@ -100,6 +100,18 @@ class TestPositionMDS:
                     f"{self.destination_folder}/{parminator_filename}",
                     f"{self.ref_products_name}/{parminator_filename}",
                 ), f"{parminator_filename} differs from reference file."
+
+            weblog_filename = f"weblog_{label}_combination.txt"
+            position_mds.export_results_for_weblog(
+                f"{self.destination_folder}/{weblog_filename}",
+                ddi=0,  # DDI specified for the no comb case
+            )
+            if not produce_reference_data():
+                assert are_txt_files_equal(
+                    f"{self.destination_folder}/{weblog_filename}",
+                    f"{self.ref_products_name}/{weblog_filename}",
+                ), f"{weblog_filename} differs from reference file."
+
         return
 
     @pytest.mark.skip(

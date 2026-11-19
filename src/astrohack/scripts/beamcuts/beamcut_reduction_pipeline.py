@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 
 from astrohack import (
     beamcut,
@@ -72,7 +73,7 @@ def run_casa_calibration(param_dict, msger):
     delay_ok = run_casatask(
         "gaincal",
         {
-            "vis": param_dict["msname"],
+            "vis": param_dict["ms_name"],
             "caltable": param_dict["delay_cal_name"],
             "refant": param_dict["refant"],
             "solint": "inf",
@@ -90,7 +91,7 @@ def run_casa_calibration(param_dict, msger):
         bandpass_ok = run_casatask(
             "bandpass",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "caltable": param_dict["bandpass_cal_name"],
                 "refant": param_dict["refant"],
                 "solint": "10s",
@@ -111,7 +112,7 @@ def run_casa_calibration(param_dict, msger):
         gaincal_ok = run_casatask(
             "gaincal",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "caltable": param_dict["gain_cal_name"],
                 "refant": param_dict["refant"],
                 "calmode": "ap",
@@ -134,7 +135,7 @@ def run_casa_calibration(param_dict, msger):
         run_casatask(
             "applycal",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "field": f"{param_dict['beamcut_field']}",
                 "spw": param_dict["quacked_spw_selection"],
                 "applymode": "calonly",
@@ -146,13 +147,12 @@ def run_casa_calibration(param_dict, msger):
     return
 
 
-def run_astrohack_reduction(param_dict, msger):
+def run_astrohack_reduction(input_param_dict, msger):
     # Astrohack convenience changes
+    param_dict = deepcopy(input_param_dict)
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
-
-    param_dict["ms_name"] = param_dict["msname"]
 
     status = True
     exec_exception = None
@@ -162,14 +162,14 @@ def run_astrohack_reduction(param_dict, msger):
         ["exports", beamcut],
     ]
     for next_stage, function in exec_list:
-        if status and param_dict["processing_stage"] == function.__name__:
+        if status and input_param_dict["processing_stage"] == function.__name__:
             status, exec_exception = run_astrohack_function(
                 param_dict,
                 function,
                 msger,
             )
             if status:
-                param_dict["processing_stage"] = next_stage
+                input_param_dict["processing_stage"] = next_stage
 
     if not status:
         raise RuntimeError(
@@ -179,7 +179,8 @@ def run_astrohack_reduction(param_dict, msger):
     return
 
 
-def run_astrohack_exports(param_dict, msger):
+def run_astrohack_exports(input_param_dict, msger):
+    param_dict = deepcopy(input_param_dict)
     param_dict["destination"] = param_dict["exports_name"]
     pnt_mds = open_astrohack_file(open_pointing, param_dict["point_name"])
     bmc_mds = open_astrohack_file(open_beamcut, param_dict["beamcut_name"])

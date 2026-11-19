@@ -275,5 +275,33 @@
             ],
             "min": 0
         }
+    },
+    "AstrohackPositionFile.export_results_for_weblog": {
+        "filename": {
+            "nullable": false,
+            "required": true,
+            "type": [
+                "string"
+            ]
+        },
+        "ant": {
+            "nullable": false,
+            "required": false,
+            "struct_type": [
+                "str"
+            ],
+            "minlength": 1,
+            "type": [
+                "string",
+                "list"
+            ]
+        },
+        "ddi": {
+            "nullable": true,
+            "required": false,
+            "type": [
+                "int"
+            ]
+        }
     }
 }

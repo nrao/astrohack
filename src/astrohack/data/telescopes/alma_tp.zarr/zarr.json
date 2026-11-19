@@ -1,0 +1,128 @@
+{
+  "attributes": {
+    "diameter": 12.0,
+    "antenna_list": [],
+    "file_name": "alma_tp.zarr",
+    "file_path": "/Users/vdesouza/work/Holography/astrohack/src/astrohack/data/telescopes",
+    "array_center": {
+      "m0": {
+        "unit": "rad",
+        "value": -1.1825465955049892
+      },
+      "m1": {
+        "unit": "rad",
+        "value": -0.4018251640113072
+      },
+      "m2": {
+        "unit": "m",
+        "value": 5056.8
+      },
+      "refer": "WGS84",
+      "valid": true
+    },
+    "comment": "Preliminary data for ALMA total power Melco antennas. Diameter, focus, magnification and secondary distance taken from ALMA memo 339. n_panel_per_ring, n_rings_of_panels and inner_radial_limit from ALMA cycle 9 technical handbook. panel_inner_radii and panel_outer_radii fetched from the CLIC (GILDAS) script for ALMA holography (J. Magnum, private communication). surp_slope assumed to be zero. Numbering of panels and screw positions taken from ALMA Holography memo: Baars, Lucas & Mangum 2004, Array center location from CASA 6.5.5.21",
+    "inner_radial_limit": 0.375,
+    "outer_radial_limit": 6,
+    "name": "ALMA TP",
+    "el_axis_offset": null,
+    "station_distance_dict": {
+      "TF01": [
+        350.017,
+        0.0785
+      ],
+      "TF02": [
+        326.2315,
+        0.0843
+      ],
+      "TF03": [
+        302.4815,
+        0.091
+      ],
+      "TF04": [
+        278.8015,
+        0.0988
+      ],
+      "TF05": [
+        355.107,
+        0.0773
+      ],
+      "TF06": [
+        331.3275,
+        0.0829
+      ],
+      "TF07": [
+        307.921,
+        0.0894
+      ],
+      "TF08": [
+        323.6675,
+        0.0849
+      ],
+      "TF09": [
+        340.1915,
+        0.0808
+      ],
+      "TF10": [
+        365.8975,
+        0.075
+      ]
+    },
+    "gain_wavelengths": null,
+    "panel_inner_radii": [
+      0.375,
+      0.770582,
+      1.715753,
+      2.621734,
+      3.521014,
+      4.393722,
+      5.237261
+    ],
+    "panel_outer_radii": [
+      0.770582,
+      1.715753,
+      2.621734,
+      3.521014,
+      4.393722,
+      5.237261,
+      6.0
+    ],
+    "focus": 4.800000000000001,
+    "arm_shadow_rotation": null,
+    "arm_shadow_width": null,
+    "magnification": 20.0,
+    "n_panel_per_ring": [
+      5,
+      20,
+      20,
+      40,
+      40,
+      40,
+      40
+    ],
+    "panel_numbering": "sector, counterclockwise, right",
+    "screw_description": [
+      "il",
+      "ir",
+      "ol",
+      "or",
+      "c"
+    ],
+    "screw_offset": null,
+    "secondary_distance_to_focus": 0.294,
+    "secondary_support_shape": null,
+    "surp_slope": 0.0,
+    "n_rings_of_panels": 7,
+    "_panel_label": null,
+    "el_axis_off": 2.01,
+    "onaxisoptics": true,
+    "ringed": true,
+    "secondary_support": "+"
+  },
+  "zarr_format": 3,
+  "consolidated_metadata": {
+    "kind": "inline",
+    "must_understand": false,
+    "metadata": {}
+  },
+  "node_type": "group"
+}

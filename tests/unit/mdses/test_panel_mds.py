@@ -122,7 +122,6 @@ class TestpanelMDS:
                 f"{self.destination_folder}/{obs_summ_file_name}",
                 f"{self.ref_products_name}/{obs_summ_file_name}",
             ), "Observation summary is different from reference"
-
         return
 
     def test_plot_exports(self):
@@ -144,5 +143,5 @@ class TestpanelMDS:
             assert are_txt_files_equal(
                 f"{self.destination_folder}/{screws_file_name}",
                 f"{self.ref_products_name}/{screws_file_name}",
-            ), "Observation summary is different from reference"
+            ), "Screw correction list is different from reference"
         return

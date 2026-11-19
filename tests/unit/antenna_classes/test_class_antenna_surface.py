@@ -63,9 +63,9 @@ class TestClassAntennaSurface:
         Tests the initialization of a AntennaSurface object
         """
         assert np.isnan(self.tant.in_rms), "RMS is not properly initialized"
-        assert np.isnan(self.tant.ingains), "Gains are not properly initialized"
+        assert np.isnan(self.tant.in_gains), "Gains are not properly initialized"
         assert self.tant.telescope.ringed, "Currently only ringed telescopes supported"
-        assert self.tant.panelmodel == "rigid", "Default panel kind should be rigid"
+        assert self.tant.panel_model == "rigid", "Default panel kind should be rigid"
         # Tests _build_polar
         assert self.tant.rad.shape == self.datashape, (
             "Radius image does not have the expected dimensions"

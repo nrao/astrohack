@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,7 @@ from astrohack import (
     panel,
 )
 from astrohack.antenna.panel_fitting import PANEL_MODEL_DICT
+from astrohack.utils.constants import length_units
 from astrohack.utils.pipeline_support import (
     MessageBoard,
     add_basic_info_and_parameters_to_report,
@@ -122,10 +124,57 @@ def parse(pipeline_type: str, stages: list):
     )
 
     parser.add_argument(
+        "--deviation-limits",
+        default=2,
+        type=float,
+        help=(
+            "Limits for the Z scale in the aperture deviation maps in the chosen unit, the applied limits will be "
+            "symmetrical about zero so a value of 2 means a limit of -2 to 2, default is %(default)s"
+        ),
+    )
+
+    parser.add_argument(
+        "--deviation-unit",
+        default="mm",
+        type=str,
+        choices=length_units,
+        help="Define the unit of the aperture deviation maps, default is %(default)s",
+    )
+
+    parser.add_argument(
+        "--amplitude-colormap",
+        default="viridis",
+        type=str,
+        help="Colormap to use for amplitude plots (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--phase-like-colormap",
+        default="RdBu_r",
+        type=str,
+        help="Colormap to use for phase like plots (e.g.: phase, surface deviation, etc) (default is %(default)s)",
+    )
+
+    parser.add_argument(
         "-u",
         "--screw-unit",
         default="mils",
+        choices=length_units,
         help="Unit to present screw adjustments (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--threshold",
+        default=15.0,
+        type=float,
+        help="Threshold above which to include panel screws in --screw-unit (default is %(default)s)",
+    )
+
+    parser.add_argument(
+        "--combined_threshold",
+        default=45.0,
+        type=float,
+        help="Threshold on the sum of all panel screws in a panel in --screw-unit (default is %(default)s)",
     )
 
     return vars(parser.parse_args())
@@ -158,6 +207,8 @@ def param_init(pipeline_type: str, msger: MessageBoard):
     )
 
     # extra parameter initialization comes here
+    user_dev_lim = param_dict["deviation_limits"]
+    param_dict["deviation_limits"] = [-user_dev_lim, user_dev_lim]
 
     initialization_check(
         param_dict, f"{pipeline_type.capitalize()} reduction parameters"
@@ -175,7 +226,7 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
             run_casatask(
                 "gaincal",
                 {
-                    "vis": param_dict["msname"],
+                    "vis": param_dict["ms_name"],
                     "caltable": param_dict["delay_cal_name"],
                     "refant": param_dict["refant"],
                     "solint": "10s",
@@ -206,7 +257,7 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
         bandpass_ok = run_casatask(
             "bandpass",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "caltable": param_dict["bandpass_cal_name"],
                 "refant": param_dict["refant"],
                 "solint": "inf",
@@ -229,7 +280,7 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
         gaincal_ok = run_casatask(
             "gaincal",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "caltable": param_dict["gain_cal_name"],
                 "refant": param_dict["refant"],
                 "calmode": "ap",
@@ -254,7 +305,7 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
         run_casatask(
             "applycal",
             {
-                "vis": param_dict["msname"],
+                "vis": param_dict["ms_name"],
                 "field": f"{param_dict['holography_field']}",
                 "spw": param_dict["quacked_spw_selection"],
                 "applymode": "calonly",
@@ -267,12 +318,12 @@ def run_casa_calibration(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
+def run_astrohack_reduction(input_param_dict: dict, msger: MessageBoard):
     # Astrohack convenience changes
+    param_dict = deepcopy(input_param_dict)
     param_dict["ant"] = param_dict["antenna"]
     param_dict["ddi"] = param_dict["spw"]
     param_dict["exclude_antennas"] = param_dict["exclude_bad_antennas"]
-    param_dict["ms_name"] = param_dict["msname"]
     if param_dict["use_zernike_phase_fitting"]:
         param_dict["phase_fit_engine"] = "zernike"
     else:
@@ -290,8 +341,11 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
     ]
 
     for next_stage, function in exec_list:
-        if status and param_dict["processing_stage"] == function.__name__:
-            if param_dict["processing_stage"] == "panel" and param_dict["combine"]:
+        if status and input_param_dict["processing_stage"] == function.__name__:
+            if (
+                input_param_dict["processing_stage"] == "panel"
+                and param_dict["combine"]
+            ):
                 param_dict["image_name"] = param_dict["combine_name"]
 
             status, exec_exception = run_astrohack_function(
@@ -299,7 +353,10 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
                 function,
                 msger,
             )
-            if param_dict["processing_stage"] == "holog" and param_dict["combine"]:
+            if (
+                input_param_dict["processing_stage"] == "holog"
+                and param_dict["combine"]
+            ):
                 status, exec_exception = run_astrohack_function(
                     param_dict,
                     combine,
@@ -307,8 +364,8 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
                 )
 
             if status:
-                param_dict["processing_stage"] = next_stage
-    param_dict["image_name"] = bckp_img_name
+                input_param_dict["processing_stage"] = next_stage
+    input_param_dict["image_name"] = bckp_img_name
     if not status:
         raise RuntimeError(
             f"{param_dict['processing_stage']} failed, see above for details."
@@ -317,7 +374,9 @@ def run_astrohack_reduction(param_dict: dict, msger: MessageBoard):
     return
 
 
-def run_astrohack_exports(param_dict: dict, msger: MessageBoard):
+def run_astrohack_exports(input_param_dict: dict, msger: MessageBoard):
+    param_dict = deepcopy(input_param_dict)
+
     param_dict["destination"] = param_dict["exports_name"]
     # This key forces pnl_mds.plot_antennas to do all aperture plots
     param_dict["plot_type"] = "all"
@@ -483,7 +542,7 @@ def prepare_html_report(param_dict: dict, msger: MessageBoard):
                 heading_level=3,
             )
             screw_block += add_preformatted_text_file_to_html(
-                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}.txt",
+                f"{exports_name}/panel_screws_{ant_key}_{ddi_key}_filtered.txt",
                 "Full list of screw corrections",
                 heading_level=3,
             )

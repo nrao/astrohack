@@ -461,9 +461,11 @@ def _match_visibilities_to_time_bins(
 
         for refant_id in refant_ids:
             ant_select = np.logical_or(
-                np.logical_and(ant1 == ant_id, ant2 == refant_id),
-                np.logical_and(ant2 == ant_id, ant1 == refant_id),
                 ant_select,
+                np.logical_or(
+                    np.logical_and(ant1 == ant_id, ant2 == refant_id),
+                    np.logical_and(ant2 == ant_id, ant1 == refant_id),
+                ),
             )
 
         ant2_selected = ant2[ant_select]

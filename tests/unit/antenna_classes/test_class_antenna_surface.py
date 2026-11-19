@@ -101,7 +101,7 @@ class TestClassAntennaSurface:
         self.tant.fit_surface()
         panel_fit_res = []
         for panel in self.tant.panels:
-            panel_fit_res.append(panel.model.parameters.tolist())
+            panel_fit_res.append(np.asarray(panel.model.parameters).tolist())
 
         assert len(self.tant.panels[0].model.parameters) == expected_len, (
             "Fitted results have a different length from reference"
